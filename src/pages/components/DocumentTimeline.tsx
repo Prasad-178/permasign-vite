@@ -1,6 +1,6 @@
 import React from "react";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../../components/ui/badge";
 
 // Define the document type based on your data structure
 interface Document {

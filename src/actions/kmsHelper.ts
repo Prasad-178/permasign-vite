@@ -1,4 +1,4 @@
-import { type DecryptKmsApiResponse, type DecryptKmsApiInput, type DecryptKmsSuccessData } from '../types/types'; // Assuming types are in app/types.ts
+import { type DecryptKmsApiResponse, type DecryptKmsApiInput } from '../types/types'; // Assuming types are in app/types.ts
 
 // Re-use API root configuration.
 // It's good practice to use an environment variable for this.

@@ -3,13 +3,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "../../components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
 import { Loader2, FileText } from "lucide-react";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 
 interface DocumentSigningModalProps {
   isOpen: boolean;
@@ -78,7 +78,7 @@ export default function DocumentSigningModal({
   const isPdf = contentType === "application/pdf";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
       <DialogContent className="max-w-[95vw] lg:max-w-[90vw] xl:max-w-[1400px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Sign Document: {documentName}</DialogTitle>
@@ -133,7 +133,7 @@ export default function DocumentSigningModal({
                   <Input
                     id="signer-name"
                     value={signerName}
-                    onChange={(e) => setSignerName(e.target.value)}
+                    onChange={(e: any) => setSignerName(e.target.value)}
                     placeholder="Type your full name here"
                     className="w-full"
                     disabled={isSigning}

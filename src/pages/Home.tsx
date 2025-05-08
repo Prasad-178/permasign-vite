@@ -1,21 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useState, useEffect } from 'react';
-
-import { Vault, Fingerprint, Users, Lock, History } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import { Fingerprint, Lock, History } from "lucide-react";
 
 // Set the worker source for PDF.js
 
 export default function Home() {
-    const [isClient, setIsClient] = useState(false);
-
-    // Use useEffect to ensure PDF rendering only happens client-side
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
     return (
         <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-background to-secondary/20 p-4 md:p-8 pb-16">
 

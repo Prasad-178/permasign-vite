@@ -1,4 +1,4 @@
-import { RecordMetadata } from "@pinecone-database/pinecone";
+import { type RecordMetadata } from "@pinecone-database/pinecone";
 
 export interface ActionResult<T> {
   success: boolean; // Explicit success/failure flag

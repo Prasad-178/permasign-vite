@@ -235,6 +235,7 @@ export async function addMemberFormAdapter(
   prevState: ModifyMemberResult | null,
   formData: FormData
 ): Promise<ModifyMemberResult> {
+  prevState=prevState;
   const input: AddMemberInput = {
     roomId: formData.get("roomId") as string,
     callerEmail: formData.get("callerEmail") as string,
@@ -259,6 +260,7 @@ export async function removeMemberFormAdapter(
   prevState: ModifyMemberResult | null,
   formData: FormData
 ): Promise<ModifyMemberResult> {
+  prevState=prevState;
   const input: RemoveMemberInput = {
     roomId: formData.get("roomId") as string,
     callerEmail: formData.get("callerEmail") as string,
@@ -487,6 +489,7 @@ export async function uploadDocumentFormAdapter(
   prevState: UploadDocumentResult | null,
   formData: FormData
 ): Promise<UploadDocumentResult> {
+  prevState=prevState;
   const roomId = formData.get("roomId") as string;
   const uploaderEmail = formData.get("uploaderEmail") as string;
   const documentFile = formData.get("documentFile") as File | null;

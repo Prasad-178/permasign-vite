@@ -5,7 +5,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import RequireLogin from "../components/RequireLogin";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -14,14 +14,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
-import { Send, MessageSquare, MessageSquareCode, Fingerprint, CalendarDays, UserCircle, BadgeInfo, Sparkles, Video, BadgeDollarSign, Copy, RefreshCw, UserPlus, Trash2, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal } from "lucide-react";
+import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UserPlus, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { format } from 'date-fns';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
-import { type RoomDetails, type RoomRole, type DocumentCategory, documentCategories, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, ACCEPTED_FILE_TYPES, ACCEPTED_FILE_TYPES_STRING, roleSpecificCategories, documentFolders } from "../types/types";
+import { type RoomDetails, type RoomRole, type DocumentCategory, documentCategories, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, roleSpecificCategories, documentFolders } from "../types/types";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
 import { X } from "lucide-react";
@@ -47,7 +47,6 @@ import {
 
 export default function RoomDetailsPage() {
   const params = useParams();
-  const navigate = useNavigate();
   const api = useApi();
   const activeAddress = useActiveAddress();
   const connected = useConnection().connected;
@@ -64,7 +63,6 @@ export default function RoomDetailsPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const [isViewingDoc, setIsViewingDoc] = useState<string | null>(null);
   const [isDownloadingDoc, setIsDownloadingDoc] = useState<string | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState(false);
 
   const uploadFormRef = useRef<HTMLFormElement>(null);
@@ -83,6 +81,10 @@ export default function RoomDetailsPage() {
     null
   );
 
+  useEffect(() => {
+
+  }, [isUploadPending, isAddMemberPending, isRemoveMemberPending])
+
   const [selectedDocument, setSelectedDocument] = useState<RoomDocument | null>(null);
   const [viewerDocuments, setViewerDocuments] = useState<any[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -100,6 +102,10 @@ export default function RoomDetailsPage() {
   const [signingDocumentData, setSigningDocumentData] = useState<string | null>(null);
   const [signingDocumentName, setSigningDocumentName] = useState<string>("");
   const [signingDocumentType, setSigningDocumentType] = useState<string>("");
+
+  useEffect(() => {
+
+  }, [setSigningDocumentName, setSigningDocumentType])
 
   useEffect(() => {
     const getOthentEmail = async () => {
@@ -401,9 +407,9 @@ export default function RoomDetailsPage() {
   const isFounder = currentUserRole === 'founder';
   const isCFO = currentUserRole === 'cfo';
   const isInvestor = currentUserRole === 'investor';
-  const isAuditor = currentUserRole === 'auditor';
+  // const isAuditor = currentUserRole === 'auditor';
 
-  const canUpload = true;
+  // const canUpload = true;
   const canManageMembers = isFounder || isCFO;
   const canAddCFO = isFounder;
   const canAddInvestor = isFounder || isCFO;
@@ -411,10 +417,6 @@ export default function RoomDetailsPage() {
   const canAddCustomer = isFounder || isCFO;
   const canAddVendor = isFounder || isCFO;
   const canAddAnyMember = canAddCFO || canAddInvestor || canAddAuditor || canAddCustomer || canAddVendor;
-
-  const filteredDocuments = documents.filter(doc =>
-    selectedCategories.length === 0 || selectedCategories.includes(doc.category)
-  );
 
   useEffect(() => {
     const fetchUserPlan = async () => {
@@ -525,42 +527,42 @@ export default function RoomDetailsPage() {
     }
   };
 
-  const openSigningModal = async (documentId: string) => {
-    const docToSign = documents.find(doc => doc.documentId === documentId);
-    if (!docToSign) {
-      toast.error("Document not found");
-      return;
-    }
+  // const openSigningModal = async (documentId: string) => {
+  //   const docToSign = documents.find(doc => doc.documentId === documentId);
+  //   if (!docToSign) {
+  //     toast.error("Document not found");
+  //     return;
+  //   }
 
-    setSigningDocumentId(documentId);
-    setSigningDocumentName(docToSign.originalFilename);
-    setSigningDocumentType(docToSign.contentType);
-    setIsSigningModalOpen(true);
+  //   setSigningDocumentId(documentId);
+  //   setSigningDocumentName(docToSign.originalFilename);
+  //   setSigningDocumentType(docToSign.contentType);
+  //   setIsSigningModalOpen(true);
 
-    setSigningDocumentData(null);
-    try {
-         const decryptedKey = await getDecryptedRoomKey();
-         if (!decryptedKey) {
-              throw new Error("Failed to obtain decrypted room key for preview.");
-         }
+  //   setSigningDocumentData(null);
+  //   try {
+  //        const decryptedKey = await getDecryptedRoomKey();
+  //        if (!decryptedKey) {
+  //             throw new Error("Failed to obtain decrypted room key for preview.");
+  //        }
 
-        console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
-        const result = await retrieveAndDecrypt(documentId, decryptedKey);
+  //       console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
+  //       const result = await retrieveAndDecrypt(documentId, decryptedKey);
 
-      if (result.success && result.data) {
-        setSigningDocumentData(result.data.decryptedData);
-      } else {
-        toast.error(`Failed to load document preview: ${result.error || result.message}`);
-        setSigningDocumentData(null);
-      }
-    } catch (error: any) {
-      console.error("Error loading document for signing:", error);
-      if (!error.message.includes("decrypted room key")) {
-        toast.error(`Error loading document preview: ${error.message || "Unknown error"}`);
-      }
-      setSigningDocumentData(null);
-    }
-  };
+  //     if (result.success && result.data) {
+  //       setSigningDocumentData(result.data.decryptedData);
+  //     } else {
+  //       toast.error(`Failed to load document preview: ${result.error || result.message}`);
+  //       setSigningDocumentData(null);
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Error loading document for signing:", error);
+  //     if (!error.message.includes("decrypted room key")) {
+  //       toast.error(`Error loading document preview: ${error.message || "Unknown error"}`);
+  //     }
+  //     setSigningDocumentData(null);
+  //   }
+  // };
 
   if (isLoadingDetails) {
     return <CustomLoader text="Loading company details..." />;
@@ -815,13 +817,13 @@ export default function RoomDetailsPage() {
                           <h3 className="font-medium mb-3 text-sm">All Documents</h3>
                           {documentFolders.map(folder => {
                             const uniqueDocIds = new Set();
-                            const folderDocs = documents.filter(doc => {
-                              if (folder.categories.includes(doc.category)) {
-                                uniqueDocIds.add(doc.documentId);
-                                return true;
-                              }
-                              return false;
-                            });
+                            // const folderDocs = documents.filter(doc => {
+                            //   if (folder.categories.includes(doc.category)) {
+                            //     uniqueDocIds.add(doc.documentId);
+                            //     return true;
+                            //   }
+                            //   return false;
+                            // });
                             const uniqueDocCount = uniqueDocIds.size;
 
                             return (
@@ -1422,32 +1424,4 @@ function formatFileSize(bytes: number) {
   else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   else if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   else return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-}
-
-function str2ab(str: string) {
-  const buf = new ArrayBuffer(str.length);
-  const bufView = new Uint8Array(buf);
-  for (let i = 0, strLen = str.length; i < strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-  return buf;
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
-
-function base64ToUint8Array(base64String: string) {
-  const binaryString = atob(base64String);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
 }
