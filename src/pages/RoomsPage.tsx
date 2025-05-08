@@ -3,14 +3,14 @@
 
 import { useState, useEffect } from 'react';
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react'; // Import AWK hooks
-import RequireLogin from "@/components/RequireLogin"; // Adjusted path if necessary
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import RequireLogin from "../components/RequireLogin"; // Adjusted path if necessary
+import { Button } from "../components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
 import { Link } from "react-router-dom"; // Changed from next/link
 import { PlusCircle, ArrowRight, AlertCircle } from "lucide-react";
 import { listMyDataRooms } from '../services/roomActionsClient'; // Adjusted path if necessary
-import { CustomLoader } from '@/components/ui/CustomLoader';
-import { RoomInfo } from '../types/types'; // Adjusted path if necessary
+import { CustomLoader } from '../components/ui/CustomLoader';
+import { type RoomInfo } from '../types/types'; // Adjusted path if necessary
 
 export default function RoomsPage() {
   const api = useApi();

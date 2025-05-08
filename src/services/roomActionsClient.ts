@@ -1,4 +1,4 @@
-import { ActionResult, RoomInfo, CreateRoomInput, CreateRoomResult, AddMemberInput, RemoveMemberInput, ModifyMemberResult, RoomRole, GetRoomDetailsResult, RetrieveDocumentApiInput, RetrieveDocumentResult, SignDocumentApiInput, SignDocumentResult, UploadDocumentApiInput, UploadDocumentResult, DocumentCategory } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type DocumentCategory } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.

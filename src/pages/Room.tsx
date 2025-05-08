@@ -7,13 +7,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import RequireLogin from "../components/RequireLogin";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
 import { Send, MessageSquare, MessageSquareCode, Fingerprint, CalendarDays, UserCircle, BadgeInfo, Sparkles, Video, BadgeDollarSign, Copy, RefreshCw, UserPlus, Trash2, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
@@ -21,9 +21,9 @@ import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { format } from 'date-fns';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
-import { RoomDetails, RoomRole, DocumentCategory, documentCategories, DocumentInfo, ModifyMemberResult, UploadDocumentResult, RetrieveDocumentResult, RoomDocument, GetRoomDetailsResult, MAX_FILE_SIZE, ACCEPTED_FILE_TYPES, ACCEPTED_FILE_TYPES_STRING, roleSpecificCategories, documentFolders } from "../types/types";
+import { type RoomDetails, type RoomRole, type DocumentCategory, documentCategories, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, ACCEPTED_FILE_TYPES, ACCEPTED_FILE_TYPES_STRING, roleSpecificCategories, documentFolders } from "../types/types";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
 import { X } from "lucide-react";
 import DocumentSigningModal from "./components/DocumentSigningModal";
 import UploadSubmitButton from "./components/UploadSubmitButton";
@@ -40,9 +40,9 @@ import {
   uploadDocumentFormAdapter
 } from '../services/roomActionsClient';
 import {
-  RetrieveDocumentApiInput,
-  SignDocumentApiInput,
-  SignDocumentResult
+  type RetrieveDocumentApiInput,
+  type SignDocumentApiInput,
+  type SignDocumentResult
 } from '../types/types';
 
 export default function RoomDetailsPage() {

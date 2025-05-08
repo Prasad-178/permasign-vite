@@ -1,4 +1,4 @@
-import { RouteObject } from "react-router-dom";
+import { type RouteObject } from "react-router-dom";
 import Home from "./pages/Home";
 import HelloWorld from "./pages/HelloWorld";
 import RandomPage from "./pages/RandomPage";

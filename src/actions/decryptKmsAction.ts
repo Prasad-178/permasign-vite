@@ -1,5 +1,5 @@
 // import { decryptWithKms } from './kmsHelper'; // OLD import
-import { ActionResult } from '../types/types'; // ActionResult is still relevant here
+import { type ActionResult } from '../types/types'; // ActionResult is still relevant here
 import { decryptWithKmsViaApi } from './kmsHelper';
 
 /**

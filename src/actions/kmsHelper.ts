@@ -1,4 +1,4 @@
-import { DecryptKmsApiResponse, DecryptKmsApiInput, DecryptKmsSuccessData } from '../types/types'; // Assuming types are in app/types.ts
+import { type DecryptKmsApiResponse, type DecryptKmsApiInput, type DecryptKmsSuccessData } from '../types/types'; // Assuming types are in app/types.ts
 
 // Re-use API root configuration.
 // It's good practice to use an environment variable for this.
@@ -6,14 +6,14 @@ import { DecryptKmsApiResponse, DecryptKmsApiInput, DecryptKmsSuccessData } from
 // Since this helper might be used by Server Actions (running server-side),
 // we can also use a server-side environment variable if NEXT_PUBLIC_ is not appropriate.
 // For simplicity here, we'll assume a general API_ROOT.
-const API_ROOT = process.env.API_ROOT_URL || process.env.NEXT_PUBLIC_API_ROOT;
+const API_ROOT = import.meta.env.VITE_API_ROOT; // Use Vite's way to access env variables
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 let effectiveApiRoot = API_ROOT;
 if (!effectiveApiRoot) {
     console.warn(
-        "API_ROOT_URL or NEXT_PUBLIC_API_ROOT environment variable is not set for kmsHelper. Defaulting to http://localhost:3001 for API calls. " +
-        "Please set this for robust configuration."
+        "VITE_API_ROOT environment variable is not set for kmsHelper. Defaulting to http://localhost:3001 for API calls. " +
+        "Please set this in your .env file (e.g., VITE_API_ROOT=http://localhost:3001) at the project root for robust configuration."
     );
     effectiveApiRoot = "http://localhost:3001";
 }
