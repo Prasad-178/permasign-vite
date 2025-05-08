@@ -37,7 +37,7 @@ export function ThemeToggle() {
     applyTheme(theme);
 
     // Listener for system theme changes
-    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+    const handleSystemThemeChange = (_: MediaQueryListEvent) => {
       if (theme === 'system') {
         applyTheme('system'); // Re-apply system theme to reflect change
       }

@@ -3,7 +3,7 @@ import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoom
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
 // For example, in your .env.local file: VITE_API_ROOT=http://localhost:3001
-const API_ROOT = "https://permasign-backend-production.up.railway.app";
+const API_ROOT = "http://localhost:3001";
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 // Fallback for local development if the environment variable is not set.

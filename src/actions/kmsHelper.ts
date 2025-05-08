@@ -6,7 +6,7 @@ import { type DecryptKmsApiResponse, type DecryptKmsApiInput } from '../types/ty
 // Since this helper might be used by Server Actions (running server-side),
 // we can also use a server-side environment variable if NEXT_PUBLIC_ is not appropriate.
 // For simplicity here, we'll assume a general API_ROOT.
-const API_ROOT = "https://permasign-backend-production.up.railway.app"; // Use Vite's way to access env variables
+const API_ROOT = "http://localhost:3001"; // Use Vite's way to access env variables
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 let effectiveApiRoot = API_ROOT;

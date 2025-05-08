@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ConnectButton } from "@arweave-wallet-kit/react";
-import { ThemeToggle } from "./ThemeToggle";
+// import { ThemeToggle } from "./ThemeToggle";
 
 // A simple placeholder SVG logo. Replace with your actual logo component or SVG.
 const PermaSignLogo = () => (
@@ -23,7 +23,7 @@ export default function Navbar() {
     { type: "route", href: "/rooms", label: "Rooms", customClass: "font-semibold text-primary hover:text-primary/90" },
   ];
 
-  const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string, href: string) => {
+  const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string, _: string) => {
     event.preventDefault();
     
     if (location.pathname === "/") {
