@@ -104,7 +104,8 @@ export default function RoomDetailsPage() {
   const [signingDocumentType, setSigningDocumentType] = useState<string>("");
 
   useEffect(() => {
-
+    // This useEffect was empty, can be kept or removed if not needed for other purposes.
+    // console.log("Signing Document Name/Type updated:", signingDocumentName, signingDocumentType);
   }, [setSigningDocumentName, setSigningDocumentType])
 
   useEffect(() => {
@@ -524,45 +525,47 @@ export default function RoomDetailsPage() {
     } finally {
       console.log(`Clearing isSigningDoc state (was: ${documentId})`);
       setIsSigningDoc(null);
+      // Close modal if it was open and signing is done (modal's responsibility via onSign promise)
     }
   };
 
-  // const openSigningModal = async (documentId: string) => {
-  //   const docToSign = documents.find(doc => doc.documentId === documentId);
-  //   if (!docToSign) {
-  //     toast.error("Document not found");
-  //     return;
-  //   }
+  const openSigningModal = async (documentId: string) => {
+    const docToSign = documents.find(doc => doc.documentId === documentId);
+    if (!docToSign) {
+      toast.error("Document not found");
+      return;
+    }
 
-  //   setSigningDocumentId(documentId);
-  //   setSigningDocumentName(docToSign.originalFilename);
-  //   setSigningDocumentType(docToSign.contentType);
-  //   setIsSigningModalOpen(true);
+    setSigningDocumentId(documentId);
+    setSigningDocumentName(docToSign.originalFilename);
+    setSigningDocumentType(docToSign.contentType);
+    setIsSigningModalOpen(true);
 
-  //   setSigningDocumentData(null);
-  //   try {
-  //        const decryptedKey = await getDecryptedRoomKey();
-  //        if (!decryptedKey) {
-  //             throw new Error("Failed to obtain decrypted room key for preview.");
-  //        }
+    setSigningDocumentData(null);
+    try {
+         const decryptedKey = await getDecryptedRoomKey();
+         if (!decryptedKey) {
+              throw new Error("Failed to obtain decrypted room key for preview.");
+         }
 
-  //       console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
-  //       const result = await retrieveAndDecrypt(documentId, decryptedKey);
+        console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
+        const result = await retrieveAndDecrypt(documentId, decryptedKey);
 
-  //     if (result.success && result.data) {
-  //       setSigningDocumentData(result.data.decryptedData);
-  //     } else {
-  //       toast.error(`Failed to load document preview: ${result.error || result.message}`);
-  //       setSigningDocumentData(null);
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Error loading document for signing:", error);
-  //     if (!error.message.includes("decrypted room key")) {
-  //       toast.error(`Error loading document preview: ${error.message || "Unknown error"}`);
-  //     }
-  //     setSigningDocumentData(null);
-  //   }
-  // };
+      if (result.success && result.data) {
+        setSigningDocumentData(result.data.decryptedData);
+      } else {
+        toast.error(`Failed to load document preview: ${result.error || result.message}`);
+        setSigningDocumentData(null);
+      }
+    } catch (error: any) {
+      console.error("Error loading document for signing:", error);
+      // Avoid showing duplicate toast if getDecryptedRoomKey already showed one
+      if (error.message && !error.message.includes("decrypted room key") && !error.message.includes("obtain decrypted room key")) {
+        toast.error(`Error loading document preview: ${error.message || "Unknown error"}`);
+      }
+      setSigningDocumentData(null);
+    }
+  };
 
   if (isLoadingDetails) {
     return <CustomLoader text="Loading company details..." />;
@@ -1005,11 +1008,11 @@ export default function RoomDetailsPage() {
                                                   <Button
                                                     size="sm"
                                                       className="relative overflow-hidden rounded-full text-xs px-3 py-1 h-auto bg-blue-500 hover:bg-blue-600 text-white hover:text-white min-w-[80px]"
-                                                    onClick={(e) => { e.stopPropagation(); handleSignDocument(selectedDocument.documentId); }}
+                                                    onClick={(e) => { e.stopPropagation(); openSigningModal(selectedDocument.documentId); }}
                                                     disabled={isSigningDoc !== null}
                                                       title="E-Sign this document"
                                                   >
-                                                    {isSigningDoc === selectedDocument.documentId ? (
+                                                    {isSigningDoc === selectedDocument.documentId && isSigningModalOpen ? (
                                                       <Loader2 className="h-4 w-4 animate-spin text-current" />
                                                     ) : (
                                                       'E-Sign'
@@ -1240,10 +1243,10 @@ export default function RoomDetailsPage() {
                                                 <Button
                                                   size="sm"
                                                   className="relative overflow-hidden rounded-full text-xs px-3 py-1 h-auto bg-blue-500 hover:bg-blue-600 text-white hover:text-white min-w-[80px]"
-                                                  onClick={(e) => { e.stopPropagation(); handleSignDocument(doc.documentId); }}
+                                                  onClick={(e) => { e.stopPropagation(); openSigningModal(doc.documentId); }}
                                                   disabled={isSigningDoc !== null}
                                                 >
-                                                  {isSigningDoc === doc.documentId ? (
+                                                  {isSigningDoc === doc.documentId && isSigningModalOpen ? (
                                                     <Loader2 className="h-4 w-4 animate-spin text-current" />
                                                   ) : (
                                                     'E-Sign'

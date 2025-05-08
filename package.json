@@ -24,7 +24,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.508.0",
-    "pdfjs-dist": "^5.2.133",
+    "pdfjs-dist": "3.4.120",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.5.3",
