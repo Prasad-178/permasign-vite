@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"], // This enables dark mode based on the 'dark' class added by next-themes
+  darkMode: "class", // This is crucial!
   content: [
     "./index.html", // Path to your root HTML file
     "./src/**/*.{js,ts,jsx,tsx,html,css}", // Scan all relevant files within the src directory

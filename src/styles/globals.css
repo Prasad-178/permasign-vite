@@ -333,3 +333,7 @@
 .font-signature {
   font-family: 'SignatureFont', cursive;
 }
+
+html {
+  scroll-behavior: smooth;
+}
