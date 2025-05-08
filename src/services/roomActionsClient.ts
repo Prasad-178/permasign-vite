@@ -3,18 +3,11 @@ import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoom
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
 // For example, in your .env.local file: VITE_API_ROOT=http://localhost:3001
-const API_ROOT = import.meta.env.VITE_API_ROOT || "http://localhost:3001";
+const API_ROOT = "https://permasign-backend-production.up.railway.app";
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 // Fallback for local development if the environment variable is not set.
 const effectiveApiRoot = API_ROOT;
-if (import.meta.env.VITE_API_ROOT === undefined && API_ROOT === "http://localhost:3001") {
-    console.warn(
-        "VITE_API_ROOT environment variable is not set. Defaulting to http://localhost:3001 for API calls. " +
-        "Please set this in your .env file (e.g., VITE_API_ROOT=http://localhost:3001) at the project root."
-    );
-    // effectiveApiRoot is already defaulted above, so no need to re-assign unless VITE_API_ROOT was explicitly empty
-}
 
 // Helper function to convert a File to a base64 string
 async function fileToBase64(file: File): Promise<string> {
