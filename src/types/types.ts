@@ -1,5 +1,3 @@
-import { type RecordMetadata } from "@pinecone-database/pinecone";
-
 export interface ActionResult<T> {
   success: boolean; // Explicit success/failure flag
   data?: T;
@@ -161,16 +159,6 @@ export interface RetrieveDocumentResultData {
 }
 export type RetrieveDocumentResult = ActionResult<RetrieveDocumentResultData | null>;
 
-// --- NEW: Interface for Pinecone Chunk Metadata ---
-// This defines the expected structure within Pinecone's metadata field
-export interface PineconeChunkMetadata extends RecordMetadata {
-    documentId: string;
-    originalFilename: string;
-    chunkIndex: number;
-    encryptedChunkText: string; // Base64 encoded encrypted chunk
-    iv: string; // Base64 encoded IV
-    authTag: string; // Base64 encoded AuthTag
-}
 
 // --- NEW: Interface for Retrieve Chunks Action Result ---
 export interface RetrievedChunkInfo {
