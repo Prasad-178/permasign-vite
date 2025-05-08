@@ -22,7 +22,7 @@ export default function Home() {
             <section className="text-center max-w-4xl w-full mb-12 md:mb-16 flex-col justify-center items-center">
                 <div className="flex justify-center mb-3">
                     <img 
-                        src="/permaweb-logo.jpg" 
+                        src="../../public/permaweb-logo.jpg" 
                         alt="PermaSign Logo" 
                         width={100} 
                         height={100} 
