@@ -80,6 +80,11 @@ export interface CreateRoomResult { // This interface should match the object st
   messageId?: string;    // AO message ID, useful for tracking
 }
 
+export interface RoomRoles {
+  roleName: string;
+  isDeletable: boolean;
+}
+
 export interface RoomDetails {
     roomId: string;
     roomName: string;
@@ -89,6 +94,7 @@ export interface RoomDetails {
     roomPubKey?: string;
     encryptedRoomPvtKey: string;
     documentDetails: DocumentInfo[];
+    roomRoles: RoomRoles[];
 }
 export type GetRoomDetailsResult = ActionResult<RoomDetails | null>;
 
@@ -103,6 +109,14 @@ export interface DocumentSignatures {
 
 // Structure for Add/Remove member results
 export interface ModifyMemberResult extends ActionResult<null> { // Typically, no specific data is returned on success beyond a message
+  success: boolean;
+  message?: string;
+  error?: string;
+  messageId?: string; // From AO
+}
+
+// Structure for Add/Remove role results
+export interface ModifyRoleResult extends ActionResult<null> {
   success: boolean;
   message?: string;
   error?: string;
@@ -299,6 +313,20 @@ export interface RemoveMemberInput {
   roomId: string;
   callerEmail: string;
   userToRemoveEmail: string;
+}
+
+// Input for the add role action
+export interface AddRoleInput {
+  roomId: string;
+  callerEmail: string;
+  newRoleName: string;
+}
+
+// Input for the remove role action
+export interface DeleteRoleInput {
+  roomId: string;
+  callerEmail: string;
+  roleNameToDelete: string;
 }
 
 // --- Retrieve Document Types ---

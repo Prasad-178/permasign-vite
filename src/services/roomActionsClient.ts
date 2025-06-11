@@ -1,9 +1,10 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type DocumentCategory } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type DocumentCategory, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
 // For example, in your .env.local file: VITE_API_ROOT=http://localhost:3001
-const API_ROOT = "https://permasign-backend-production.up.railway.app";
+// const API_ROOT = "https://permasign-backend-production.up.railway.app";
+const API_ROOT = "http://localhost:3001";
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 // Fallback for local development if the environment variable is not set.
@@ -528,6 +529,134 @@ export async function uploadDocumentFormAdapter(
       data: null
     };
   }
+}
+
+/**
+ * Client-side function to add a role to a room by calling the external API.
+ * @param input Data required to add a role.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function addRoleClientAction(
+  input: AddRoleInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Adding role ${input.newRoleName} to room ${input.roomId} via API`);
+  
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/create-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during add role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Add role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in addRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to add role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Client-side function to delete a role from a room by calling the external API.
+ * @param input Data required to delete a role.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function deleteRoleClientAction(
+  input: DeleteRoleInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Deleting role ${input.roleNameToDelete} from room ${input.roomId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/delete-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during delete role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to delete role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Delete role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in deleteRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to delete role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+// Adapter function for useActionState with addRoleClientAction
+export async function addRoleFormAdapter(
+  prevState: ModifyRoleResult | null,
+  formData: FormData
+): Promise<ModifyRoleResult> {
+  prevState=prevState;
+  const input: AddRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    newRoleName: (formData.get("newRoleName") as string || "").trim(),
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.newRoleName) {
+    return { success: false, error: "Client validation: Missing required fields." };
+  }
+
+  return addRoleClientAction(input);
+}
+
+// Adapter function for useActionState with deleteRoleClientAction
+export async function deleteRoleFormAdapter(
+  prevState: ModifyRoleResult | null,
+  formData: FormData
+): Promise<ModifyRoleResult> {
+  prevState=prevState;
+  const input: DeleteRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    roleNameToDelete: formData.get("roleNameToDelete") as string,
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.roleNameToDelete) {
+    return { success: false, error: "Client validation: Missing required fields for deleting role." };
+  }
+
+  return deleteRoleClientAction(input);
 }
 
 // As you refactor other actions (addMemberAction, createRoomWithKmsAction, etc.),

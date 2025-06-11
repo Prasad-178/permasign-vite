@@ -31,6 +31,7 @@ import RemoveMemberSubmitButton from "./components/RemoveMemberSubmitButton";
 import AddMemberSubmitButton from "./components/AddMemberSubmitButton";
 import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
+import RoleManager from "./components/RoleManager";
 import {
   addMemberFormAdapter,
   removeMemberFormAdapter,
@@ -140,6 +141,7 @@ export default function RoomDetailsPage() {
     setDocuments([]);
     try {
       const result: GetRoomDetailsResult = await getRoomDetailsAction(roomId, currentUserEmail);
+      console.log("room details result", result);
       if (result.success && result.data) {
         setRoomDetails(result.data);
         setDocuments(result.data.documentDetails || []);
@@ -697,6 +699,7 @@ export default function RoomDetailsPage() {
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="members">Members ({roomDetails.members.length})</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <div className="flex-1 overflow-hidden px-4 pb-4">
@@ -1361,6 +1364,16 @@ export default function RoomDetailsPage() {
                     </p>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="settings" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-auto">
+                      <RoleManager
+                          roomDetails={roomDetails}
+                          currentUserEmail={currentUserEmail}
+                          fetchRoomDetails={fetchRoomDetails}
+                      />
+                  </div>
               </TabsContent>
             </div>
           </Tabs>
