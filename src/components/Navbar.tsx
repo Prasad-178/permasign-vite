@@ -13,7 +13,7 @@ export default function Navbar() {
     { type: "anchor", href: "/#how-it-works", label: "How It Works", id: "how-it-works" },
     { type: "anchor", href: "/#security", label: "Security", id: "security" },
     { type: "anchor", href: "/#pricing", label: "Pricing", id: "pricing" },
-    { type: "route", href: "/rooms", label: "Rooms", customClass: "font-semibold text-primary hover:text-primary/90" },
+    { type: "route", href: "/companies", label: "My Companies", customClass: "font-semibold text-primary hover:text-primary/90" },
   ];
 
   const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string, _: string) => {

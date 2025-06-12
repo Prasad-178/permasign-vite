@@ -9,18 +9,6 @@ export interface ActionResult<T> {
   };
 }
 
-export type DocumentCategory =
-// Company Documents
-'founders_agreement' | 'board_resolutions' | 'cap_table' | 'registration_certificates' | 'licences_and_certifications' |
-// Investor Documents
-'termsheet' | 'shareholders_agreement' | 'safe_convertible_notes' |
-// Auditor Documents
-'audit_report' |
-// Vendor Documents
-'procurement_contract' | 'quality_assurance_agreement' |
-// Customer Documents
-'master_service' | 'statement_of_work';
-
 export const documentFolders = [
   {
     id: 'company',
@@ -83,6 +71,7 @@ export interface CreateRoomResult { // This interface should match the object st
 export interface RoomRoles {
   roleName: string;
   isDeletable: boolean;
+  documentTypes: string[];
 }
 
 export interface RoomDetails {
@@ -139,7 +128,7 @@ export interface DocumentInfo {
     originalFilename: string;
     contentType: string;
     fileSize: number;
-    category: DocumentCategory;
+    category: string;
     uploadedAt: number;
     signed?: "true" | "false";
     roleToSign?: RoomRole;
@@ -169,7 +158,7 @@ export interface RetrieveDocumentResultData {
     decryptedData: string;
     filename: string;
     contentType: string;
-    category: DocumentCategory;
+    category: string;
 }
 export type RetrieveDocumentResult = ActionResult<RetrieveDocumentResultData | null>;
 
@@ -212,79 +201,6 @@ export const ACCEPTED_FILE_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip"
 ];
 export const ACCEPTED_FILE_TYPES_STRING = ACCEPTED_FILE_TYPES.join(",");
-
-export const roleSpecificCategories = {
-  founder: [
-    'founders_agreement', 'board_resolutions', 'cap_table',
-    'registration_certificates', 'licences_and_certifications'
-  ],
-  cfo: [
-    'founders_agreement', 'board_resolutions', 'cap_table',
-    'registration_certificates', 'licences_and_certifications'
-  ],
-  investor: ['termsheet', 'shareholders_agreement', 'safe_convertible_notes'],
-  auditor: ['audit_report'],
-  vendor: ['procurement_contract', 'quality_assurance_agreement'],
-  customer: ['master_service', 'statement_of_work']
-};
-
-// Add category map for display
-export const documentCategories: { value: DocumentCategory; label: string }[] = [
-  // Company Documents
-  { value: 'founders_agreement', label: 'Founders Agreement' },
-  { value: 'board_resolutions', label: 'Board Resolutions' },
-  { value: 'cap_table', label: 'Cap Table' },
-  { value: 'registration_certificates', label: 'Registration Certificates' },
-  { value: 'licences_and_certifications', label: 'Licences & Certifications' },
-
-  // Investor Documents
-  { value: 'termsheet', label: 'Term Sheet' },
-  { value: 'shareholders_agreement', label: 'Shareholders Agreement' },
-  { value: 'safe_convertible_notes', label: 'SAFE / Convertible Notes' },
-
-  // Auditor Documents
-  { value: 'audit_report', label: 'Audit Report' },
-
-  // Vendor Documents
-  { value: 'procurement_contract', label: 'Procurement Contract' },
-  { value: 'quality_assurance_agreement', label: 'Quality Assurance Agreement' },
-
-  // Customer Documents
-  { value: 'master_service', label: 'Master Service Agreement' },
-  { value: 'statement_of_work', label: 'Statement of Work' },
-];
-
-export const allowedCategoriesByRole: Record<RoomRole | 'default', DocumentCategory[]> = {
-  founder: [
-    // Company Documents
-    'founders_agreement', 'board_resolutions', 'cap_table', 'registration_certificates', 'licences_and_certifications',
-    // Investor Documents
-    'termsheet', 'shareholders_agreement', 'safe_convertible_notes',
-    // Auditor Documents
-    'audit_report',
-    // Vendor Documents
-    'procurement_contract', 'quality_assurance_agreement',
-    // Customer Documents
-    'master_service', 'statement_of_work'
-  ],
-  cfo: [
-    // Company Documents
-    'founders_agreement', 'board_resolutions', 'cap_table', 'registration_certificates', 'licences_and_certifications',
-    // Investor Documents
-    'termsheet', 'shareholders_agreement', 'safe_convertible_notes',
-    // Auditor Documents
-    'audit_report',
-    // Vendor Documents
-    'procurement_contract', 'quality_assurance_agreement',
-    // Customer Documents
-    'master_service', 'statement_of_work'
-  ],
-  investor: ['termsheet', 'shareholders_agreement', 'safe_convertible_notes'],
-  auditor: ['audit_report'],
-  vendor: ['procurement_contract', 'quality_assurance_agreement'],
-  customer: ['master_service', 'statement_of_work'],
-  default: [], // Default case (no permissions or unknown role)
-};
 
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
 export const EMBEDDING_DIMENSIONS = 1536;
@@ -329,6 +245,22 @@ export interface DeleteRoleInput {
   roleNameToDelete: string;
 }
 
+// [NEW] Input for adding a document type permission to a role
+export interface AddRolePermissionInput {
+  roomId: string;
+  callerEmail: string;
+  roleName: string;
+  documentType: string;
+}
+
+// [NEW] Input for removing a document type permission from a role
+export interface RemoveRolePermissionInput {
+  roomId: string;
+  callerEmail: string;
+  roleName: string;
+  documentType: string;
+}
+
 // --- Retrieve Document Types ---
 export interface RetrieveDocumentApiInput {
   documentId: string;
@@ -356,7 +288,7 @@ export interface SignDocumentResult extends ActionResult<RoomInfo[] | null> { //
 export interface UploadDocumentApiInput {
   roomId: string;
   uploaderEmail: string;
-  category: DocumentCategory; // Assuming DocumentCategory is defined
+  category: string; // [MODIFIED] Changed from DocumentCategory to string
   role: RoomRole; // Assuming RoomRole is defined
   roomPubKey: string;
 

@@ -17,11 +17,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UserPlus, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { format } from 'date-fns';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
-import { type RoomDetails, type RoomRole, type DocumentCategory, documentCategories, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, roleSpecificCategories, documentFolders } from "../types/types";
+import { type RoomDetails, type RoomRole, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, documentFolders } from "../types/types";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
 import { X } from "lucide-react";
@@ -52,7 +53,7 @@ export default function RoomDetailsPage() {
   const api = useApi();
   const activeAddress = useActiveAddress();
   const connected = useConnection().connected;
-  const roomId = params.roomId as string;
+  const roomId = params.companyId as string;
 
   const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
@@ -96,7 +97,7 @@ export default function RoomDetailsPage() {
 
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
 
-  const [preselectedCategory, setPreselectedCategory] = useState<DocumentCategory | null>(null);
+  const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
   const [isSigningDoc, setIsSigningDoc] = useState<string | null>(null);
 
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
@@ -431,26 +432,6 @@ export default function RoomDetailsPage() {
     }
   }, [currentUserEmail]);
 
-  const getFilteredCategoriesForRole = (role: RoomRole | null): DocumentCategory[] => {
-    if (!role) return [];
-
-    switch (role) {
-      case 'founder':
-      case 'cfo':
-        return roleSpecificCategories.founder as DocumentCategory[];
-      case 'investor':
-        return roleSpecificCategories.investor as DocumentCategory[];
-      case 'auditor':
-        return roleSpecificCategories.auditor as DocumentCategory[];
-      case 'vendor':
-        return roleSpecificCategories.vendor as DocumentCategory[];
-      case 'customer':
-        return roleSpecificCategories.customer as DocumentCategory[];
-      default:
-        return [];
-    }
-  };
-
   const availableTemplates = [
     { id: 'nda', name: 'Non-Disclosure Agreement (NDA)', description: 'Standard mutual NDA for confidential discussions.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
     { id: 'saft', name: 'Simple Agreement for Future Tokens (SAFT)', description: 'Agreement for future token issuance.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
@@ -460,7 +441,7 @@ export default function RoomDetailsPage() {
     { id: 'msa', name: 'Master Service Agreement (MSA)', description: 'General agreement for service provision.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
   ];
 
-  const handleOpenUploadModal = (category: DocumentCategory) => {
+  const handleOpenUploadModal = (category: string) => {
     setPreselectedCategory(category);
     setIsUploadModalOpen(true);
   };
@@ -603,10 +584,19 @@ export default function RoomDetailsPage() {
       console.error("CRITICAL: Room public key is missing from room details! Uploads will be disabled.");
   }
 
-  const userRoleCategories = getFilteredCategoriesForRole(currentUserRole!);
-  const filteredUploadCategories = documentCategories.filter(cat =>
-    userRoleCategories.includes(cat.value)
-  );
+  // [MODIFIED] This correctly gets the allowed document types for the current user's role.
+  const currentUserRoleDetails = roomDetails.roomRoles.find(r => r.roleName === currentUserRole);
+  const allowedUploadCategories = currentUserRoleDetails ? currentUserRoleDetails.documentTypes : [];
+
+  const sortedRoles = [...roomDetails.roomRoles]
+    .filter(role => role.documentTypes.length > 0)
+    .sort((a, b) => {
+      if (a.roleName === 'founder') return -1;
+      if (b.roleName === 'founder') return 1;
+      return a.roleName.localeCompare(b.roleName);
+    });
+
+  const defaultOpenRoles = sortedRoles.map(role => role.roleName);
 
   return (
     <RequireLogin>
@@ -785,14 +775,14 @@ export default function RoomDetailsPage() {
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label htmlFor="category" className="text-right">Category <span className="text-destructive">*</span></Label>
                               <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
-                                <SelectTrigger className="col-span-3"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                                <SelectTrigger className="col-span-3 capitalize"><SelectValue placeholder="Select a category" /></SelectTrigger>
                                 <SelectContent>
-                                  {filteredUploadCategories.length > 0 ? (
-                                    filteredUploadCategories.map(cat => (
-                                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                  {allowedUploadCategories.length > 0 ? (
+                                    allowedUploadCategories.map(cat => (
+                                      <SelectItem key={cat} value={cat} className="capitalize">{cat.replace(/_/g, ' ')}</SelectItem>
                                     ))
                                   ) : (
-                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No categories available for your role.</div>
+                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No upload categories available for your role.</div>
                                   )}
                                 </SelectContent>
                               </Select>
@@ -822,113 +812,59 @@ export default function RoomDetailsPage() {
                       <div className="flex h-full">
                         <div className="w-1/2 border-r p-3 overflow-y-auto">
                           <h3 className="font-medium mb-3 text-sm">All Documents</h3>
-                          {documentFolders.map(folder => {
-                            const uniqueDocIds = new Set();
-                            // const folderDocs = documents.filter(doc => {
-                            //   if (folder.categories.includes(doc.category)) {
-                            //     uniqueDocIds.add(doc.documentId);
-                            //     return true;
-                            //   }
-                            //   return false;
-                            // });
-                            const uniqueDocCount = uniqueDocIds.size;
+                           <Accordion type="multiple" defaultValue={defaultOpenRoles} className="w-full">
+                                {sortedRoles.map(role => (
+                                <AccordionItem value={role.roleName} key={role.roleName} className="border-b-0">
+                                    <AccordionTrigger className="text-sm font-medium capitalize hover:no-underline px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors">
+                                        {role.roleName.replace(/_/g, ' ')}
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-1 pb-0 pl-3">
+                                      <div className="space-y-1 py-1">
+                                          {role.documentTypes.map(docType => {
+                                              const docsInCategory = documents.filter(doc => doc.category === docType);
+                                              const latestDoc = docsInCategory.length > 0 ? docsInCategory.sort((a,b) => b.uploadedAt - a.uploadedAt)[0] : null;
 
-                            return (
-                              <div key={folder.id} className="mb-3">
-                                <div className="flex items-center justify-between p-2 bg-primary/10 rounded-md mb-2">
-                                  <div className="flex items-center">
-                                    <FileText className="h-4 w-4 mr-2 text-primary" />
-                                    <span className="font-medium text-sm">{folder.name}</span>
-                                  </div>
-                                  <span className="text-xs bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full">
-                                    {uniqueDocCount}
-                                  </span>
-                                </div>
+                                              let statusNode = null;
+                                              if (latestDoc) {
+                                                  const allSignersForDoc = documents.filter(doc => doc.documentId === latestDoc.documentId);
+                                                  const isVerified = allSignersForDoc.length > 0 && allSignersForDoc.every(doc => doc.signed === "true");
+                                                  const statusColor = isVerified ? "bg-green-500" : "bg-yellow-500";
+                                                  statusNode = (
+                                                    <div className="flex items-center">
+                                                      <div
+                                                        className={`w-2 h-2 rounded-full mr-1.5 ${statusColor}`}
+                                                        title={isVerified ? "Verified" : "Pending verification"}
+                                                      />
+                                                      <Button variant="ghost" size="icon" onClick={() => handleViewDocument(latestDoc.documentId)} disabled={!!isViewingDoc || !!isDownloadingDoc} title="View" className="h-7 w-7">
+                                                          {isViewingDoc === latestDoc.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                                                      </Button>
+                                                      <Button variant="ghost" size="icon" onClick={() => handleDownloadDocument(latestDoc.documentId)} disabled={!!isViewingDoc || !!isDownloadingDoc} title="Download" className="h-7 w-7">
+                                                          {isDownloadingDoc === latestDoc.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                              } else if (allowedUploadCategories.includes(docType)) {
+                                                  statusNode = (
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary/70 hover:bg-primary/10 hover:text-primary" title={`Upload ${docType.replace(/_/g, ' ')}`} onClick={() => handleOpenUploadModal(docType)}>
+                                                      <UploadCloud className="h-4 w-4" />
+                                                    </Button>
+                                                  );
+                                              } else {
+                                                statusNode = <div className="h-7 w-7" />;
+                                              }
 
-                                {documentCategories
-                                  .filter(category => folder.categories.includes(category.value))
-                                  .map((category) => {
-                                    const categoryDocIds = new Set();
-                                    const categoryDocs = documents.filter(doc => doc.category === category.value);
-                                    let docInCategory = null;
-                                    if (categoryDocs.length > 0) {
-                                      categoryDocs.forEach(doc => categoryDocIds.add(doc.documentId));
-                                      docInCategory = categoryDocs[0];
-                                    }
-                                    let isVerified = false;
-                                    if (docInCategory) {
-                                      const allSignersForDoc = documents.filter(doc => doc.documentId === docInCategory!.documentId);
-                                      isVerified = allSignersForDoc.length > 0 && allSignersForDoc.every(doc => doc.signed === "true");
-                                    }
-                                    const statusColor = isVerified ? "bg-green-500" : "bg-yellow-500";
-                                    const canUploadThisCategory = userRoleCategories.includes(category.value);
-
-                                    let categoryRowStyle = "bg-muted/40";
-                                    let statusNode = null;
-
-                                    if (docInCategory) {
-                                      statusNode = (
-                                        <div className="flex items-center">
-                                          <div
-                                            className={`w-2 h-2 rounded-full mr-1.5 ${statusColor}`}
-                                            title={isVerified ? "Verified" : "Pending verification"}
-                                          />
-                                          <Button
-                                            variant="ghost" size="icon"
-                                            onClick={(e) => { e.stopPropagation(); handleViewDocument(docInCategory.documentId); }}
-                                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                                            title="View" className="h-7 w-7"
-                                          >
-                                            {isViewingDoc === docInCategory.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                                          </Button>
-                                          <Button
-                                            variant="ghost" size="icon"
-                                            onClick={(e) => { e.stopPropagation(); handleDownloadDocument(docInCategory.documentId); }}
-                                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                                            title="Download" className="h-7 w-7"
-                                          >
-                                            {isDownloadingDoc === docInCategory.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                                          </Button>
-                                        </div>
-                                      );
-                                    } else {
-                                      categoryRowStyle = "bg-muted/20 opacity-60";
-
-                                      if (canUploadThisCategory) {
-                                        statusNode = (
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7 text-primary hover:bg-primary/10"
-                                            title={`Upload ${category.label}`}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleOpenUploadModal(category.value);
-                                            }}
-                                          >
-                                            <UploadCloud className="h-4 w-4" />
-                                          </Button>
-                                        );
-                                      } else {
-                                        statusNode = <span className="text-xs text-muted-foreground">No file</span>;
-                                      }
-                                    }
-
-                                    return (
-                                      <div key={category.value} className="mb-1 ml-2">
-                                        <div className={`flex items-center justify-between p-1.5 ${categoryRowStyle} rounded-md text-sm`}>
-                                          <div className="flex items-center">
-                                            <FileText className="h-3 w-3 mr-1.5 text-primary/80" />
-                                            <span>{category.label}</span>
-                                          </div>
-                                          {statusNode}
-                                        </div>
+                                              return (
+                                                  <div key={docType} className="flex items-center justify-between pl-2 pr-1 py-1 rounded-md transition-colors duration-150 hover:bg-accent">
+                                                      <span className={`capitalize text-sm ${!latestDoc ? 'text-muted-foreground/80' : 'text-foreground'}`}>{docType.replace(/_/g, ' ')}</span>
+                                                      {statusNode}
+                                                  </div>
+                                              )
+                                          })}
                                       </div>
-                                    );
-                                  })}
-                              </div>
-                            );
-                          })}
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                          </Accordion>
                         </div>
 
                         <div className="w-1/2 overflow-auto border rounded-md bg-card p-3 flex flex-col">
@@ -1089,14 +1025,14 @@ export default function RoomDetailsPage() {
                                 <div className="grid grid-cols-4 items-center gap-4">
                                   <Label htmlFor="category" className="text-right">Category <span className="text-destructive">*</span></Label>
                                   <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
-                                    <SelectTrigger className="col-span-3"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                                    <SelectTrigger className="col-span-3 capitalize"><SelectValue placeholder="Select a category" /></SelectTrigger>
                                     <SelectContent>
-                                      {filteredUploadCategories.length > 0 ? (
-                                        filteredUploadCategories.map(cat => (
-                                          <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                      {allowedUploadCategories.length > 0 ? (
+                                        allowedUploadCategories.map(cat => (
+                                          <SelectItem key={cat} value={cat} className="capitalize">{cat.replace(/_/g, ' ')}</SelectItem>
                                         ))
                                       ) : (
-                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No categories available for your role.</div>
+                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No upload categories available for your role.</div>
                                       )}
                                     </SelectContent>
                                   </Select>
@@ -1169,7 +1105,7 @@ export default function RoomDetailsPage() {
                           }
 
                           return pendingSignatureDocs.map(({ document: doc, signers }) => {
-                            const categoryInfo = documentCategories.find(cat => cat.value === doc.category);
+                            const categoryInfo = doc.category; // Use the dynamic category string
                             const overallStatusColor = "bg-yellow-500";
                             const overallStatusText = "Pending";
 
@@ -1177,9 +1113,9 @@ export default function RoomDetailsPage() {
                               <div key={doc.documentId} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
                                 <div className="flex items-start justify-between mb-4">
                                   <div>
-                                    <h4 className="font-medium flex items-center text-lg">
+                                    <h4 className="font-medium flex items-center text-lg capitalize">
                                       <div className={`w-3 h-3 rounded-full ${overallStatusColor} mr-2`} title={overallStatusText} />
-                                      {categoryInfo?.label || doc.category}
+                                      {categoryInfo?.replace(/_/g, ' ') || doc.category}
                                     </h4>
                                     <p className="text-sm text-muted-foreground mt-1">{doc.originalFilename}</p>
                                   </div>

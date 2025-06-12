@@ -2,17 +2,18 @@
 "use client";
 
 import { useActionState, useRef, useState, useEffect } from "react";
-import { type RoomDetails, type ModifyRoleResult } from "../../types/types";
+import { type RoomDetails, type ModifyRoleResult, type RoomRoles } from "../../types/types";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2 } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Badge, FileCheck2 } from "lucide-react";
 import { toast } from "sonner";
-import { addRoleFormAdapter, deleteRoleClientAction } from "../../services/roomActionsClient";
+import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
-import DeleteRoleSubmitButton from "./DeleteRoleSubmitButton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Badge as UiBadge } from "../../components/ui/badge";
 
 interface RoleManagerProps {
   roomDetails: RoomDetails;
@@ -21,13 +22,9 @@ interface RoleManagerProps {
 }
 
 const getRoleIcon = (roleName: string) => {
-    if (roleName === 'founder') {
-        return <Crown className="mr-2 h-4 w-4 text-yellow-500" />;
-    }
+    if (roleName === 'founder') return <Crown className="mr-2 h-4 w-4 text-yellow-500" />;
     const systemRoles = ['cfo', 'investor', 'auditor', 'vendor', 'customer', 'member'];
-    if (systemRoles.includes(roleName)) {
-        return <User className="mr-2 h-4 w-4 text-muted-foreground" />;
-    }
+    if (systemRoles.includes(roleName)) return <User className="mr-2 h-4 w-4 text-muted-foreground" />;
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
 
@@ -35,14 +32,17 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
   const addRoleFormRef = useRef<HTMLFormElement>(null);
 
+  // --- State for the new settings modal ---
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<RoomRoles | null>(null);
+  const [newDocType, setNewDocType] = useState("");
+  const [isPermissionActionLoading, setIsPermissionActionLoading] = useState(false);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [addRoleState, addRoleFormAction, isAddRolePending] = useActionState<ModifyRoleResult | null, FormData>(
-    addRoleFormAdapter,
-    null
-  );
+  const [addRoleState, addRoleFormAction] = useActionState<ModifyRoleResult | null, FormData>(addRoleFormAdapter, null);
 
   useEffect(() => {
     if (addRoleState) {
@@ -56,6 +56,46 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
       }
     }
   }, [addRoleState, fetchRoomDetails]);
+
+  const handleAddDocType = async () => {
+    if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
+
+    setIsPermissionActionLoading(true);
+    const result = await addRolePermissionClientAction({
+      roomId: roomDetails.roomId,
+      callerEmail: currentUserEmail,
+      roleName: selectedRole.roleName,
+      documentType: newDocType.trim(),
+    });
+
+    if (result.success) {
+      toast.success("Permission Added", { description: `Document type "${newDocType.trim()}" added to ${selectedRole.roleName}.` });
+      setNewDocType("");
+      fetchRoomDetails(); // This will refresh the data in the modal as well
+    } else {
+      toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
+    }
+    setIsPermissionActionLoading(false);
+  };
+
+  const handleRemoveDocType = async (docType: string) => {
+    if (!selectedRole || !currentUserEmail) return;
+
+    setIsPermissionActionLoading(true);
+    const result = await removeRolePermissionClientAction({
+      roomId: roomDetails.roomId,
+      callerEmail: currentUserEmail,
+      roleName: selectedRole.roleName,
+      documentType: docType,
+    });
+    if (result.success) {
+      toast.success("Permission Removed", { description: `Document type "${docType}" removed from ${selectedRole.roleName}.` });
+      fetchRoomDetails();
+    } else {
+      toast.error("Failed to Remove Permission", { description: result.error || "An unknown error occurred." });
+    }
+    setIsPermissionActionLoading(false);
+  };
 
   const handleConfirmDelete = async () => {
     if (!roleToDelete || !currentUserEmail) {
@@ -118,7 +158,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
       <div className="flex justify-between items-center mb-6">
         <div>
             <h2 className="text-2xl font-bold tracking-tight">Role Management</h2>
-            <p className="text-muted-foreground">Add or remove custom roles for this room.</p>
+            <p className="text-muted-foreground">Add new roles or configure permissions for existing ones.</p>
         </div>
         <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
           <DialogTrigger asChild>
@@ -164,15 +204,9 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
                 {getRoleIcon(role.roleName)}
                 {role.roleName.replace(/_/g, ' ')}
               </CardTitle>
-              {role.isDeletable ? (
-                <DeleteRoleSubmitButton 
-                    roleName={role.roleName} 
-                    onClick={() => {
-                        setRoleToDelete(role.roleName);
-                        setIsDeleteModalOpen(true);
-                    }}
-                />
-              ) : null}
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedRole(role); setIsSettingsModalOpen(true); }}>
+                <Settings className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <p className="text-xs text-muted-foreground">
@@ -210,6 +244,52 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
                     )}
                 </Button>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- Role Settings Modal --- */}
+      <Dialog open={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen}>
+        <DialogContent className="sm:max-w-2xl min-h-[50vh]">
+            {selectedRole && (
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center capitalize">{getRoleIcon(selectedRole.roleName)} Settings: {selectedRole.roleName.replace(/_/g, ' ')}</DialogTitle>
+                        <DialogDescription>Manage permissions and document access for this role.</DialogDescription>
+                    </DialogHeader>
+                    <Tabs defaultValue="documents" className="w-full pt-4">
+                        <TabsList><TabsTrigger value="documents">Document Types</TabsTrigger><TabsTrigger value="permissions" disabled>Permissions (Soon)</TabsTrigger></TabsList>
+                        <TabsContent value="documents" className="pt-4">
+                            <div className="space-y-4">
+                                <Label>Add a new document type this role can upload:</Label>
+                                <div className="flex space-x-2">
+                                    <Input placeholder="e.g. Pitch Deck, NDA..." value={newDocType} onChange={(e) => setNewDocType(e.target.value)} />
+                                    <Button onClick={handleAddDocType} disabled={isPermissionActionLoading || !newDocType.trim()}>
+                                        {isPermissionActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                                    </Button>
+                                </div>
+                                <div className="border rounded-md p-3 min-h-[150px]">
+                                    <h4 className="text-sm font-medium mb-3">Allowed Document Types:</h4>
+                                    {selectedRole.documentTypes.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedRole.documentTypes.map(docType => (
+                                                <UiBadge key={docType} variant="secondary" className="text-base">
+                                                    {docType}
+                                                    <button onClick={() => handleRemoveDocType(docType)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5" disabled={isPermissionActionLoading}>
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </UiBadge>
+                                            ))}
+                                        </div>
+                                    ) : (<p className="text-sm text-muted-foreground text-center py-8">No document types assigned.</p>)}
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsSettingsModalOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </>
+            )}
         </DialogContent>
       </Dialog>
     </div>

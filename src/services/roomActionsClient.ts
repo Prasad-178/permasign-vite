@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type DocumentCategory, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
@@ -487,15 +487,16 @@ export async function uploadDocumentFormAdapter(
   const roomId = formData.get("roomId") as string;
   const uploaderEmail = formData.get("uploaderEmail") as string;
   const documentFile = formData.get("documentFile") as File | null;
-  const category = formData.get("category") as DocumentCategory;
+  const category = formData.get("category") as string;
   const role = formData.get("role") as RoomRole;
   const roomPubKey = formData.get("roomPubKey") as string;
 
-  // === Client-side Validation from original action ===
-  const allowedCategories = ['technical', 'financial', 'competitive', 'faq', 'video', 'other', 'termsheet', 'shareholder-agreement', 'audit-report', 'licences_and_certifications', 'founders_agreement', 'board_resolutions', 'cap_table', 'registration_certificates', 'safe_convertible_notes', 'procurement_contract', 'quality_assurance_agreement', 'master_service', 'statement_of_work', 'shareholders_agreement'];
-  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !allowedCategories.includes(category) || !roomPubKey || !role) {
+  // === [MODIFIED] Client-side Validation ===
+  // The check for a valid category against a hardcoded list has been removed.
+  // The backend now handles the validation against the dynamic role permissions.
+  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role) {
       console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role });
-      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, valid category, role, or room public key)." , data: null};
+      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, or room public key)." , data: null};
   }
   if (documentFile.size > 100 * 1024 * 1024) { // Example: 100MB limit
       return { success: false, message: "Client validation: File is too large (max 100MB).", data: null };
@@ -657,6 +658,76 @@ export async function deleteRoleFormAdapter(
   }
 
   return deleteRoleClientAction(input);
+}
+
+/**
+ * [NEW] Client-side function to add a document type permission to a role.
+ * @param input Data required to add the permission.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function addRolePermissionClientAction(
+  input: AddRolePermissionInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Adding permission for doc type "${input.documentType}" to role "${input.roleName}" via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/add-role-permission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add permission.",
+      };
+    }
+    return responseData;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: "Failed to add permission due to a network or client-side error.",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * [NEW] Client-side function to remove a document type permission from a role.
+ * @param input Data required to remove the permission.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function removeRolePermissionClientAction(
+  input: RemoveRolePermissionInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Removing permission for doc type "${input.documentType}" from role "${input.roleName}" via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/remove-role-permission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to remove permission.",
+      };
+    }
+    return responseData;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: "Failed to remove permission due to a network or client-side error.",
+      error: error.message,
+    };
+  }
 }
 
 // As you refactor other actions (addMemberAction, createRoomWithKmsAction, etc.),

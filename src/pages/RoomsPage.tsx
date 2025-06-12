@@ -78,7 +78,7 @@ export default function RoomsPage() {
       <div className="container mx-auto p-4 md:p-8 max-w-4xl">
         <div className="flex justify-between items-center mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold">My Companies</h1>
-          <Link to="/rooms/create"> {/* Changed from next/link, removed passHref */}
+          <Link to="/companies/create"> {/* Changed from next/link, removed passHref */}
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Create New Company
             </Button>
@@ -113,7 +113,7 @@ export default function RoomsPage() {
               <p className="text-muted-foreground">You haven&apos;t created or joined any companies.</p>
             </CardContent>
             <CardFooter>
-               <Link to="/rooms/create"> {/* Changed from next/link, removed passHref */}
+               <Link to="/companies/create"> {/* Changed from next/link, removed passHref */}
                  <Button variant="secondary">Create your first company</Button>
                </Link>
             </CardFooter>
@@ -132,7 +132,7 @@ export default function RoomsPage() {
                   <p className="text-sm text-muted-foreground break-words">ID: {room.roomId}</p>
                 </CardContent>
                 <CardFooter>
-                  <Link to={`/rooms/${room.roomId}`} className="ml-auto"> {/* Changed from next/link, removed passHref */}
+                  <Link to={`/companies/${room.roomId}`} className="ml-auto"> {/* Changed from next/link, removed passHref */}
                     <Button variant="outline" size="sm">
                       Open Company <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
