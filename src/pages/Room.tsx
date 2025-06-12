@@ -32,6 +32,7 @@ import AddMemberSubmitButton from "./components/AddMemberSubmitButton";
 import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
 import RoleManager from "./components/RoleManager";
+import MemberManager from "./components/MemberManager";
 import {
   addMemberFormAdapter,
   removeMemberFormAdapter,
@@ -1280,90 +1281,11 @@ export default function RoomDetailsPage() {
               </TabsContent>
 
               <TabsContent value="members" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">Room Members</h2>
-                    <p className="text-sm text-muted-foreground">Manage who has access to this room.</p>
-                  </div>
-                  {canAddAnyMember && (
-                    <Dialog open={isAddMemberModalOpen} onOpenChange={setIsAddMemberModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <UserPlus className="mr-2 h-4 w-4" /> Add Member
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Add New Member</DialogTitle>
-                          <DialogDescription>
-                            Enter the email address and assign a role.
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <form ref={addMemberFormRef} action={addMemberFormAction}>
-                          <input type="hidden" name="roomId" value={roomId} />
-                          <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="newUserEmail" className="text-right">Email</Label>
-                              <Input id="newUserEmail" name="newUserEmail" type="email" required className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="newUserRole" className="text-right">Role</Label>
-                              <Select name="newUserRole" required>
-                                <SelectTrigger className="col-span-3">
-                                  <SelectValue placeholder="Select a role to add" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {canAddCFO && <SelectItem value="cfo">CFO</SelectItem>}
-                                  {canAddInvestor && <SelectItem value="investor">Investor</SelectItem>}
-                                  {canAddAuditor && <SelectItem value="auditor">Auditor</SelectItem>}
-                                  {canAddCustomer && <SelectItem value="customer">Customer</SelectItem>}
-                                  {canAddVendor && <SelectItem value="vendor">Vendor</SelectItem>}
-                                  {!canAddAnyMember && (
-                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">You don&apos;t have permission to add members.</div>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <DialogClose asChild>
-                              <Button type="button" variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <AddMemberSubmitButton />
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-auto border rounded-md bg-card p-4">
-                  <ul className="space-y-2">
-                    {roomDetails.members.map((member) => (
-                      <li key={member.userEmail} className="flex items-center justify-between p-2 border rounded-md">
-                        <div>
-                          <p className="font-medium">{member.userEmail} {member.userEmail === currentUserEmail ? '(You)' : ''}</p>
-                          <p className="text-xs capitalize text-muted-foreground">{member.role}</p>
-                        </div>
-                        {canManageMembers && member.role !== 'founder' && (
-                          <form action={removeMemberFormAction}>
-                            <input type="hidden" name="roomId" value={roomId} />
-                            <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
-                            <input type="hidden" name="userToRemoveEmail" value={member.userEmail} />
-                            <RemoveMemberSubmitButton email={member.userEmail} />
-                          </form>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  {removeMemberState && !removeMemberState.success && (
-                    <p className="text-sm text-destructive text-center pt-4">
-                      Error removing member: {removeMemberState.message} {removeMemberState.error ? `(${removeMemberState.error})` : ''}
-                    </p>
-                  )}
-                </div>
+                <MemberManager
+                  roomDetails={roomDetails}
+                  currentUserEmail={currentUserEmail}
+                  fetchRoomDetails={fetchRoomDetails}
+                />
               </TabsContent>
 
               <TabsContent value="settings" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
