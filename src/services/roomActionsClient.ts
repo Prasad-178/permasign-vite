@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
@@ -730,15 +730,79 @@ export async function removeRolePermissionClientAction(
   }
 }
 
-// As you refactor other actions (addMemberAction, createRoomWithKmsAction, etc.),
-// you can add their client-side fetch counterparts here.
-// For example:
-// export async function createRoomWithKmsAction(params: CreateRoomParams): Promise<ActionResult<CreateRoomResult>> {
-//     const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/create-room-with-kms`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(params),
-//     });
-//     // ... error handling and response processing ...
-//     return response.json();
-// }
+/**
+ * [NEW] Client-side function to add a signer to a document.
+ * @param input Data required to add the signer.
+ * @returns A Promise resolving to ModifySignerResult.
+ */
+export async function addSignerToDocumentClientAction(
+  input: AddSignerToDocumentInput
+): Promise<ModifySignerResult> {
+  console.log(`Client Service: Adding signer ${input.signerEmail} to document ${input.documentId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/add-signer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifySignerResult = await response.json();
+    if (!response.ok) {
+      console.error("API error response during add signer:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add signer.",
+      };
+    }
+    console.log("Client Service: Add signer API call successful:", responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error("Client Service: Error in addSignerToDocumentClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to add signer due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * [NEW] Client-side function to remove a signer from a document.
+ * @param input Data required to remove the signer.
+ * @returns A Promise resolving to ModifySignerResult.
+ */
+export async function removeSignerFromDocumentClientAction(
+  input: RemoveSignerFromDocumentInput
+): Promise<ModifySignerResult> {
+  console.log(`Client Service: Removing signer ${input.signerEmailToRemove} from document ${input.documentId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/remove-signer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifySignerResult = await response.json();
+    if (!response.ok) {
+      console.error("API error response during remove signer:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to remove signer.",
+      };
+    }
+    console.log("Client Service: Remove signer API call successful:", responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error("Client Service: Error in removeSignerFromDocumentClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to remove signer due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+

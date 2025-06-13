@@ -9,6 +9,27 @@ export interface ActionResult<T> {
   };
 }
 
+export type AddSignerToDocumentInput = {
+  roomId: string;
+  documentId: string;
+  callerEmail: string;
+  signerEmail: string;
+};
+
+export type RemoveSignerFromDocumentInput = {
+  roomId: string;
+  documentId: string;
+  callerEmail: string;
+  signerEmailToRemove: string;
+};
+
+export type ModifySignerResult = {
+    success: boolean;
+    message?: string;
+    error?: string;
+    messageId?: string;
+};
+
 export const documentFolders = [
   {
     id: 'company',

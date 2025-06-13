@@ -38,15 +38,20 @@ import {
   getRoomDetailsAction,
   retrieveDocumentClientAction,
   signDocumentClientAction,
-  uploadDocumentFormAdapter
+  uploadDocumentFormAdapter,
+  addSignerToDocumentClientAction,
+  removeSignerFromDocumentClientAction
 } from '../services/roomActionsClient';
 import {
   type RetrieveDocumentApiInput,
   type SignDocumentApiInput,
-  type SignDocumentResult
+  type SignDocumentResult,
+  type AddSignerToDocumentInput,
+  type RemoveSignerFromDocumentInput,
+  type ModifySignerResult
 } from '../types/types';
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -109,6 +114,13 @@ export default function RoomDetailsPage() {
   const [signingDocumentData, setSigningDocumentData] = useState<string | null>(null);
   const [signingDocumentName, setSigningDocumentName] = useState<string>("");
   const [signingDocumentType, setSigningDocumentType] = useState<string>("");
+
+  const [isAddSignerModalOpen, setIsAddSignerModalOpen] = useState(false);
+  const [addSignerDocDetails, setAddSignerDocDetails] = useState<{ documentId: string; currentSigners: string[] } | null>(null);
+  const [newSignerEmail, setNewSignerEmail] = useState("");
+  const [isSubmittingSigner, setIsSubmittingSigner] = useState(false);
+  const [isRemovingSigner, setIsRemovingSigner] = useState<string | null>(null); // "docId-email@domain.com"
+  const [isAddSignerSuggestionsOpen, setIsAddSignerSuggestionsOpen] = useState(false);
 
   useEffect(() => {
     // This useEffect was empty, can be kept or removed if not needed for other purposes.
@@ -590,17 +602,117 @@ export default function RoomDetailsPage() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isSignerSuggestionsOpen) {
-        const target = event.target as Element;
-        if (!target.closest('.relative')) {
+      const target = event.target as Element;
+      // This is a generic check. A more robust way would be to use specific refs or IDs
+      // if multiple such popovers could exist on the same view. For now, this works
+      // because only one modal with this functionality can be open at a time.
+      if (!target.closest('.signer-input-container')) {
+        if (isSignerSuggestionsOpen) {
           setIsSignerSuggestionsOpen(false);
+        }
+        if (isAddSignerSuggestionsOpen) {
+          setIsAddSignerSuggestionsOpen(false);
         }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isSignerSuggestionsOpen]);
+  }, [isSignerSuggestionsOpen, isAddSignerSuggestionsOpen]);
+
+  const handleOpenAddSignerModal = (documentId: string) => {
+    const currentSigners = documents
+      .filter(d => d.documentId === documentId)
+      .map(d => d.emailToSign);
+    setAddSignerDocDetails({ documentId, currentSigners: currentSigners as string[] });
+    setIsAddSignerModalOpen(true);
+  };
+
+  const handleAddSignerToDocument = async () => {
+    if (!addSignerDocDetails || !newSignerEmail || !currentUserEmail) {
+      toast.error("Invalid state for adding signer.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newSignerEmail)) {
+        toast.error("Invalid email format.");
+        return;
+    }
+
+    if (addSignerDocDetails.currentSigners.includes(newSignerEmail)) {
+        toast.warning("This email is already a signer for this document.");
+        return;
+    }
+
+    setIsSubmittingSigner(true);
+    const toastId = toast.loading("Adding signer...");
+
+    const input: AddSignerToDocumentInput = {
+      roomId,
+      documentId: addSignerDocDetails.documentId,
+      callerEmail: currentUserEmail,
+      signerEmail: newSignerEmail,
+    };
+
+    try {
+      const result: ModifySignerResult = await addSignerToDocumentClientAction(input);
+      if (result.success) {
+        toast.success("Signer Added", { id: toastId, description: result.message });
+        setIsAddSignerModalOpen(false);
+        setNewSignerEmail("");
+        setAddSignerDocDetails(null);
+        fetchRoomDetails();
+      } else {
+        throw new Error(result.error || result.message || "Failed to add signer.");
+      }
+    } catch (error: any) {
+      toast.error("Error", { id: toastId, description: error.message });
+    } finally {
+      setIsSubmittingSigner(false);
+    }
+  };
+
+  const handleRemoveSignerFromDocument = async (documentId: string, signerRecord: { emailToSign: string, signed: string }) => {
+    if (!currentUserEmail) {
+      toast.error("Cannot remove signer without user details.");
+      return;
+    }
+
+    // Validation checks
+    if (signerRecord.signed === "true") {
+      toast.warning("Cannot remove a signer who has already signed the document.");
+      return;
+    }
+    if (signerRecord.emailToSign === roomDetails?.ownerEmail) {
+      toast.error("The room owner cannot be removed as a signer.");
+      return;
+    }
+
+    const removalKey = `${documentId}-${signerRecord.emailToSign}`;
+    setIsRemovingSigner(removalKey);
+    const toastId = toast.loading(`Removing ${signerRecord.emailToSign}...`);
+
+    const input: RemoveSignerFromDocumentInput = {
+      roomId,
+      documentId,
+      callerEmail: currentUserEmail,
+      signerEmailToRemove: signerRecord.emailToSign,
+    };
+
+    try {
+      const result: ModifySignerResult = await removeSignerFromDocumentClientAction(input);
+      if (result.success) {
+        toast.success("Signer Removed", { id: toastId, description: result.message });
+        fetchRoomDetails();
+      } else {
+        throw new Error(result.error || result.message || "Failed to remove signer.");
+      }
+    } catch (error: any) {
+      toast.error("Error", { id: toastId, description: error.message });
+    } finally {
+      setIsRemovingSigner(null);
+    }
+  };
 
   if (isLoadingDetails) {
     return <CustomLoader text="Loading company details..." />;
@@ -1079,7 +1191,22 @@ export default function RoomDetailsPage() {
                                   </div>
 
                                   <div>
-                                    <h5 className="text-xs font-medium mb-2">Signatures</h5>
+                                    <h5 className="text-xs font-medium mb-2 flex justify-between items-center">
+                                      <span>Signatures</span>
+                                      {(() => {
+                                        if (!selectedDocument) return null;
+                                        const isUploader = currentUserEmail === selectedDocument.uploaderEmail;
+                                        const canManageSigners = isFounder || isUploader;
+                                        if (!canManageSigners) return null;
+                                        
+                                        // Only show Add button here, as requested
+                                        return (
+                                          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleOpenAddSignerModal(selectedDocument.documentId)}>
+                                            <UserPlus className="h-3.5 w-3.5 mr-1" /> Add
+                                          </Button>
+                                        );
+                                      })()}
+                                    </h5>
                                     <table className="w-full text-sm">
                                       <thead className="text-xs text-muted-foreground">
                                         <tr>
@@ -1384,6 +1511,9 @@ export default function RoomDetailsPage() {
                             const overallStatusColor = "bg-yellow-500";
                             const overallStatusText = "Pending";
 
+                            const isUploader = currentUserEmail === doc.uploaderEmail;
+                            const canManageSigners = isFounder || isUploader;
+
                             return (
                               <div key={doc.documentId} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
                                 <div className="flex items-start justify-between mb-4">
@@ -1417,9 +1547,16 @@ export default function RoomDetailsPage() {
                                 <div className="mt-4 border rounded-md overflow-hidden">
                                   <div className="bg-muted/30 p-3 flex justify-between items-center">
                                     <h5 className="font-medium text-sm">Signers</h5>
-                                    <div className="flex items-center">
-                                      <div className={`w-2.5 h-2.5 rounded-full ${overallStatusColor} mr-2`} />
-                                      <span className="text-sm">{overallStatusText}</span>
+                                    <div className="flex items-center gap-2">
+                                      {canManageSigners && (
+                                         <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => handleOpenAddSignerModal(doc.documentId)}>
+                                            <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Add Signer
+                                          </Button>
+                                      )}
+                                      <div className="flex items-center">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${overallStatusColor} mr-2`} />
+                                        <span className="text-sm">{overallStatusText}</span>
+                                      </div>
                                     </div>
                                   </div>
                                   <table className="w-full">
@@ -1437,6 +1574,9 @@ export default function RoomDetailsPage() {
                                         const statusColor = isSigned ? "bg-green-500" : "bg-yellow-500";
                                         const statusText = isSigned ? "Signed" : "Pending";
                                         const isCurrentUserSigner = currentUserEmail === signer.email;
+
+                                        const canRemove = canManageSigners && !isSigned && signer.email !== roomDetails?.ownerEmail;
+                                        const removalKey = `${doc.documentId}-${signer.email}`;
 
                                         return (
                                           <tr key={`${signer.email}-${index}`} className="hover:bg-muted/10">
@@ -1467,6 +1607,11 @@ export default function RoomDetailsPage() {
                                                     'E-Sign'
                                                   )}
                                                 </Button>
+                                              )}
+                                              {canRemove && (
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Remove Signer" onClick={() => handleRemoveSignerFromDocument(doc.documentId, { emailToSign: signer.email, signed: signer.signed })} disabled={isRemovingSigner === removalKey}>
+                                                      {isRemovingSigner === removalKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                                  </Button>
                                               )}
                                             </td>
                                           </tr>
@@ -1563,6 +1708,131 @@ export default function RoomDetailsPage() {
           isSigning={isSigningDoc === signingDocumentId}
           onSign={handleSignDocument}
         />
+
+        <Dialog open={isAddSignerModalOpen} onOpenChange={(isOpen) => {
+            setIsAddSignerModalOpen(isOpen);
+            if (!isOpen) {
+                setNewSignerEmail("");
+                setAddSignerDocDetails(null);
+                setIsAddSignerSuggestionsOpen(false);
+            }
+        }}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Signer</DialogTitle>
+                    <DialogDescription>
+                        Enter the email of the new signer. They will be required to sign this document.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-signer-email" className="text-right">
+                            Email
+                        </Label>
+                        <div className="col-span-3 signer-input-container relative">
+                            <Input
+                                id="new-signer-email"
+                                value={newSignerEmail}
+                                onChange={(e) => setNewSignerEmail(e.target.value)}
+                                onFocus={() => setIsAddSignerSuggestionsOpen(true)}
+                                className="w-full"
+                                placeholder="new.signer@example.com"
+                                autoComplete="off"
+                            />
+                            {isAddSignerSuggestionsOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md">
+                                    <Command>
+                                        <CommandList className="max-h-[200px] overflow-auto">
+                                            {(() => {
+                                                const filteredMembers = roomDetails?.members
+                                                    .filter(member =>
+                                                        !addSignerDocDetails?.currentSigners.includes(member.userEmail) &&
+                                                        member.userEmail.toLowerCase().includes(newSignerEmail.toLowerCase())
+                                                    ) || [];
+
+                                                const hasValidEmail = newSignerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newSignerEmail);
+                                                const isExistingMember = roomDetails?.members.some(m => m.userEmail === newSignerEmail);
+                                                const isAlreadySigner = addSignerDocDetails?.currentSigners.includes(newSignerEmail);
+
+                                                return (
+                                                    <>
+                                                        {filteredMembers.length > 0 && (
+                                                            <CommandGroup heading="Room Members">
+                                                                {filteredMembers.map(member => (
+                                                                    <CommandItem
+                                                                        key={member.userEmail}
+                                                                        value={member.userEmail}
+                                                                        onSelect={() => {
+                                                                            setNewSignerEmail(member.userEmail);
+                                                                            setIsAddSignerSuggestionsOpen(false);
+                                                                        }}
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        <Check className="mr-2 h-4 w-4 opacity-0" />
+                                                                        <div className="flex flex-col">
+                                                                            <span>{member.userEmail}</span>
+                                                                            <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
+                                                                        </div>
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        )}
+                                                        {hasValidEmail && !isExistingMember && !isAlreadySigner && (
+                                                            <CommandGroup heading="Add New Signer">
+                                                                <CommandItem
+                                                                    value={newSignerEmail}
+                                                                    onSelect={() => {
+                                                                        setNewSignerEmail(newSignerEmail); // Keep the value
+                                                                        setIsAddSignerSuggestionsOpen(false);
+                                                                    }}
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <UserPlus className="mr-2 h-4 w-4" />
+                                                                    <div className="flex flex-col">
+                                                                        <span>Add "{newSignerEmail}"</span>
+                                                                        <span className="text-xs text-muted-foreground">Will be added as a signer</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            </CommandGroup>
+                                                        )}
+                                                        {filteredMembers.length === 0 && !hasValidEmail && newSignerEmail && (
+                                                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                Enter a valid email address
+                                                            </div>
+                                                        )}
+                                                        {isAlreadySigner && (
+                                                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                This user is already a signer.
+                                                            </div>
+                                                        )}
+                                                        {!newSignerEmail && (
+                                                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                Type to search members or add new email
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </CommandList>
+                                    </Command>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="outline" onClick={() => { setNewSignerEmail(""); setAddSignerDocDetails(null); }}>
+                            Cancel
+                        </Button>
+                    </DialogClose>
+                    <Button onClick={handleAddSignerToDocument} disabled={isSubmittingSigner || !newSignerEmail}>
+                        {isSubmittingSigner && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Signer
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </div>
     </RequireLogin>
   );
