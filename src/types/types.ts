@@ -43,7 +43,7 @@ export const documentFolders = [
 ];
 
 // --- Interfaces (Updated Roles) ---
-export type RoomRole = 'founder' | 'cfo' | 'investor' | 'auditor' | 'vendor' | 'customer'; // Define the allowed roles
+export type RoomRole = string;
 
 export interface RoomInfo {
   roomId: string;
@@ -297,6 +297,7 @@ export interface UploadDocumentApiInput {
   fileType: string; // MIME type
   fileDataB64: string; // Base64 encoded file content
   fileSize: number; // Original file size for reference
+  signers: string[];
 }
 
 // Input for the decrypt KMS API endpoint

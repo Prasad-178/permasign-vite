@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
-import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UserPlus, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal } from "lucide-react";
+import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, ChevronsUpDown, Check, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
@@ -22,14 +22,12 @@ import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { format } from 'date-fns';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
-import { type RoomDetails, type RoomRole, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE, documentFolders } from "../types/types";
+import { type RoomDetails, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE } from "../types/types";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
 import { X } from "lucide-react";
 import DocumentSigningModal from "./components/DocumentSigningModal";
 import UploadSubmitButton from "./components/UploadSubmitButton";
-import RemoveMemberSubmitButton from "./components/RemoveMemberSubmitButton";
-import AddMemberSubmitButton from "./components/AddMemberSubmitButton";
 import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
 import RoleManager from "./components/RoleManager";
@@ -47,6 +45,8 @@ import {
   type SignDocumentApiInput,
   type SignDocumentResult
 } from '../types/types';
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../components/ui/command";
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -99,6 +99,10 @@ export default function RoomDetailsPage() {
 
   const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
   const [isSigningDoc, setIsSigningDoc] = useState<string | null>(null);
+
+  const [signers, setSigners] = useState<string[]>([]);
+  const [signerInput, setSignerInput] = useState("");
+  const [isSignerSuggestionsOpen, setIsSignerSuggestionsOpen] = useState(false);
 
   const [isSigningModalOpen, setIsSigningModalOpen] = useState(false);
   const [signingDocumentId, setSigningDocumentId] = useState<string | null>(null);
@@ -551,6 +555,53 @@ export default function RoomDetailsPage() {
     }
   };
 
+  useEffect(() => {
+    if (isUploadModalOpen && roomDetails?.ownerEmail) {
+        if (signers.length === 0) {
+            setSigners([roomDetails.ownerEmail]);
+        }
+    }
+  }, [isUploadModalOpen, roomDetails?.ownerEmail, signers.length]);
+
+  const handleAddSigner = (email?: string) => {
+    const emailToAdd = (email || signerInput).trim();
+    if (emailToAdd) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToAdd)) {
+            toast.error("Invalid email format.");
+            return;
+        }
+        if (signers.includes(emailToAdd)) {
+            toast.warning("Signer already added.");
+        } else {
+            setSigners([...signers, emailToAdd]);
+        }
+        setSignerInput("");
+        setIsSignerSuggestionsOpen(false);
+    }
+  };
+
+  const handleRemoveSigner = (emailToRemove: string) => {
+    if (emailToRemove === roomDetails?.ownerEmail) {
+        toast.error("The room owner cannot be removed as a signer.");
+        return;
+    }
+    setSigners(signers.filter(signer => signer !== emailToRemove));
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isSignerSuggestionsOpen) {
+        const target = event.target as Element;
+        if (!target.closest('.relative')) {
+          setIsSignerSuggestionsOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSignerSuggestionsOpen]);
+
   if (isLoadingDetails) {
     return <CustomLoader text="Loading company details..." />;
   }
@@ -744,6 +795,8 @@ export default function RoomDetailsPage() {
                           setPreselectedCategory(null);
                           setSelectedFile(null);
                           setFileError(null);
+                          setSigners([]);
+                          setSignerInput("");
                           if (uploadFormRef.current) uploadFormRef.current.reset();
                         }
                       }}
@@ -765,13 +818,21 @@ export default function RoomDetailsPage() {
                           <input type="hidden" name="uploaderEmail" value={currentUserEmail || ""} />
                           <input type="hidden" name="role" value={currentUserRole || ""} />
                           <input type="hidden" name="roomPubKey" value={roomPublicKey || ""} />
+                          <input type="hidden" name="signers" value={signers.join(',')} />
                           <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="documentFile" className="text-right">File <span className="text-destructive">*</span></Label>
-                              <Input id="documentFile" name="documentFile" type="file" className="col-span-3" onChange={handleFileChange} required />
+                            <div className="grid grid-cols-4 items-start gap-4">
+                              <Label htmlFor="documentFile" className="text-right pt-2">File <span className="text-destructive">*</span></Label>
+                              <div className="col-span-3">
+                                <Input id="documentFile" name="documentFile" type="file" className="w-full" onChange={handleFileChange} required />
+                                {fileError && <p className="text-sm text-destructive mt-2">{fileError}</p>}
+                                {selectedFile && (
+                                    <div className="mt-2 text-sm text-muted-foreground text-center border rounded-lg p-2 bg-muted">
+                                        Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                                    </div>
+                                )}
+                              </div>
                             </div>
-                            {fileError && <p className="col-span-4 text-sm text-destructive text-center">{fileError}</p>}
-                            {selectedFile && <p className="col-span-4 text-sm text-muted-foreground text-center">Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})</p>}
+
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label htmlFor="category" className="text-right">Category <span className="text-destructive">*</span></Label>
                               <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
@@ -786,6 +847,108 @@ export default function RoomDetailsPage() {
                                   )}
                                 </SelectContent>
                               </Select>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                                <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
+                                <div className="col-span-3">
+                                    <div className="flex gap-2">
+                                        <div className="relative w-full">
+                                            <Input
+                                                placeholder="Type email or search members..."
+                                                value={signerInput}
+                                                onChange={(e) => setSignerInput(e.target.value)}
+                                                onFocus={() => setIsSignerSuggestionsOpen(true)}
+                                                className="w-full"
+                                            />
+                                            {isSignerSuggestionsOpen && (
+                                                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md">
+                                                    <Command>
+                                                        <CommandList className="max-h-[200px] overflow-auto">
+                                                            {(() => {
+                                                                const filteredMembers = roomDetails?.members
+                                                                    .filter(member => 
+                                                                        !signers.includes(member.userEmail) &&
+                                                                        member.userEmail.toLowerCase().includes(signerInput.toLowerCase())
+                                                                    ) || [];
+                                                                
+                                                                const hasValidEmail = signerInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerInput);
+                                                                const isExistingMember = roomDetails?.members.some(m => m.userEmail === signerInput);
+                                                                
+                                                                return (
+                                                                    <>
+                                                                        {filteredMembers.length > 0 && (
+                                                                            <CommandGroup heading="Room Members">
+                                                                                {filteredMembers.map(member => (
+                                                                                    <CommandItem
+                                                                                        key={member.userEmail}
+                                                                                        value={member.userEmail}
+                                                                                        onSelect={() => {
+                                                                                            handleAddSigner(member.userEmail);
+                                                                                        }}
+                                                                                        className="cursor-pointer"
+                                                                                    >
+                                                                                        <Check className="mr-2 h-4 w-4 opacity-0" />
+                                                                                        <div className="flex flex-col">
+                                                                                            <span>{member.userEmail}</span>
+                                                                                            <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
+                                                                                        </div>
+                                                                                    </CommandItem>
+                                                                                ))}
+                                                                            </CommandGroup>
+                                                                        )}
+                                                                        {hasValidEmail && !isExistingMember && (
+                                                                            <CommandGroup heading="Add New Member">
+                                                                                <CommandItem
+                                                                                    value={signerInput}
+                                                                                    onSelect={() => {
+                                                                                        handleAddSigner(signerInput);
+                                                                                    }}
+                                                                                    className="cursor-pointer"
+                                                                                >
+                                                                                    <UserPlus className="mr-2 h-4 w-4" />
+                                                                                    <div className="flex flex-col">
+                                                                                        <span>Add "{signerInput}"</span>
+                                                                                        <span className="text-xs text-muted-foreground">Will be added as a member</span>
+                                                                                    </div>
+                                                                                </CommandItem>
+                                                                            </CommandGroup>
+                                                                        )}
+                                                                        {filteredMembers.length === 0 && !hasValidEmail && signerInput && (
+                                                                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                                {signerInput ? "Enter a valid email address" : "No members found"}
+                                                                            </div>
+                                                                        )}
+                                                                        {!signerInput && (
+                                                                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                                Type to search members or add new email
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </CommandList>
+                                                    </Command>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <Button type="button" onClick={() => handleAddSigner()} disabled={!signerInput}>Add</Button>
+                                    </div>
+                                    {signers.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {signers.map(signer => (
+                                                <div key={signer} className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-medium">
+                                                    <span>{signer}</span>
+                                                    {signer !== roomDetails?.ownerEmail && (
+                                                        <button type="button" onClick={() => handleRemoveSigner(signer)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                           </div>
                           {uploadState && !uploadState.success && (
@@ -994,6 +1157,8 @@ export default function RoomDetailsPage() {
                               setPreselectedCategory(null);
                               setSelectedFile(null);
                               setFileError(null);
+                              setSigners([]);
+                              setSignerInput("");
                               if (uploadFormRef.current) uploadFormRef.current.reset();
                             }
                           }}
@@ -1015,15 +1180,23 @@ export default function RoomDetailsPage() {
                               <input type="hidden" name="uploaderEmail" value={currentUserEmail || ""} />
                               <input type="hidden" name="role" value={currentUserRole || ""} />
                               <input type="hidden" name="roomPubKey" value={roomPublicKey || ""} />
+                              <input type="hidden" name="signers" value={signers.join(',')} />
                               <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="documentFile" className="text-right">File <span className="text-destructive">*</span></Label>
-                                  <Input id="documentFile" name="documentFile" type="file" className="col-span-3" onChange={handleFileChange} required />
+                                <div className="grid grid-cols-4 items-start gap-4">
+                                  <Label htmlFor="documentFile-2" className="text-right pt-2">File <span className="text-destructive">*</span></Label>
+                                  <div className="col-span-3">
+                                    <Input id="documentFile-2" name="documentFile" type="file" className="w-full" onChange={handleFileChange} required />
+                                    {fileError && <p className="text-sm text-destructive mt-2">{fileError}</p>}
+                                    {selectedFile && (
+                                        <div className="mt-2 text-sm text-muted-foreground text-center border rounded-lg p-2 bg-muted">
+                                            Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                                        </div>
+                                    )}
+                                  </div>
                                 </div>
-                                {fileError && <p className="col-span-4 text-sm text-destructive text-center">{fileError}</p>}
-                                {selectedFile && <p className="col-span-4 text-sm text-muted-foreground text-center">Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})</p>}
+
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="category" className="text-right">Category <span className="text-destructive">*</span></Label>
+                                  <Label htmlFor="category-2" className="text-right">Category <span className="text-destructive">*</span></Label>
                                   <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
                                     <SelectTrigger className="col-span-3 capitalize"><SelectValue placeholder="Select a category" /></SelectTrigger>
                                     <SelectContent>
@@ -1036,6 +1209,108 @@ export default function RoomDetailsPage() {
                                       )}
                                     </SelectContent>
                                   </Select>
+                                </div>
+
+                                <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                                  <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
+                                  <div className="col-span-3">
+                                      <div className="flex gap-2">
+                                          <div className="relative w-full">
+                                              <Input
+                                                  placeholder="Type email or search members..."
+                                                  value={signerInput}
+                                                  onChange={(e) => setSignerInput(e.target.value)}
+                                                  onFocus={() => setIsSignerSuggestionsOpen(true)}
+                                                  className="w-full"
+                                              />
+                                              {isSignerSuggestionsOpen && (
+                                                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md">
+                                                      <Command>
+                                                          <CommandList className="max-h-[200px] overflow-auto">
+                                                              {(() => {
+                                                                  const filteredMembers = roomDetails?.members
+                                                                      .filter(member => 
+                                                                          !signers.includes(member.userEmail) &&
+                                                                          member.userEmail.toLowerCase().includes(signerInput.toLowerCase())
+                                                                      ) || [];
+                                                                  
+                                                                  const hasValidEmail = signerInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerInput);
+                                                                  const isExistingMember = roomDetails?.members.some(m => m.userEmail === signerInput);
+                                                                  
+                                                                  return (
+                                                                      <>
+                                                                          {filteredMembers.length > 0 && (
+                                                                              <CommandGroup heading="Room Members">
+                                                                                  {filteredMembers.map(member => (
+                                                                                      <CommandItem
+                                                                                          key={member.userEmail}
+                                                                                          value={member.userEmail}
+                                                                                          onSelect={() => {
+                                                                                              handleAddSigner(member.userEmail);
+                                                                                          }}
+                                                                                          className="cursor-pointer"
+                                                                                      >
+                                                                                          <Check className="mr-2 h-4 w-4 opacity-0" />
+                                                                                          <div className="flex flex-col">
+                                                                                              <span>{member.userEmail}</span>
+                                                                                              <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
+                                                                                          </div>
+                                                                                      </CommandItem>
+                                                                                  ))}
+                                                                              </CommandGroup>
+                                                                          )}
+                                                                          {hasValidEmail && !isExistingMember && (
+                                                                              <CommandGroup heading="Add New Member">
+                                                                                  <CommandItem
+                                                                                      value={signerInput}
+                                                                                      onSelect={() => {
+                                                                                          handleAddSigner(signerInput);
+                                                                                      }}
+                                                                                      className="cursor-pointer"
+                                                                                  >
+                                                                                      <UserPlus className="mr-2 h-4 w-4" />
+                                                                                      <div className="flex flex-col">
+                                                                                          <span>Add "{signerInput}"</span>
+                                                                                          <span className="text-xs text-muted-foreground">Will be added as a member</span>
+                                                                                      </div>
+                                                                                  </CommandItem>
+                                                                              </CommandGroup>
+                                                                          )}
+                                                                          {filteredMembers.length === 0 && !hasValidEmail && signerInput && (
+                                                                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                                  {signerInput ? "Enter a valid email address" : "No members found"}
+                                                                              </div>
+                                                                          )}
+                                                                          {!signerInput && (
+                                                                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                                                                  Type to search members or add new email
+                                                                              </div>
+                                                                          )}
+                                                                      </>
+                                                                  );
+                                                              })()}
+                                                          </CommandList>
+                                                      </Command>
+                                                  </div>
+                                              )}
+                                          </div>
+                                          <Button type="button" onClick={() => handleAddSigner()} disabled={!signerInput}>Add</Button>
+                                      </div>
+                                      {signers.length > 0 && (
+                                          <div className="flex flex-wrap gap-2 mt-3">
+                                              {signers.map(signer => (
+                                                  <div key={signer} className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-medium">
+                                                      <span>{signer}</span>
+                                                      {signer !== roomDetails?.ownerEmail && (
+                                                          <button type="button" onClick={() => handleRemoveSigner(signer)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                                                              <X className="h-3 w-3" />
+                                                          </button>
+                                                      )}
+                                                  </div>
+                                              ))}
+                                          </div>
+                                      )}
+                                  </div>
                                 </div>
                               </div>
                               {uploadState && !uploadState.success && (
@@ -1051,11 +1326,11 @@ export default function RoomDetailsPage() {
                               <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
                                 <UploadSubmitButton />
-                              </DialogFooter>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
 
                       <div className="space-y-6">
                         {(() => {

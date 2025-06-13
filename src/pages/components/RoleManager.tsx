@@ -23,8 +23,7 @@ interface RoleManagerProps {
 
 const getRoleIcon = (roleName: string) => {
     if (roleName === 'founder') return <Crown className="mr-2 h-4 w-4 text-yellow-500" />;
-    const systemRoles = ['cfo', 'investor', 'auditor', 'vendor', 'customer', 'member'];
-    if (systemRoles.includes(roleName)) return <User className="mr-2 h-4 w-4 text-muted-foreground" />;
+    if (roleName === 'member') return <User className="mr-2 h-4 w-4 text-muted-foreground" />;
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
 

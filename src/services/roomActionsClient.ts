@@ -241,10 +241,6 @@ export async function addMemberFormAdapter(
   if (!input.roomId || !input.callerEmail || !input.newUserEmail || !input.newUserRole) {
     return { success: false, error: "Client validation: Missing required fields." };
   }
-  const validRoles = ['investor', 'auditor', 'cfo', 'vendor', 'customer']; // Keep in sync with server
-  if (!validRoles.includes(input.newUserRole)) {
-    return { success: false, error: `Client validation: Invalid role '${input.newUserRole}'.` };
-  }
 
   return addMemberClientAction(input);
 }
@@ -490,13 +486,16 @@ export async function uploadDocumentFormAdapter(
   const category = formData.get("category") as string;
   const role = formData.get("role") as RoomRole;
   const roomPubKey = formData.get("roomPubKey") as string;
+  const signersString = formData.get("signers") as string;
+  const signers = signersString ? signersString.split(',').map(s => s.trim()).filter(s => s) : [];
+
 
   // === [MODIFIED] Client-side Validation ===
   // The check for a valid category against a hardcoded list has been removed.
   // The backend now handles the validation against the dynamic role permissions.
-  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role) {
-      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role });
-      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, or room public key)." , data: null};
+  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role || !signers || signers.length === 0) {
+      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role, signers: !!signers && signers.length > 0 });
+      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, room public key, or signers)." , data: null};
   }
   if (documentFile.size > 100 * 1024 * 1024) { // Example: 100MB limit
       return { success: false, message: "Client validation: File is too large (max 100MB).", data: null };
@@ -517,6 +516,7 @@ export async function uploadDocumentFormAdapter(
       fileType: documentFile.type || "application/octet-stream",
       fileDataB64,
       fileSize: documentFile.size,
+      signers,
     };
 
     return uploadDocumentClientAction(input);

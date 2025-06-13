@@ -26,10 +26,8 @@ const getRoleIcon = (roleName: string, className: string) => {
     if (roleName === 'founder') {
         return <Crown className={className} />;
     }
-    // All other roles, system or custom, get a user or shield icon.
-    const systemRoles = ['cfo', 'investor', 'auditor', 'vendor', 'customer', 'member'];
-    if (systemRoles.includes(roleName)) {
-        return <User className={className} />;
+    if (roleName === 'member') {
+      return <User className={className} />;
     }
     return <Shield className={className} />;
 };
@@ -38,7 +36,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const addMemberFormRef = useRef<HTMLFormElement>(null);
 
-  const [addMemberState, addMemberFormAction] = useActionState<ModifyMemberResult | null, FormData>(
+  const [addMemberState, addMemberFormAction, isAddMemberPending] = useActionState<ModifyMemberResult | null, FormData>(
     addMemberFormAdapter,
     null
   );
@@ -140,6 +138,11 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
                     </Select>
                   </div>
                 </div>
+                {addMemberState && !addMemberState.success && (
+                  <p className="text-sm text-destructive text-center pb-4">
+                    Error: {addMemberState.message} {addMemberState.error ? `(${addMemberState.error})` : ''}
+                  </p>
+                )}
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button type="button" variant="outline">Cancel</Button>
