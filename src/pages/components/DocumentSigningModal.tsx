@@ -2,7 +2,7 @@
 // app/rooms/[roomId]/components/modals/DocumentSigningModal.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
 import { Loader2, FileText } from "lucide-react";
@@ -33,36 +33,52 @@ export default function DocumentSigningModal({
   onSign
 }: DocumentSigningModalProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [signerName, setSignerName] = useState("");
 
-  // Convert base64 document data to Blob URL when available
+  // Effect to reset state and manage document processing
   useEffect(() => {
-    if (documentData) {
-      try {
-        setIsLoading(true);
-        const binaryData = atob(documentData);
-        const bytes = new Uint8Array(binaryData.length);
-        for (let i = 0; i < binaryData.length; i++) {
-          bytes[i] = binaryData.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: contentType });
-        const url = URL.createObjectURL(blob);
-        setObjectUrl(url);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error creating object URL:", error);
-        setIsLoading(false);
-      }
+    // When the modal is not open, do nothing.
+    if (!isOpen) {
+      return;
+    }
+    
+    // When modal opens, reset the signer name.
+    setSignerName("");
+
+    // If there's no document data yet, show loader and clear any old object URL.
+    if (!documentData) {
+      setIsLoading(true);
+      setObjectUrl(null);
+      return;
     }
 
-    // Cleanup function to revoke object URL when component unmounts or when modal closes
+    // If data is present, process it.
+    setIsLoading(true);
+    let url: string | null = null;
+    try {
+      const binaryData = atob(documentData);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: contentType });
+      url = URL.createObjectURL(blob);
+      setObjectUrl(url);
+    } catch (error) {
+      console.error("Error creating object URL:", error);
+      setObjectUrl(null);
+    } finally {
+      setIsLoading(false);
+    }
+
+    // Cleanup function to revoke object URL when the effect re-runs or component unmounts.
     return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+      if (url) {
+        URL.revokeObjectURL(url);
       }
     };
-  }, [documentData, contentType]);
+  }, [isOpen, documentData, contentType]);
 
   const handleSign = async () => {
     try {
@@ -78,7 +94,7 @@ export default function DocumentSigningModal({
   const isPdf = contentType === "application/pdf";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open: any) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="max-w-[95vw] lg:max-w-[90vw] xl:max-w-[1400px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Sign Document: {documentName}</DialogTitle>
@@ -90,7 +106,7 @@ export default function DocumentSigningModal({
         {/* Main content area with side-by-side layout */}
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
           {/* Left side - Document preview */}
-          <div className="md:w-3/4 flex-1 min-h-[400px] md:min-h-0 overflow-hidden">
+          <div className="md:w-3/4 flex-1 min-h-[80vh] overflow-hidden bg-muted/20 flex items-center justify-center">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center h-full p-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -98,24 +114,22 @@ export default function DocumentSigningModal({
               </div>
             ) : objectUrl ? (
               isPdf ? (
-                <div className="h-full">
+                <div className="h-full w-full bg-white">
                   <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                     <Viewer fileUrl={objectUrl} />
                   </Worker>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full p-8">
-                  <div className="text-center">
-                    <FileText className="h-16 w-16 text-primary/60 mx-auto mb-4" />
-                    <p>This document type ({contentType}) cannot be previewed.</p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Please download the document to view its contents.
-                    </p>
-                  </div>
+                <div className="text-center p-8">
+                  <FileText className="h-16 w-16 text-primary/60 mx-auto mb-4" />
+                  <p>This document type ({contentType}) cannot be previewed.</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Please download the document to view its contents.
+                  </p>
                 </div>
               )
             ) : (
-              <div className="flex items-center justify-center h-full p-8">
+              <div className="text-center p-8">
                 <p className="text-muted-foreground">No document data available for preview.</p>
               </div>
             )}
@@ -133,7 +147,7 @@ export default function DocumentSigningModal({
                   <Input
                     id="signer-name"
                     value={signerName}
-                    onChange={(e: any) => setSignerName(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSignerName(e.target.value)}
                     placeholder="Type your full name here"
                     className="w-full"
                     disabled={isSigning}

@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
@@ -224,6 +224,51 @@ export async function removeMemberClientAction(
   }
 }
 
+/**
+ * [NEW] Client-side function to update a member's role in a room by calling the external API.
+ * @param input Data required to update a member's role.
+ * @returns A Promise resolving to UpdateMemberRoleResult.
+ */
+export async function updateMemberRoleClientAction(
+  input: UpdateMemberRoleInput
+): Promise<UpdateMemberRoleResult> {
+  console.log(`Client Service: Updating role for ${input.memberEmailToUpdate} to ${input.newRole} in room ${input.roomId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/update-member-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: UpdateMemberRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during update member role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to update member role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Update member role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in updateMemberRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to update member role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
 // Adapter function for useActionState with addMemberClientAction
 export async function addMemberFormAdapter(
   prevState: ModifyMemberResult | null,
@@ -262,6 +307,26 @@ export async function removeMemberFormAdapter(
   }
 
   return removeMemberClientAction(input);
+}
+
+// [NEW] Adapter function for useActionState with updateMemberRoleClientAction
+export async function updateMemberRoleFormAdapter(
+  prevState: UpdateMemberRoleResult | null,
+  formData: FormData
+): Promise<UpdateMemberRoleResult> {
+  prevState=prevState;
+  const input: UpdateMemberRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    memberEmailToUpdate: formData.get("memberEmailToUpdate") as string,
+    newRole: formData.get("newRole") as RoomRole,
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.memberEmailToUpdate || !input.newRole) {
+    return { success: false, error: "Client validation: Missing required fields for updating role." };
+  }
+
+  return updateMemberRoleClientAction(input);
 }
 
 /**
@@ -327,8 +392,8 @@ export async function retrieveDocumentClientAction(
 ): Promise<RetrieveDocumentResult> {
   console.log(`Client Service: Retrieving document ${input.documentId} via API`);
 
-  if (!input.documentId || !input.userEmail || !input.decryptedRoomPrivateKeyPem) {
-      return { success: false, message: "Client validation: Document ID, User Email, and decrypted Room Private Key are required.", error: "Missing input." };
+  if (!input.documentId || !input.userEmail || !input.decryptedRoomPrivateKeyPem || !input.arweaveTxId || !input.encryptedSymmetricKey) {
+      return { success: false, message: "Client validation: Incomplete document details provided. Key fields like arweaveTxId or encryptedSymmetricKey are missing.", error: "Missing input." };
   }
 
   try {

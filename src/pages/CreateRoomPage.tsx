@@ -12,7 +12,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 
 // Define interface for Othent details if not already global
@@ -28,6 +28,7 @@ export default function CreateRoomPage() {
   const { connected } = useConnection();
 
   const [roomName, setRoomName] = useState("");
+  const [isRoomNameTouched, setIsRoomNameTouched] = useState(false);
   const [ownerOthentDetails, setOwnerOthentDetails] = useState<OwnerOthentDetails | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isProcessing, startProcessingTransition] = useTransition();
@@ -66,6 +67,7 @@ export default function CreateRoomPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setError(null);
+      setIsRoomNameTouched(true); // Trigger validation on submit
 
       if (!connected || !activeAddress || !ownerOthentDetails?.email) {
           setError("Please connect your wallet and ensure email is loaded.");
@@ -104,11 +106,9 @@ export default function CreateRoomPage() {
                   description: `Company '${roomName.trim()}' created! Redirecting...`,
                   duration: 3000,
               });
-              // Perform navigation after toast has had a chance to be seen or onAutoClose
-              // For simplicity, navigating after a short delay or directly
-              console.log(`Redirecting to /rooms/${result.roomId}`);
+              console.log(`Redirecting to /companies/${result.roomId}`);
               setRoomName(""); // Reset form on success
-              navigate(`/rooms/${result.roomId}`); // Changed from router.push
+              navigate(`/companies/${result.roomId}`); // Changed from router.push
           } else {
               const errorDesc = result.message + (result.error ? ` Details: ${result.error}` : '');
               toast.error("Room Creation Failed", { id: toastId, description: errorDesc, duration: 7000 });
@@ -123,56 +123,67 @@ export default function CreateRoomPage() {
   };
 
   const isLoading = isFetchingDetails || isProcessing;
+  const isFormDisabled = isLoading || !connected || !ownerOthentDetails?.email;
+  const showRoomNameError = isRoomNameTouched && !roomName.trim();
 
   return (
     <RequireLogin>
-      <div className="container mx-auto max-w-2xl py-12 px-4">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Create a New Company</CardTitle>
-            <CardDescription>
-              Enter a name. Your email ({isFetchingDetails ? 'loading...' : ownerOthentDetails?.email || 'not available - connect wallet'}) will be linked as the owner.
-              {ownerOthentDetails?.name && ` Welcome, ${ownerOthentDetails.name}!`}
-            </CardDescription>
-          </CardHeader>
+      <div className="container mx-auto max-w-2xl py-12 px-4 animate-fade-in">
+        <div className="text-center mb-10">
+          <FolderPlus className="mx-auto h-12 w-12 text-muted-foreground/80" strokeWidth={1.5} />
+          <h1 className="text-3xl font-bold tracking-tight mt-4">Set Up Your Company</h1>
+          <p className="mt-2 text-lg text-muted-foreground">
+            This will create a private, end-to-end encrypted space on PermaSign for your company's high-value agreements.
+          </p>
+        </div>
+
+        <Card className="w-full shadow-md border-border/60">
           <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              {isFetchingDetails && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin"/> <span>Loading email...</span>
-                </div>
-              )}
+            <CardHeader>
+              <CardTitle>Company Details</CardTitle>
+              <CardDescription>
+                Enter a name for your company. You 
+                <span className="italic">
+                  {isFetchingDetails ? 'loading...' : " (" + ownerOthentDetails?.email + ") " || 'not available'}
+                </span>
+                will be registered as the founder of the company.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               {!isFetchingDetails && connected && !ownerOthentDetails?.email && (
-                 <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="w-4 h-4"/> <span>Could not load email. Check Othent connection or try reconnecting.</span>
+                 <div className="flex items-center gap-2 text-sm text-destructive p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0"/>
+                    <span>Could not load your email from Othent. Please try reconnecting your wallet to continue.</span>
                  </div>
                )}
-              {error && (
-                 <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="w-4 h-4"/> <span>Error: {error}</span>
-                 </div>
-              )}
-
+              
               <div>
-                <Label htmlFor="roomName">Company Name</Label>
+                <Label htmlFor="roomName" className="font-semibold">Company Name</Label>
                 <Input
                   id="roomName"
                   name="roomName"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  placeholder="e.g., Project Phoenix Q3 Data"
+                  onBlur={() => setIsRoomNameTouched(true)}
+                  placeholder="e.g., Acme Innovations Inc."
                   required
-                  disabled={isLoading || !connected || !ownerOthentDetails?.email}
+                  disabled={isFormDisabled}
                   aria-describedby="roomNameError"
+                  className="mt-2 text-base py-6"
                 />
-                 {!roomName.trim() && <p id="roomNameError" className="text-xs text-destructive pt-1">Company name is required.</p>}
+                 {showRoomNameError && <p id="roomNameError" className="text-sm text-destructive pt-2">Company name is required.</p>}
               </div>
 
             </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isLoading || !roomName.trim() || !connected || !ownerOthentDetails?.email} className="w-full">
-                {isProcessing ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating... </>)
-                 : isFetchingDetails ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Details... </>)
+            <CardFooter className="flex-col items-stretch">
+              {error && (
+                 <div className="flex items-center gap-2 text-sm text-destructive mb-4">
+                    <AlertCircle className="w-4 h-4"/> <span>Error: {error}</span>
+                 </div>
+              )}
+              <Button type="submit" disabled={isFormDisabled || !roomName.trim()} className="w-full" size="lg">
+                {isProcessing ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Company... </>)
+                 : isFetchingDetails ? (<> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Account... </>)
                  : ("Create Company")
                 }
               </Button>

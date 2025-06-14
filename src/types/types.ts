@@ -125,6 +125,13 @@ export interface ModifyMemberResult extends ActionResult<null> { // Typically, n
   messageId?: string; // From AO
 }
 
+export interface UpdateMemberRoleResult {
+    success: boolean;
+    message?: string;
+    error?: string;
+    messageId?: string;
+}
+
 // Structure for Add/Remove role results
 export interface ModifyRoleResult extends ActionResult<null> {
   success: boolean;
@@ -252,6 +259,13 @@ export interface RemoveMemberInput {
   userToRemoveEmail: string;
 }
 
+export interface UpdateMemberRoleInput {
+  roomId: string;
+  callerEmail: string;
+  memberEmailToUpdate: string;
+  newRole: RoomRole;
+}
+
 // Input for the add role action
 export interface AddRoleInput {
   roomId: string;
@@ -283,8 +297,7 @@ export interface RemoveRolePermissionInput {
 }
 
 // --- Retrieve Document Types ---
-export interface RetrieveDocumentApiInput {
-  documentId: string;
+export interface RetrieveDocumentApiInput extends DocumentInfo {
   userEmail: string;
   decryptedRoomPrivateKeyPem: string;
 }

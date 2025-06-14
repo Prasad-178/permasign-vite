@@ -266,7 +266,7 @@ export default function RoomDetailsPage() {
   }, [removeMemberState, fetchRoomDetails]);
 
   const retrieveAndDecrypt = async (
-        documentId: string,
+        document: DocumentInfo,
         decryptedRoomPrivateKeyPem: string
     ): Promise<RetrieveDocumentResult> => {
     if (!currentUserEmail) {
@@ -279,7 +279,7 @@ export default function RoomDetailsPage() {
     }
 
     const input: RetrieveDocumentApiInput = {
-        documentId,
+        ...document,
         userEmail: currentUserEmail,
         decryptedRoomPrivateKeyPem
     };
@@ -355,7 +355,7 @@ export default function RoomDetailsPage() {
         setIsDecrypting(true);
 
         console.log(`Calling retrieveAndDecrypt for ${documentId}`);
-        const result = await retrieveAndDecrypt(documentId, decryptedKey);
+        const result = await retrieveAndDecrypt(docToView, decryptedKey);
 
       if (result.success && result.data) {
         const binaryData = atob(result.data.decryptedData);
@@ -396,13 +396,20 @@ export default function RoomDetailsPage() {
     const toastId = toast.loading("Processing file for download...", { description: `Fetching and decrypting ${documentId}...` });
 
     try {
+        const docToDownload = documents.find(doc => doc.documentId === documentId);
+        if (!docToDownload) {
+            toast.error("Document Not Found", { id: toastId, description: "Could not find document details to process download." });
+            setIsDownloadingDoc(null);
+            return;
+        }
+
         const decryptedKey = await getDecryptedRoomKey();
          if (!decryptedKey) {
              throw new Error("Failed to obtain decrypted room key.");
          }
 
         console.log(`Calling retrieveAndDecrypt for download: ${documentId}`);
-        const result = await retrieveAndDecrypt(documentId, decryptedKey);
+        const result = await retrieveAndDecrypt(docToDownload, decryptedKey);
 
       if (result.success && result.data) {
         toast.success("Decryption Complete", { id: toastId, description: "Preparing download..." });
@@ -549,7 +556,7 @@ export default function RoomDetailsPage() {
          }
 
         console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
-        const result = await retrieveAndDecrypt(documentId, decryptedKey);
+        const result = await retrieveAndDecrypt(docToSign, decryptedKey);
 
       if (result.success && result.data) {
         setSigningDocumentData(result.data.decryptedData);
@@ -1529,7 +1536,7 @@ export default function RoomDetailsPage() {
                                       variant="outline" size="sm"
                                       onClick={(e) => { e.stopPropagation(); handleViewDocument(doc.documentId); }}
                                       disabled={!!isViewingDoc || !!isDownloadingDoc}
-                                      className="flex items-center"
+                                      className="flex items-center cursor-pointer"
                                     >
                                       {isViewingDoc === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />} View
                                     </Button>
@@ -1537,7 +1544,7 @@ export default function RoomDetailsPage() {
                                       variant="outline" size="sm"
                                       onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc.documentId); }}
                                       disabled={!!isViewingDoc || !!isDownloadingDoc}
-                                      className="flex items-center"
+                                      className="flex items-center cursor-pointer"
                                     >
                                       {isDownloadingDoc === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1.5" />} Download
                                     </Button>
