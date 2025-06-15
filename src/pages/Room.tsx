@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
-import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, ChevronsUpDown, Check, UserPlus } from "lucide-react";
+import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, ChevronsUpDown, Check, UserPlus, Expand } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
@@ -32,6 +32,7 @@ import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
 import RoleManager from "./components/RoleManager";
 import MemberManager from "./components/MemberManager";
+import DocumentViewModal from "./components/DocumentViewModal";
 import {
   addMemberFormAdapter,
   removeMemberFormAdapter,
@@ -72,6 +73,7 @@ export default function RoomDetailsPage() {
   const [isViewingDoc, setIsViewingDoc] = useState<string | null>(null);
   const [isDownloadingDoc, setIsDownloadingDoc] = useState<string | null>(null);
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState(false);
+  const [isInitialDocLoaded, setIsInitialDocLoaded] = useState(false);
 
   const uploadFormRef = useRef<HTMLFormElement>(null);
   const addMemberFormRef = useRef<HTMLFormElement>(null);
@@ -114,6 +116,10 @@ export default function RoomDetailsPage() {
   const [signingDocumentData, setSigningDocumentData] = useState<string | null>(null);
   const [signingDocumentName, setSigningDocumentName] = useState<string>("");
   const [signingDocumentType, setSigningDocumentType] = useState<string>("");
+
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewModalDocData, setViewModalDocData] = useState<string | null>(null);
+  const [isPreparingView, setIsPreparingView] = useState(false);
 
   const [isAddSignerModalOpen, setIsAddSignerModalOpen] = useState(false);
   const [addSignerDocDetails, setAddSignerDocDetails] = useState<{ documentId: string; currentSigners: string[] } | null>(null);
@@ -189,6 +195,20 @@ export default function RoomDetailsPage() {
       setIsLoadingDetails(true);
     }
   }, [fetchRoomDetails, currentUserEmail]);
+
+  // [NEW] This effect runs when documents are first loaded to show a preview.
+  useEffect(() => {
+    if (!isInitialDocLoaded && documents.length > 0) {
+      const latestDoc = [...documents].sort((a, b) => b.uploadedAt - a.uploadedAt)[0];
+      if (latestDoc) {
+        handleViewDocument(latestDoc.documentId);
+        setIsInitialDocLoaded(true);
+      }
+    }
+  // We only want this to run when documents change from empty to populated.
+  // Adding other dependencies would change the behavior.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -346,6 +366,8 @@ export default function RoomDetailsPage() {
     setSelectedDocument(docToView);
     setIsViewingDoc(documentId);
     setIsDecrypting(true);
+    // Clear previous viewer documents to ensure a clean state
+    setViewerDocuments([]);
 
     try {
         const decryptedKey = await getDecryptedRoomKey();
@@ -358,18 +380,12 @@ export default function RoomDetailsPage() {
         const result = await retrieveAndDecrypt(docToView, decryptedKey);
 
       if (result.success && result.data) {
-        const binaryData = atob(result.data.decryptedData);
-        const bytes = new Uint8Array(binaryData.length);
-        for (let i = 0; i < binaryData.length; i++) {
-          bytes[i] = binaryData.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: result.data.contentType });
-
-        const objectUrl = URL.createObjectURL(blob);
-        objectUrlsRef.current.push(objectUrl);
+        // [MODIFIED] Use a stable data URI instead of a temporary object URL.
+        // This prevents the browser from discarding the preview on tab change.
+        const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
 
         setViewerDocuments([{
-          uri: objectUrl,
+          uri: dataUri,
           fileName: result.data.filename,
           fileType: result.data.contentType
         }]);
@@ -721,6 +737,52 @@ export default function RoomDetailsPage() {
     }
   };
 
+  const handleOpenViewModal = async (docToView: DocumentInfo) => {
+    if (!docToView) {
+        toast.error("Document details are missing.");
+        return;
+    }
+
+    // This sets the details for the modal.
+    setSelectedDocument(docToView);
+
+    setIsPreparingView(true);
+    setIsViewModalOpen(true);
+    setViewModalDocData(null); // Clear previous data
+
+    try {
+        const decryptedKey = await getDecryptedRoomKey();
+        if (!decryptedKey) {
+            throw new Error("Failed to obtain decrypted room key for preview.");
+        }
+
+        const result = await retrieveAndDecrypt(docToView, decryptedKey);
+
+        if (result.success && result.data) {
+            setViewModalDocData(result.data.decryptedData);
+        } else {
+            toast.error(`Failed to load document for expanded view: ${result.error || result.message}`);
+            setIsViewModalOpen(false); // Close modal on error
+        }
+    } catch (error: any) {
+        console.error("Error opening view modal:", error);
+        if (error.message && !error.message.includes("decrypted room key")) {
+            toast.error(`Error loading document preview: ${error.message || "Unknown error"}`);
+        }
+        setIsViewModalOpen(false); // Close modal on error
+    } finally {
+        setIsPreparingView(false);
+    }
+  };
+
+  const handleExpandView = async () => {
+    if (!selectedDocument) {
+        toast.error("No document selected to expand.");
+        return;
+    }
+    handleOpenViewModal(selectedDocument);
+  };
+
   if (isLoadingDetails) {
     return <CustomLoader text="Loading company details..." />;
   }
@@ -929,7 +991,7 @@ export default function RoomDetailsPage() {
                         <DialogHeader>
                           <DialogTitle>Upload New Document</DialogTitle>
                           <DialogDescription>
-                            Select a file to encrypt and upload securely using the room's key.
+                            Select an agreement to upload to the company's shared space.
                           </DialogDescription>
                         </DialogHeader>
                         <form ref={uploadFormRef} action={uploadFormAction}>
@@ -972,7 +1034,7 @@ export default function RoomDetailsPage() {
                                 <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
                                 <div className="col-span-3">
                                     <div className="flex gap-2">
-                                        <div className="relative w-full">
+                                        <div className="relative w-full signer-input-container">
                                             <Input
                                                 placeholder="Type email or search members..."
                                                 value={signerInput}
@@ -1151,12 +1213,24 @@ export default function RoomDetailsPage() {
 
                         <div className="w-1/2 overflow-auto border rounded-md bg-card p-3 flex flex-col">
                           <div className="h-1/2 mb-3">
-                            <h3 className="font-medium mb-2 text-sm">Document Preview</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-medium text-sm">Document Preview</h3>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7"
+                                    onClick={handleExpandView}
+                                    disabled={!selectedDocument || isPreparingView}
+                                    title="Expand View"
+                                >
+                                    {isPreparingView ? <Loader2 className="h-4 w-4 animate-spin" /> : <Expand className="h-4 w-4" />}
+                                </Button>
+                            </div>
                             <div className="h-[calc(100%-2rem)] border rounded-lg overflow-hidden bg-background">
                               {isDecrypting ? (
                                 <div className="flex flex-col items-center justify-center h-full">
                                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                                  <p className="text-muted-foreground">Decrypting document...</p>
+                                  <p className="text-muted-foreground">Retrieving Document...</p>
                                 </div>
                               ) : viewerDocuments.length > 0 ? (
                                 <DocViewer
@@ -1164,8 +1238,8 @@ export default function RoomDetailsPage() {
                                   pluginRenderers={DocViewerRenderers}
                                   config={{
                                     header: {
-                                      disableHeader: false,
-                                      disableFileName: false,
+                                      disableHeader: true,
+                                      disableFileName: true,
                                       retainURLParams: false
                                     }
                                   }}
@@ -1306,7 +1380,7 @@ export default function RoomDetailsPage() {
                             <DialogHeader>
                               <DialogTitle>Upload New Document</DialogTitle>
                               <DialogDescription>
-                                Select a file to encrypt and upload securely using the room's key.
+                                Select an agreement to upload to the company's shared space.
                               </DialogDescription>
                             </DialogHeader>
                             <form ref={uploadFormRef} action={uploadFormAction}>
@@ -1349,7 +1423,7 @@ export default function RoomDetailsPage() {
                                   <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
                                   <div className="col-span-3">
                                       <div className="flex gap-2">
-                                          <div className="relative w-full">
+                                          <div className="relative w-full signer-input-container">
                                               <Input
                                                   placeholder="Type email or search members..."
                                                   value={signerInput}
@@ -1534,11 +1608,11 @@ export default function RoomDetailsPage() {
                                   <div className="flex space-x-2">
                                     <Button
                                       variant="outline" size="sm"
-                                      onClick={(e) => { e.stopPropagation(); handleViewDocument(doc.documentId); }}
-                                      disabled={!!isViewingDoc || !!isDownloadingDoc}
+                                      onClick={(e) => { e.stopPropagation(); handleOpenViewModal(doc); }}
+                                      disabled={isPreparingView}
                                       className="flex items-center cursor-pointer"
                                     >
-                                      {isViewingDoc === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />} View
+                                      {isPreparingView && selectedDocument?.documentId === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />} View
                                     </Button>
                                     <Button
                                       variant="outline" size="sm"
@@ -1714,6 +1788,18 @@ export default function RoomDetailsPage() {
           contentType={signingDocumentType}
           isSigning={isSigningDoc === signingDocumentId}
           onSign={handleSignDocument}
+        />
+
+        <DocumentViewModal
+            isOpen={isViewModalOpen}
+            onClose={() => {
+                setIsViewModalOpen(false);
+                setViewModalDocData(null);
+            }}
+            documentName={selectedDocument?.originalFilename || ""}
+            documentData={viewModalDocData || undefined}
+            contentType={selectedDocument?.contentType || ""}
+            isLoading={isPreparingView}
         />
 
         <Dialog open={isAddSignerModalOpen} onOpenChange={(isOpen) => {
