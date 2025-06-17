@@ -66,7 +66,7 @@ export function PricingSection() {
             </div>
             <h2 className="text-3xl font-heading font-medium sm:text-4xl md:text-5xl">Free of Charge!</h2>
             <p className="text-muted-foreground md:text-xl/relaxed font-light">
-              For now, the product is free of charge!
+              As PermaSign is still in beta, the product is free of charge!
             </p>
           </div>
         </AnimateOnScroll>
