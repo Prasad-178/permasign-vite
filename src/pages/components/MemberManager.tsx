@@ -55,6 +55,10 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
   );
 
   useEffect(() => {
+
+  }, [isAddMemberPending, isRemoveMemberPending])
+
+  useEffect(() => {
     const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
       if (state) {
         if (state.success) {

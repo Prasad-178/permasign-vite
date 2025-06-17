@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Badge, FileCheck2, Trash2 } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";

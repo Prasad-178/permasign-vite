@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
-import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, ChevronsUpDown, Check, UserPlus, Expand } from "lucide-react";
+import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, Check, UserPlus, Expand } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
@@ -51,7 +51,7 @@ import {
   type RemoveSignerFromDocumentInput,
   type ModifySignerResult
 } from '../types/types';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../components/ui/command";
+import { Command, CommandGroup, CommandItem, CommandList } from "../components/ui/command";
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -92,13 +92,16 @@ export default function RoomDetailsPage() {
 
   useEffect(() => {
 
-  }, [isUploadPending, isAddMemberPending, isRemoveMemberPending])
+  }, [isUploadPending, isAddMemberPending, isRemoveMemberPending, addMemberFormAction, removeMemberFormAction, isAddMemberModalOpen])
 
   const [selectedDocument, setSelectedDocument] = useState<RoomDocument | null>(null);
   const [viewerDocuments, setViewerDocuments] = useState<any[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
 
   const objectUrlsRef = useRef<string[]>([]);
+  if (objectUrlsRef) {
+
+  }
   const [userPlan, setUserPlan] = useState<string | null>(null);
 
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
@@ -448,18 +451,18 @@ export default function RoomDetailsPage() {
   const currentUserRole = roomDetails?.members.find(m => m.userEmail === currentUserEmail)?.role;
 
   const isFounder = currentUserRole === 'founder';
-  const isCFO = currentUserRole === 'cfo';
-  const isInvestor = currentUserRole === 'investor';
+  // const isCFO = currentUserRole === 'cfo';
+  // const isInvestor = currentUserRole === 'investor';
   // const isAuditor = currentUserRole === 'auditor';
 
   // const canUpload = true;
-  const canManageMembers = isFounder || isCFO;
-  const canAddCFO = isFounder;
-  const canAddInvestor = isFounder || isCFO;
-  const canAddAuditor = isInvestor;
-  const canAddCustomer = isFounder || isCFO;
-  const canAddVendor = isFounder || isCFO;
-  const canAddAnyMember = canAddCFO || canAddInvestor || canAddAuditor || canAddCustomer || canAddVendor;
+  // const canManageMembers = isFounder || isCFO;
+  // const canAddCFO = isFounder;
+  // const canAddInvestor = isFounder || isCFO;
+  // const canAddAuditor = isInvestor;
+  // const canAddCustomer = isFounder || isCFO;
+  // const canAddVendor = isFounder || isCFO;
+  // const canAddAnyMember = canAddCFO || canAddInvestor || canAddAuditor || canAddCustomer || canAddVendor;
 
   useEffect(() => {
     const fetchUserPlan = async () => {
