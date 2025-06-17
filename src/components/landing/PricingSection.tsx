@@ -1,59 +1,59 @@
-import { Link } from "react-router-dom"
-import { CheckCircle } from "lucide-react"
-import { Button } from "../ui/button"
+// import { Link } from "react-router-dom"
+// import { CheckCircle } from "lucide-react"
+// import { Button } from "../ui/button"
 import { AnimateOnScroll } from "../ui/animate-on-scroll"
 
-const plans = [
-  {
-    name: "Starter",
-    description: "For small teams and startups",
-    price: "$29",
-    period: "/month",
-    features: [
-      "Up to 10 documents per month",
-      "3 team members",
-      "Basic templates",
-      "Email support",
-    ],
-    href: "/signup?plan=starter",
-    button: "Get Started",
-    highlight: false,
-  },
-  {
-    name: "Business",
-    description: "For growing businesses",
-    price: "$99",
-    period: "/month",
-    features: [
-      "Up to 100 documents per month",
-      "10 team members",
-      "Advanced templates",
-      "Priority support",
-      "API access",
-    ],
-    href: "/signup?plan=business",
-    button: "Get Started",
-    highlight: true,
-  },
-  {
-    name: "Enterprise",
-    description: "For large organizations",
-    price: "Custom",
-    period: "",
-    features: [
-      "Unlimited documents",
-      "Unlimited team members",
-      "Custom templates",
-      "24/7 dedicated support",
-      "Advanced security features",
-      "Custom integrations",
-    ],
-    href: "/contact-sales",
-    button: "Contact Sales",
-    highlight: false,
-    outline: true,
-  },
-]
+// const plans = [
+//   {
+//     name: "Starter",
+//     description: "For small teams and startups",
+//     price: "$29",
+//     period: "/month",
+//     features: [
+//       "Up to 10 documents per month",
+//       "3 team members",
+//       "Basic templates",
+//       "Email support",
+//     ],
+//     href: "/signup?plan=starter",
+//     button: "Get Started",
+//     highlight: false,
+//   },
+//   {
+//     name: "Business",
+//     description: "For growing businesses",
+//     price: "$99",
+//     period: "/month",
+//     features: [
+//       "Up to 100 documents per month",
+//       "10 team members",
+//       "Advanced templates",
+//       "Priority support",
+//       "API access",
+//     ],
+//     href: "/signup?plan=business",
+//     button: "Get Started",
+//     highlight: true,
+//   },
+//   {
+//     name: "Enterprise",
+//     description: "For large organizations",
+//     price: "Custom",
+//     period: "",
+//     features: [
+//       "Unlimited documents",
+//       "Unlimited team members",
+//       "Custom templates",
+//       "24/7 dedicated support",
+//       "Advanced security features",
+//       "Custom integrations",
+//     ],
+//     href: "/contact-sales",
+//     button: "Contact Sales",
+//     highlight: false,
+//     outline: true,
+//   },
+// ]
 
 export function PricingSection() {
   return (
@@ -64,13 +64,13 @@ export function PricingSection() {
             <div className="inline-block rounded-full bg-primary-50 px-3 py-1 text-sm text-primary mb-4">
               Pricing
             </div>
-            <h2 className="text-3xl font-heading font-medium sm:text-4xl md:text-5xl">Transparent Pricing</h2>
+            <h2 className="text-3xl font-heading font-medium sm:text-4xl md:text-5xl">Free of Charge!</h2>
             <p className="text-muted-foreground md:text-xl/relaxed font-light">
-              Choose the plan that works for your business needs.
+              For now, the product is free of charge!
             </p>
           </div>
         </AnimateOnScroll>
-        <div className="mx-auto grid max-w-5xl gap-6 py-8 md:grid-cols-3">
+        {/* <div className="mx-auto grid max-w-5xl gap-6 py-8 md:grid-cols-3">
           {plans.map((plan, i) => (
             <div className="feature-card" key={i}>
               <div className={`flex flex-col rounded-md border ${plan.highlight ? "border-primary-200 shadow-md relative" : "border-gray-200 shadow-sm"} bg-white p-6 h-full`}>
@@ -101,7 +101,7 @@ export function PricingSection() {
               </div>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
     </section>
   )

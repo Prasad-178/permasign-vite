@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Badge, FileCheck2 } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Badge, FileCheck2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
@@ -248,44 +248,64 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
 
       {/* --- Role Settings Modal --- */}
       <Dialog open={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen}>
-        <DialogContent className="sm:max-w-2xl min-h-[50vh]">
+        <DialogContent className="sm:max-w-2xl min-h-[50vh] flex flex-col">
             {selectedRole && (
                 <>
                     <DialogHeader>
                         <DialogTitle className="flex items-center capitalize">{getRoleIcon(selectedRole.roleName)} Settings: {selectedRole.roleName.replace(/_/g, ' ')}</DialogTitle>
                         <DialogDescription>Manage permissions and document access for this role.</DialogDescription>
                     </DialogHeader>
-                    <Tabs defaultValue="documents" className="w-full pt-4">
-                        <TabsList><TabsTrigger value="documents">Document Types</TabsTrigger><TabsTrigger value="permissions" disabled>Permissions (Soon)</TabsTrigger></TabsList>
-                        <TabsContent value="documents" className="pt-4">
-                            <div className="space-y-4">
-                                <Label>Add a new document type this role can upload:</Label>
-                                <div className="flex space-x-2">
-                                    <Input placeholder="e.g. Pitch Deck, NDA..." value={newDocType} onChange={(e) => setNewDocType(e.target.value)} />
-                                    <Button onClick={handleAddDocType} disabled={isPermissionActionLoading || !newDocType.trim()}>
-                                        {isPermissionActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-                                    </Button>
+                    <div className="flex-grow">
+                        <Tabs defaultValue="documents" className="w-full pt-4">
+                            <TabsList><TabsTrigger value="documents">Document Types</TabsTrigger><TabsTrigger value="permissions" disabled>Permissions (Soon)</TabsTrigger></TabsList>
+                            <TabsContent value="documents" className="pt-4">
+                                <div className="space-y-4">
+                                    <Label>Add a new document type this role can upload:</Label>
+                                    <div className="flex space-x-2">
+                                        <Input placeholder="e.g. Pitch Deck, NDA..." value={newDocType} onChange={(e) => setNewDocType(e.target.value)} />
+                                        <Button onClick={handleAddDocType} disabled={isPermissionActionLoading || !newDocType.trim()}>
+                                            {isPermissionActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                                        </Button>
+                                    </div>
+                                    <div className="border rounded-md p-3 min-h-[150px]">
+                                        <h4 className="text-sm font-medium mb-3">Allowed Document Types:</h4>
+                                        {selectedRole.documentTypes.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedRole.documentTypes.map(docType => (
+                                                    <UiBadge key={docType} variant="secondary" className="text-base">
+                                                        {docType}
+                                                        <button onClick={() => handleRemoveDocType(docType)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5" disabled={isPermissionActionLoading}>
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </UiBadge>
+                                                ))}
+                                            </div>
+                                        ) : (<p className="text-sm text-muted-foreground text-center py-8">No document types assigned.</p>)}
+                                    </div>
                                 </div>
-                                <div className="border rounded-md p-3 min-h-[150px]">
-                                    <h4 className="text-sm font-medium mb-3">Allowed Document Types:</h4>
-                                    {selectedRole.documentTypes.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedRole.documentTypes.map(docType => (
-                                                <UiBadge key={docType} variant="secondary" className="text-base">
-                                                    {docType}
-                                                    <button onClick={() => handleRemoveDocType(docType)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5" disabled={isPermissionActionLoading}>
-                                                        <X className="h-3 w-3" />
-                                                    </button>
-                                                </UiBadge>
-                                            ))}
-                                        </div>
-                                    ) : (<p className="text-sm text-muted-foreground text-center py-8">No document types assigned.</p>)}
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsSettingsModalOpen(false)}>Close</Button>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+                    <DialogFooter className="sm:justify-between border-t pt-4">
+                        <div>
+                            {selectedRole.isDeletable ? (
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => {
+                                        setRoleToDelete(selectedRole.roleName);
+                                        setIsSettingsModalOpen(false);
+                                        setIsDeleteModalOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Role
+                                </Button>
+                            ) : (
+                                <p className="text-xs text-muted-foreground pt-2">System roles cannot be deleted.</p>
+                            )}
+                        </div>
+                        <DialogClose asChild>
+                            <Button type="button" variant="outline">Close</Button>
+                        </DialogClose>
                     </DialogFooter>
                 </>
             )}

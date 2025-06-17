@@ -52,7 +52,6 @@ import {
   type ModifySignerResult
 } from '../types/types';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 
 export default function RoomDetailsPage() {
   const params = useParams();

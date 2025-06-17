@@ -22,16 +22,9 @@ export function HeroSection() {
             </div>
             <div className="flex flex-col gap-2 min-[400px]:flex-row pt-4">
               <Button asChild size="lg" className="bg-primary hover:bg-primary-600 btn-hover-effect">
-                <Link to="/signup">
-                  Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
+                <Link to="/companies">
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="btn-hover-effect border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <Link to="#how-it-works">Learn More</Link>
               </Button>
             </div>
           </AnimateOnScroll>
