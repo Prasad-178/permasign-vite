@@ -125,6 +125,13 @@
 @tailwind components;
 @tailwind utilities;
 
+#pdf-zoom-in,
+#pdf-zoom-out,
+#pdf-zoom-reset,
+#pdf-toggle-pagination {
+  display: none !important;
+}
+
 @layer base {
   :root {
     /* Define your color variables from ShadCN here */

@@ -20,15 +20,15 @@ const routes: RouteObject[] = [
     element: <RandomPage />,
   },
   {
-    path: "/rooms",
+    path: "/companies",
     element: <RoomsPage />,
   },
   {
-    path: "/rooms/create",
+    path: "/companies/create",
     element: <CreateRoomPage />,
   },
   {
-    path: "/rooms/:roomId",
+    path: "/companies/:companyId",
     element: <RoomDetailsPage />,
   },
 ];

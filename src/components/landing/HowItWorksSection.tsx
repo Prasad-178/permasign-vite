@@ -9,12 +9,12 @@ const steps = [
   {
     number: 2,
     title: "Add Signatories",
-    description: "Specify who needs to sign and in what order.",
+    description: "Invite signers for the document.",
   },
   {
     number: 3,
     title: "Secure Signing",
-    description: "Parties sign securely with multi-factor authentication.",
+    description: "Parties sign securely and permanently.",
   },
   {
     number: 4,

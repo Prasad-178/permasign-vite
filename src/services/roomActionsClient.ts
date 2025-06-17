@@ -1,9 +1,10 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type DocumentCategory } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult } from '../types/types';
 
 // Define the base URL for your external API.
 // It's good practice to use an environment variable for this.
 // For example, in your .env.local file: VITE_API_ROOT=http://localhost:3001
 const API_ROOT = "https://permasign-backend-production.up.railway.app";
+// const API_ROOT = "http://localhost:3001";
 const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
 
 // Fallback for local development if the environment variable is not set.
@@ -223,6 +224,51 @@ export async function removeMemberClientAction(
   }
 }
 
+/**
+ * [NEW] Client-side function to update a member's role in a room by calling the external API.
+ * @param input Data required to update a member's role.
+ * @returns A Promise resolving to UpdateMemberRoleResult.
+ */
+export async function updateMemberRoleClientAction(
+  input: UpdateMemberRoleInput
+): Promise<UpdateMemberRoleResult> {
+  console.log(`Client Service: Updating role for ${input.memberEmailToUpdate} to ${input.newRole} in room ${input.roomId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/update-member-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: UpdateMemberRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during update member role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to update member role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Update member role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in updateMemberRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to update member role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
 // Adapter function for useActionState with addMemberClientAction
 export async function addMemberFormAdapter(
   prevState: ModifyMemberResult | null,
@@ -239,10 +285,6 @@ export async function addMemberFormAdapter(
   // Basic client-side validation matching the original server action (optional here, as API will validate)
   if (!input.roomId || !input.callerEmail || !input.newUserEmail || !input.newUserRole) {
     return { success: false, error: "Client validation: Missing required fields." };
-  }
-  const validRoles = ['investor', 'auditor', 'cfo', 'vendor', 'customer']; // Keep in sync with server
-  if (!validRoles.includes(input.newUserRole)) {
-    return { success: false, error: `Client validation: Invalid role '${input.newUserRole}'.` };
   }
 
   return addMemberClientAction(input);
@@ -265,6 +307,26 @@ export async function removeMemberFormAdapter(
   }
 
   return removeMemberClientAction(input);
+}
+
+// [NEW] Adapter function for useActionState with updateMemberRoleClientAction
+export async function updateMemberRoleFormAdapter(
+  prevState: UpdateMemberRoleResult | null,
+  formData: FormData
+): Promise<UpdateMemberRoleResult> {
+  prevState=prevState;
+  const input: UpdateMemberRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    memberEmailToUpdate: formData.get("memberEmailToUpdate") as string,
+    newRole: formData.get("newRole") as RoomRole,
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.memberEmailToUpdate || !input.newRole) {
+    return { success: false, error: "Client validation: Missing required fields for updating role." };
+  }
+
+  return updateMemberRoleClientAction(input);
 }
 
 /**
@@ -330,8 +392,8 @@ export async function retrieveDocumentClientAction(
 ): Promise<RetrieveDocumentResult> {
   console.log(`Client Service: Retrieving document ${input.documentId} via API`);
 
-  if (!input.documentId || !input.userEmail || !input.decryptedRoomPrivateKeyPem) {
-      return { success: false, message: "Client validation: Document ID, User Email, and decrypted Room Private Key are required.", error: "Missing input." };
+  if (!input.documentId || !input.userEmail || !input.decryptedRoomPrivateKeyPem || !input.arweaveTxId || !input.encryptedSymmetricKey) {
+      return { success: false, message: "Client validation: Incomplete document details provided. Key fields like arweaveTxId or encryptedSymmetricKey are missing.", error: "Missing input." };
   }
 
   try {
@@ -486,15 +548,19 @@ export async function uploadDocumentFormAdapter(
   const roomId = formData.get("roomId") as string;
   const uploaderEmail = formData.get("uploaderEmail") as string;
   const documentFile = formData.get("documentFile") as File | null;
-  const category = formData.get("category") as DocumentCategory;
+  const category = formData.get("category") as string;
   const role = formData.get("role") as RoomRole;
   const roomPubKey = formData.get("roomPubKey") as string;
+  const signersString = formData.get("signers") as string;
+  const signers = signersString ? signersString.split(',').map(s => s.trim()).filter(s => s) : [];
 
-  // === Client-side Validation from original action ===
-  const allowedCategories = ['technical', 'financial', 'competitive', 'faq', 'video', 'other', 'termsheet', 'shareholder-agreement', 'audit-report', 'licences_and_certifications', 'founders_agreement', 'board_resolutions', 'cap_table', 'registration_certificates', 'safe_convertible_notes', 'procurement_contract', 'quality_assurance_agreement', 'master_service', 'statement_of_work', 'shareholders_agreement'];
-  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !allowedCategories.includes(category) || !roomPubKey || !role) {
-      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role });
-      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, valid category, role, or room public key)." , data: null};
+
+  // === [MODIFIED] Client-side Validation ===
+  // The check for a valid category against a hardcoded list has been removed.
+  // The backend now handles the validation against the dynamic role permissions.
+  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role || !signers || signers.length === 0) {
+      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role, signers: !!signers && signers.length > 0 });
+      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, room public key, or signers)." , data: null};
   }
   if (documentFile.size > 100 * 1024 * 1024) { // Example: 100MB limit
       return { success: false, message: "Client validation: File is too large (max 100MB).", data: null };
@@ -515,6 +581,7 @@ export async function uploadDocumentFormAdapter(
       fileType: documentFile.type || "application/octet-stream",
       fileDataB64,
       fileSize: documentFile.size,
+      signers,
     };
 
     return uploadDocumentClientAction(input);
@@ -530,15 +597,277 @@ export async function uploadDocumentFormAdapter(
   }
 }
 
-// As you refactor other actions (addMemberAction, createRoomWithKmsAction, etc.),
-// you can add their client-side fetch counterparts here.
-// For example:
-// export async function createRoomWithKmsAction(params: CreateRoomParams): Promise<ActionResult<CreateRoomResult>> {
-//     const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/create-room-with-kms`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(params),
-//     });
-//     // ... error handling and response processing ...
-//     return response.json();
-// }
+/**
+ * Client-side function to add a role to a room by calling the external API.
+ * @param input Data required to add a role.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function addRoleClientAction(
+  input: AddRoleInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Adding role ${input.newRoleName} to room ${input.roomId} via API`);
+  
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/create-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during add role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Add role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in addRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to add role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Client-side function to delete a role from a room by calling the external API.
+ * @param input Data required to delete a role.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function deleteRoleClientAction(
+  input: DeleteRoleInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Deleting role ${input.roleNameToDelete} from room ${input.roomId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/delete-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during delete role:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to delete role.",
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Delete role API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in deleteRoleClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to delete role due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+// Adapter function for useActionState with addRoleClientAction
+export async function addRoleFormAdapter(
+  prevState: ModifyRoleResult | null,
+  formData: FormData
+): Promise<ModifyRoleResult> {
+  prevState=prevState;
+  const input: AddRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    newRoleName: (formData.get("newRoleName") as string || "").trim(),
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.newRoleName) {
+    return { success: false, error: "Client validation: Missing required fields." };
+  }
+
+  return addRoleClientAction(input);
+}
+
+// Adapter function for useActionState with deleteRoleClientAction
+export async function deleteRoleFormAdapter(
+  prevState: ModifyRoleResult | null,
+  formData: FormData
+): Promise<ModifyRoleResult> {
+  prevState=prevState;
+  const input: DeleteRoleInput = {
+    roomId: formData.get("roomId") as string,
+    callerEmail: formData.get("callerEmail") as string,
+    roleNameToDelete: formData.get("roleNameToDelete") as string,
+  };
+
+  if (!input.roomId || !input.callerEmail || !input.roleNameToDelete) {
+    return { success: false, error: "Client validation: Missing required fields for deleting role." };
+  }
+
+  return deleteRoleClientAction(input);
+}
+
+/**
+ * [NEW] Client-side function to add a document type permission to a role.
+ * @param input Data required to add the permission.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function addRolePermissionClientAction(
+  input: AddRolePermissionInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Adding permission for doc type "${input.documentType}" to role "${input.roleName}" via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/add-role-permission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add permission.",
+      };
+    }
+    return responseData;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: "Failed to add permission due to a network or client-side error.",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * [NEW] Client-side function to remove a document type permission from a role.
+ * @param input Data required to remove the permission.
+ * @returns A Promise resolving to ModifyRoleResult.
+ */
+export async function removeRolePermissionClientAction(
+  input: RemoveRolePermissionInput
+): Promise<ModifyRoleResult> {
+  console.log(`Client Service: Removing permission for doc type "${input.documentType}" from role "${input.roleName}" via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/remove-role-permission`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifyRoleResult = await response.json();
+    if (!response.ok) {
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to remove permission.",
+      };
+    }
+    return responseData;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: "Failed to remove permission due to a network or client-side error.",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * [NEW] Client-side function to add a signer to a document.
+ * @param input Data required to add the signer.
+ * @returns A Promise resolving to ModifySignerResult.
+ */
+export async function addSignerToDocumentClientAction(
+  input: AddSignerToDocumentInput
+): Promise<ModifySignerResult> {
+  console.log(`Client Service: Adding signer ${input.signerEmail} to document ${input.documentId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/add-signer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifySignerResult = await response.json();
+    if (!response.ok) {
+      console.error("API error response during add signer:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to add signer.",
+      };
+    }
+    console.log("Client Service: Add signer API call successful:", responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error("Client Service: Error in addSignerToDocumentClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to add signer due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * [NEW] Client-side function to remove a signer from a document.
+ * @param input Data required to remove the signer.
+ * @returns A Promise resolving to ModifySignerResult.
+ */
+export async function removeSignerFromDocumentClientAction(
+  input: RemoveSignerFromDocumentInput
+): Promise<ModifySignerResult> {
+  console.log(`Client Service: Removing signer ${input.signerEmailToRemove} from document ${input.documentId} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/remove-signer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: ModifySignerResult = await response.json();
+    if (!response.ok) {
+      console.error("API error response during remove signer:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to remove signer.",
+      };
+    }
+    console.log("Client Service: Remove signer API call successful:", responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error("Client Service: Error in removeSignerFromDocumentClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to remove signer due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
