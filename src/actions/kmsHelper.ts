@@ -1,14 +1,7 @@
 import { type DecryptKmsApiResponse, type DecryptKmsApiInput } from '../types/types'; // Assuming types are in app/types.ts
 
-// Re-use API root configuration.
-// It's good practice to use an environment variable for this.
-// For example, in your .env.local file: NEXT_PUBLIC_API_ROOT=http://localhost:3001
-// Since this helper might be used by Server Actions (running server-side),
-// we can also use a server-side environment variable if NEXT_PUBLIC_ is not appropriate.
-// For simplicity here, we'll assume a general API_ROOT.
-const API_ROOT = "https://permasign-backend-production.up.railway.app"; // Use Vite's way to access env variables
-// const API_ROOT = "http://localhost:3001";
-const API_BASE_PATH = "/api/actions"; // Matches your Express server routes
+const API_ROOT = import.meta.env.VITE_API_ROOT;
+const API_BASE_PATH = "/api/actions";
 
 let effectiveApiRoot = API_ROOT;
 if (!effectiveApiRoot) {

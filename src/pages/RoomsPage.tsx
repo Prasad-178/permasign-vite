@@ -41,56 +41,66 @@ export default function RoomsPage() {
   };
 
   useEffect(() => {
-    const fetchUserEmail = async () => {
-      if (activeAddress && api?.othent) {
-        try {
-          console.log("Attempting to fetch Othent user details...");
-          const details = await api.othent.getUserDetails();
-          console.log("Othent details received:", details);
-          if (details && details.email) {
-            setUserEmail(details.email);
-          } else {
-            setError("Could not retrieve email using Othent. Please ensure your wallet is linked.");
-            setUserEmail(null);
-          }
-        } catch (err: any) {
-          console.error("Error fetching Othent details:", err);
-          setError(`Failed to get user details: ${err.message || 'Unknown error'}`);
-          setUserEmail(null);
-        }
-      } else {
-        setUserEmail(null);
+    const loadUserDataAndRooms = async () => {
+      // State 1: Wallet status is being determined (`activeAddress` is undefined).
+      // We do nothing and wait, keeping the loader visible.
+      if (activeAddress === undefined) {
+        return;
       }
-    };
 
-    fetchUserEmail();
-  }, [activeAddress, api]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      if (userEmail) {
-        setIsLoading(true);
+      // State 2: Wallet is confirmed to be disconnected (`activeAddress` is null).
+      // We must stop loading. The RequireLogin component will redirect the user.
+      if (activeAddress === null) {
+        setIsLoading(false);
+        setRooms([]);
         setError(null);
-        console.log("Fetching rooms for email:", userEmail);
-        const result = await listMyDataRooms(userEmail);
+        return;
+      }
+      
+      // State 3: User is connected (`activeAddress` is a string).
+      // Now, we must also wait for the API services to be ready.
+      if (!api?.othent) {
+        // API not ready, we wait. isLoading remains true.
+        return;
+      }
+
+      // All conditions met. Let's fetch the data.
+      setError(null);
+
+      try {
+        console.log("Attempting to fetch Othent user details...");
+        const details = await api.othent.getUserDetails();
+        console.log("Othent details received:", details);
+
+        if (!details?.email) {
+          throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
+        }
+        
+        const email = details.email;
+        setUserEmail(email); // Set email for potential UI display
+
+        console.log("Fetching rooms for email:", email);
+        const result = await listMyDataRooms(email);
         console.log("Rooms fetched:", result);
 
         if (result.success && result.data) {
           setRooms(result.data);
         } else {
-          setError(result.error + (result.error ? ` (${result.error})` : ''));
-          setRooms([]);
+          throw new Error(result.message + (result.error ? ` Details: ${result.error}` : ''));
         }
-        setIsLoading(false);
-      } else if (activeAddress) {
-        setIsLoading(false);
-      } else {
+      } catch (err: any) {
+        console.error("Error during data loading:", err);
+        setError(err.message || 'An unknown error occurred.');
+        setRooms([]);
+      } finally {
+        // This runs whether the fetch succeeded or failed.
+        // We are done with the process, so we must stop loading.
         setIsLoading(false);
       }
     };
 
-    fetchRooms();
-  }, [userEmail, activeAddress]);
+    loadUserDataAndRooms();
+  }, [activeAddress, api]);
 
   return (
     <RequireLogin>
@@ -120,7 +130,7 @@ export default function RoomsPage() {
             </CardHeader>
             <CardContent>
               <p>{error}</p>
-              {!userEmail && activeAddress && <p className="mt-2 text-sm text-muted-foreground">Ensure you have linked an email via Othent.</p>}
+              {error?.includes("Othent") && <p className="mt-2 text-sm text-muted-foreground">Ensure you have linked an email via Othent.</p>}
             </CardContent>
           </Card>
         )}
