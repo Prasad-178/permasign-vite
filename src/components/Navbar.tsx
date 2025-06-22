@@ -1,5 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ConnectButton } from "@arweave-wallet-kit/react";
+import { ConnectButton, useConnection, useActiveAddress } from "@arweave-wallet-kit/react";
+import { usePostHog } from "posthog-js/react";
+import { useEffect, useState } from "react";
 // import { ThemeToggle } from "./ThemeToggle";
 
 // A simple placeholder SVG logo. Replace with your actual logo component or SVG.
@@ -7,6 +9,23 @@ import { ConnectButton } from "@arweave-wallet-kit/react";
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { connected } = useConnection();
+  const activeAddress = useActiveAddress();
+  const posthog = usePostHog();
+  const [isUserIdentified, setIsUserIdentified] = useState(false);
+
+  useEffect(() => {
+    // When the user connects their wallet, identify them and capture the login event.
+    if (connected && activeAddress && !isUserIdentified) {
+      posthog?.identify(activeAddress);
+      posthog?.capture("user_logged_in", { wallet_address: activeAddress });
+      setIsUserIdentified(true);
+    } else if (!connected && isUserIdentified) {
+      // When the user disconnects, reset the PostHog user identity.
+      posthog?.reset();
+      setIsUserIdentified(false);
+    }
+  }, [connected, activeAddress, posthog, isUserIdentified]);
 
   const navLinks = [
     { type: "anchor", href: "/#features", label: "Features", id: "features" },
@@ -35,7 +54,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
         <Link to="/" className="mr-6 flex items-center space-x-2">
-          <img src="./permasign_logo.png" alt="PermaSign Logo" className="h-6 w-auto" />
+          <img src="./permasign_logo.png" alt="PermaSign Logo" className="h-15 w-auto" />
           <span className="text-xl font-bold text-foreground hover:text-primary transition-colors">
             PermaSign
           </span>
@@ -45,11 +64,17 @@ export default function Navbar() {
           {navLinks.map((link) => {
             const commonClasses = "text-sm font-medium transition-colors";
             if (link.type === "route") {
+              const handleClick = () => {
+                if (link.href === "/companies") {
+                  posthog?.capture("my_companies_clicked", { location: "navbar" });
+                }
+              };
               return (
                 <Link
                   key={link.label}
                   to={link.href}
                   className={`${commonClasses} ${link.customClass || 'text-muted-foreground hover:text-primary'}`}
+                  onClick={handleClick}
                 >
                   {link.label}
                 </Link>

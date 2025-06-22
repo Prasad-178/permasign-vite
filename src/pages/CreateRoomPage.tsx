@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { useNavigate } from "react-router-dom"; // Changed from next/navigation
 import { useApi, useActiveAddress, useConnection } from '@arweave-wallet-kit/react';
+import { usePostHog } from 'posthog-js/react';
 import { generateRoomKeyPairPem } from "../actions/cryptoClient"; // Adjusted path
 import { createRoomWithKmsAction } from '../services/roomActionsClient'; // Adjusted path
 import { type CreateRoomInput, type CreateRoomResult } from '../types/types'; // Adjusted path
@@ -26,6 +27,7 @@ export default function CreateRoomPage() {
   const api = useApi();
   const activeAddress = useActiveAddress();
   const { connected } = useConnection();
+  const posthog = usePostHog();
 
   const [roomName, setRoomName] = useState("");
   const [isRoomNameTouched, setIsRoomNameTouched] = useState(false);
@@ -101,6 +103,10 @@ export default function CreateRoomPage() {
           console.log("Client service action result received:", result);
 
           if (result.success && result.roomId) {
+              posthog?.capture('company_created', {
+                  companyId: result.roomId,
+                  companyName: roomName.trim()
+              });
               toast.success("Success!", {
                   id: toastId,
                   description: `Company '${roomName.trim()}' created! Redirecting...`,

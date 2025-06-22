@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react'; // Import AWK hooks
+import { usePostHog } from 'posthog-js/react';
 import RequireLogin from "../components/RequireLogin"; // Adjusted path if necessary
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
@@ -15,6 +16,7 @@ import { type RoomInfo } from '../types/types'; // Adjusted path if necessary
 export default function RoomsPage() {
   const api = useApi();
   const activeAddress = useActiveAddress();
+  const posthog = usePostHog();
 
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,57 +32,75 @@ export default function RoomsPage() {
   //   return name.substring(0, 2).toUpperCase();
   // };
 
+  const handleCreateCompanyClick = (from: 'header' | 'empty_state') => {
+    posthog?.capture('create_company_clicked', { from_location: from });
+  };
+
+  const handleOpenCompanyClick = (roomId: string, roomName: string) => {
+    posthog?.capture('company_opened', { companyId: roomId, companyName: roomName });
+  };
+
   useEffect(() => {
-    const fetchUserEmail = async () => {
-      if (activeAddress && api?.othent) {
-        try {
-          console.log("Attempting to fetch Othent user details...");
-          const details = await api.othent.getUserDetails();
-          console.log("Othent details received:", details);
-          if (details && details.email) {
-            setUserEmail(details.email);
-          } else {
-            setError("Could not retrieve email using Othent. Please ensure your wallet is linked.");
-            setUserEmail(null);
-          }
-        } catch (err: any) {
-          console.error("Error fetching Othent details:", err);
-          setError(`Failed to get user details: ${err.message || 'Unknown error'}`);
-          setUserEmail(null);
-        }
-      } else {
-        setUserEmail(null);
+    const loadUserDataAndRooms = async () => {
+      // State 1: Wallet status is being determined (`activeAddress` is undefined).
+      // We do nothing and wait, keeping the loader visible.
+      if (activeAddress === undefined) {
+        return;
       }
-    };
 
-    fetchUserEmail();
-  }, [activeAddress, api]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      if (userEmail) {
-        setIsLoading(true);
+      // State 2: Wallet is confirmed to be disconnected (`activeAddress` is null).
+      // We must stop loading. The RequireLogin component will redirect the user.
+      if (activeAddress === null) {
+        setIsLoading(false);
+        setRooms([]);
         setError(null);
-        console.log("Fetching rooms for email:", userEmail);
-        const result = await listMyDataRooms(userEmail);
+        return;
+      }
+      
+      // State 3: User is connected (`activeAddress` is a string).
+      // Now, we must also wait for the API services to be ready.
+      if (!api?.othent) {
+        // API not ready, we wait. isLoading remains true.
+        return;
+      }
+
+      // All conditions met. Let's fetch the data.
+      setError(null);
+
+      try {
+        console.log("Attempting to fetch Othent user details...");
+        const details = await api.othent.getUserDetails();
+        console.log("Othent details received:", details);
+
+        if (!details?.email) {
+          throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
+        }
+        
+        const email = details.email;
+        setUserEmail(email); // Set email for potential UI display
+
+        console.log("Fetching rooms for email:", email);
+        const result = await listMyDataRooms(email);
         console.log("Rooms fetched:", result);
 
         if (result.success && result.data) {
           setRooms(result.data);
         } else {
-          setError(result.error + (result.error ? ` (${result.error})` : ''));
-          setRooms([]);
+          throw new Error(result.message + (result.error ? ` Details: ${result.error}` : ''));
         }
-        setIsLoading(false);
-      } else if (activeAddress) {
-        setIsLoading(false);
-      } else {
+      } catch (err: any) {
+        console.error("Error during data loading:", err);
+        setError(err.message || 'An unknown error occurred.');
+        setRooms([]);
+      } finally {
+        // This runs whether the fetch succeeded or failed.
+        // We are done with the process, so we must stop loading.
         setIsLoading(false);
       }
     };
 
-    fetchRooms();
-  }, [userEmail, activeAddress]);
+    loadUserDataAndRooms();
+  }, [activeAddress, api]);
 
   return (
     <RequireLogin>
@@ -88,7 +108,7 @@ export default function RoomsPage() {
         <div className="flex justify-between items-center mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold">My Companies</h1>
           {!isLoading && !error && rooms.length > 0 && (
-            <Link to="/companies/create">
+            <Link to="/companies/create" onClick={() => handleCreateCompanyClick('header')}>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create New Company
               </Button>
@@ -110,7 +130,7 @@ export default function RoomsPage() {
             </CardHeader>
             <CardContent>
               <p>{error}</p>
-              {!userEmail && activeAddress && <p className="mt-2 text-sm text-muted-foreground">Ensure you have linked an email via Othent.</p>}
+              {error?.includes("Othent") && <p className="mt-2 text-sm text-muted-foreground">Ensure you have linked an email via Othent.</p>}
             </CardContent>
           </Card>
         )}
@@ -123,7 +143,7 @@ export default function RoomsPage() {
               <p className="mt-3 text-muted-foreground max-w-md">
                 Invite members, manage agreements, and sign contracts on PermaSign.
               </p>
-              <Link to="/companies/create" className="mt-8">
+              <Link to="/companies/create" className="mt-8" onClick={() => handleCreateCompanyClick('empty_state')}>
                 <Button size="lg">
                   Get Started Now
                 </Button>
@@ -147,7 +167,7 @@ export default function RoomsPage() {
                   </div>
                 </CardHeader>
                 <CardFooter className="bg-muted/30 dark:bg-muted/20 px-4 py-3 border-t">
-                  <Link to={`/companies/${room.roomId}`} className="w-full">
+                  <Link to={`/companies/${room.roomId}`} className="w-full" onClick={() => handleOpenCompanyClick(room.roomId, room.roomName)}>
                     <Button variant="ghost" className="w-full justify-between cursor-pointer">
                       Open Company
                       <ArrowRight className="h-4 w-4" />
