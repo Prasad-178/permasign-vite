@@ -23,6 +23,8 @@ export default function RoomsPage() {
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
+  if (userEmail) {}
+
   // const getInitials = (name: string) => {
   //   if (!name) return '??';
   //   const words = name.replace(/[^a-zA-Z0-9 ]/g, "").split(' ').filter(Boolean);
