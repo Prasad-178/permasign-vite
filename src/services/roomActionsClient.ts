@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput } from '../types/types';
 
 const API_ROOT = import.meta.env.VITE_API_ROOT;
 const API_BASE_PATH = "/api/actions";
@@ -862,6 +862,92 @@ export async function removeSignerFromDocumentClientAction(
     return {
       success: false,
       message: "Failed to remove signer due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Fetches the list of available room templates.
+ */
+export async function listTemplatesAction(): Promise<ActionResult<Template[]>> {
+    console.log(`Client Service: Fetching templates from ${effectiveApiRoot}${API_BASE_PATH}/list-templates`);
+
+    try {
+        const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/list-templates`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+
+        const responseData: ActionResult<Template[]> = await response.json();
+
+        if (!response.ok) {
+            console.error("API error response fetching templates:", response.status, responseData);
+            return {
+                success: false,
+                error: responseData?.error || `API request failed with status ${response.status}`,
+                message: responseData?.message || `Failed to fetch templates. Server responded with ${response.status}.`,
+                data: responseData?.data || [],
+            };
+        }
+
+        console.log("Client Service: Templates fetched successfully:", responseData);
+        return responseData;
+
+    } catch (error: any) {
+        console.error("Client Service: Error in listTemplatesAction fetch call:", error);
+        return {
+            success: false,
+            message: "Failed to list templates due to a network or client-side error.",
+            error: error.message || "An unexpected error occurred while trying to contact the server.",
+            data: [],
+        };
+    }
+}
+
+/**
+ * Creates a new room from a template by calling the external API.
+ * @param input The data required for creating a room from a template.
+ * @returns A Promise resolving to a CreateRoomResult.
+ */
+export async function createRoomFromTemplateAction(
+  input: CreateRoomFromTemplateInput
+): Promise<CreateRoomResult> {
+  console.log(`Client Service: Creating room "${input.roomName}" from template "${input.templateName}" via API.`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/create-room-from-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(input),
+    });
+
+    const responseData: CreateRoomResult = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during room creation from template:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to create room from template.",
+        roomId: responseData?.roomId,
+        messageId: responseData?.messageId,
+      };
+    }
+
+    console.log("Client Service: Room creation from template API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in createRoomFromTemplateAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to create room from template due to a network or client-side error.",
       error: error.message || "An unexpected error occurred while trying to contact the server.",
     };
   }

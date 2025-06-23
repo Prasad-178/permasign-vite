@@ -350,3 +350,23 @@ export interface DecryptKmsApiResponse extends ActionResult<DecryptKmsSuccessDat
   // Inherits success, error, message from ActionResult
   // data will be { plaintext: string } on success, or null/undefined on error
 }
+
+// --- Template-related Types ---
+export interface Template {
+  name: string;
+  description: string;
+  roles: string[];
+  permissions: {
+    [role: string]: string[];
+  };
+}
+
+export type ListTemplatesResult = ActionResult<Template[]>;
+
+export interface CreateRoomFromTemplateInput {
+  roomName: string;
+  ownerEmail: string;
+  templateName: string;
+  roomPublicKeyPem: string;
+  roomPrivateKeyPem: string;
+}

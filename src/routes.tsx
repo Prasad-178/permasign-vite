@@ -5,6 +5,7 @@ import RandomPage from "./pages/RandomPage";
 import RoomsPage from "./pages/RoomsPage";
 import CreateRoomPage from "./pages/CreateRoomPage";
 import RoomDetailsPage from "./pages/Room";
+import TemplatesPage from "./pages/TemplatesPage";
 
 const routes: RouteObject[] = [
   {
@@ -30,6 +31,10 @@ const routes: RouteObject[] = [
   {
     path: "/companies/:companyId",
     element: <RoomDetailsPage />,
+  },
+  {
+    path: "/companies/create/template",
+    element: <TemplatesPage />,
   },
 ];
 
