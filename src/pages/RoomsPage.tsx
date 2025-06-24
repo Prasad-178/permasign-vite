@@ -14,6 +14,10 @@ import { CustomLoader } from '../components/ui/CustomLoader';
 import { type RoomInfo } from '../types/types'; // Adjusted path if necessary
 
 export default function RoomsPage() {
+  useEffect(() => {
+    document.title = "PermaSign | My Companies";
+  }, []);
+
   const api = useApi();
   const activeAddress = useActiveAddress();
   const posthog = usePostHog();

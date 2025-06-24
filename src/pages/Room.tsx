@@ -131,6 +131,14 @@ export default function RoomDetailsPage() {
   const [isAddSignerSuggestionsOpen, setIsAddSignerSuggestionsOpen] = useState(false);
 
   useEffect(() => {
+    if (roomDetails) {
+      document.title = `PermaSign | ${roomDetails.roomName}`;
+    } else {
+      document.title = "PermaSign | Loading Company...";
+    }
+  }, [roomDetails]);
+
+  useEffect(() => {
     // This useEffect was empty, can be kept or removed if not needed for other purposes.
     // console.log("Signing Document Name/Type updated:", signingDocumentName, signingDocumentType);
   }, [setSigningDocumentName, setSigningDocumentType])
