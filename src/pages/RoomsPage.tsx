@@ -15,6 +15,10 @@ import { type RoomInfo } from '../types/types'; // Adjusted path if necessary
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../components/ui/dialog";
 
 export default function RoomsPage() {
+  useEffect(() => {
+    document.title = "PermaSign | My Companies";
+  }, []);
+
   const api = useApi();
   const activeAddress = useActiveAddress();
   const posthog = usePostHog();
@@ -25,6 +29,8 @@ export default function RoomsPage() {
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  if (userEmail) {}
 
   if (userEmail) {}
 

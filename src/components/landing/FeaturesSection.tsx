@@ -36,7 +36,7 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+    <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
       <div className="container mx-auto px-4 md:px-6">
         <AnimateOnScroll className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
           <div className="space-y-2 max-w-3xl">
@@ -49,15 +49,15 @@ export function FeaturesSection() {
             </p>
           </div>
         </AnimateOnScroll>
-        <div className="mx-auto grid max-w-5xl items-center gap-8 py-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-12">
+        <div className="mx-auto grid max-w-5xl items-stretch gap-8 py-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-12">
           {features.map((feature, i) => (
-            <div className="feature-card" key={i}>
-              <div className="grid gap-2 p-6 rounded-md bg-white border border-gray-100">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-heading mt-2">{feature.title}</h3>
-                <p className="text-muted-foreground font-light">{feature.description}</p>
+            <div key={i} className="flex flex-col gap-4 p-6 rounded-md bg-card border border-border/20 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50">
+                {feature.icon}
+              </div>
+              <div>
+                <h3 className="text-xl font-heading">{feature.title}</h3>
+                <p className="text-muted-foreground font-light mt-2">{feature.description}</p>
               </div>
             </div>
           ))}

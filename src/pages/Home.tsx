@@ -19,6 +19,10 @@ export default function Home() {
     const navigate = useNavigate(); // To clear the state after scrolling
 
     useEffect(() => {
+        document.title = "PermaSign";
+    }, []);
+
+    useEffect(() => {
         // Check if there's a scrollToId in the location state
         if (location.state?.scrollToId) {
             const { scrollToId } = location.state;

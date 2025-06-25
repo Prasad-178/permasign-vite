@@ -23,6 +23,10 @@ interface OwnerOthentDetails {
 }
 
 export default function CreateRoomPage() {
+  useEffect(() => {
+    document.title = "PermaSign | Create Company";
+  }, []);
+
   const navigate = useNavigate(); // Changed from useRouter
   const api = useApi();
   const activeAddress = useActiveAddress();
