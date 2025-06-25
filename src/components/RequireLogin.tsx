@@ -9,28 +9,27 @@ import { CustomLoader } from './ui/CustomLoader';
 export default function RequireLogin({ children }: { children: React.ReactNode }) {
   const activeAddress = useActiveAddress();
   const navigate = useNavigate();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'timedOut' | 'loggedIn' | 'loggedOut'>('checking');
 
   useEffect(() => {
-    // AWK handles the connection state, we just check activeAddress
     if (activeAddress === undefined) {
-      // Still loading connection status from AWK
-      setIsCheckingAuth(true);
+      const timer = setTimeout(() => {
+        setAuthStatus(currentStatus => (currentStatus === 'checking' ? 'timedOut' : currentStatus));
+      }, 3000);
+      return () => clearTimeout(timer);
     } else if (activeAddress === null) {
-      // No wallet connected
-      setIsCheckingAuth(false);
+      setAuthStatus('loggedOut');
       toast.error("Login Required", {
         description: "Please connect your wallet to access this page.",
         duration: 5000,
       });
       navigate('/');
     } else {
-      // Wallet is connected
-      setIsCheckingAuth(false);
+      setAuthStatus('loggedIn');
     }
   }, [activeAddress, navigate]);
 
-  if (isCheckingAuth || activeAddress === undefined) {
+  if (authStatus === 'checking') {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
           <CustomLoader size={40} text="Checking wallet..." />
@@ -38,6 +37,17 @@ export default function RequireLogin({ children }: { children: React.ReactNode }
     );
   }
 
-  // Only render children if activeAddress is not null (i.e., wallet connected)
-  return activeAddress ? <>{children}</> : null;
+  if (authStatus === 'timedOut') {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-200px)]">
+          <CustomLoader size={40} text="Please log in with your wallet to continue." />
+      </div>
+    );
+  }
+
+  if (authStatus === 'loggedIn') {
+    return <>{children}</>;
+  }
+
+  return null;
 }
