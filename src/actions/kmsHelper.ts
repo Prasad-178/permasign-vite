@@ -1,6 +1,6 @@
 import { type DecryptKmsApiResponse, type DecryptKmsApiInput } from '../types/types'; // Assuming types are in app/types.ts
 
-const API_ROOT = import.meta.env.VITE_API_ROOT;
+const API_ROOT = "http://localhost:3001";
 const API_BASE_PATH = "/api/actions";
 
 let effectiveApiRoot = API_ROOT;

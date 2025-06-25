@@ -24,7 +24,7 @@ import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
 import { type RoomDetails, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE } from "../types/types";
 import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
 import { X } from "lucide-react";
 import DocumentSigningModal from "./components/DocumentSigningModal";
 import UploadSubmitButton from "./components/UploadSubmitButton";
@@ -473,14 +473,14 @@ export default function RoomDetailsPage() {
     }
   }, [currentUserEmail]);
 
-  const availableTemplates = [
-    { id: 'nda', name: 'Non-Disclosure Agreement (NDA)', description: 'Standard mutual NDA for confidential discussions.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-    { id: 'saft', name: 'Simple Agreement for Future Tokens (SAFT)', description: 'Agreement for future token issuance.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-    { id: 'employ', name: 'Employment Agreement', description: 'Standard contract for hiring new employees.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-    { id: 'advisor', name: 'Advisor Agreement', description: 'Contract for engaging company advisors.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-    { id: 'term_sheet', name: 'Term Sheet (Seed Round)', description: 'Outline of terms for a seed investment.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-    { id: 'msa', name: 'Master Service Agreement (MSA)', description: 'General agreement for service provision.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
-  ];
+  // const availableTemplates = [
+  //   { id: 'nda', name: 'Non-Disclosure Agreement (NDA)', description: 'Standard mutual NDA for confidential discussions.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  //   { id: 'saft', name: 'Simple Agreement for Future Tokens (SAFT)', description: 'Agreement for future token issuance.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  //   { id: 'employ', name: 'Employment Agreement', description: 'Standard contract for hiring new employees.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  //   { id: 'advisor', name: 'Advisor Agreement', description: 'Contract for engaging company advisors.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  //   { id: 'term_sheet', name: 'Term Sheet (Seed Round)', description: 'Outline of terms for a seed investment.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  //   { id: 'msa', name: 'Master Service Agreement (MSA)', description: 'General agreement for service provision.', icon: <FileText className="h-6 w-6 text-primary/80 mb-2" /> },
+  // ];
 
   const handleOpenUploadModal = (category: string) => {
     setPreselectedCategory(category);
@@ -854,48 +854,31 @@ export default function RoomDetailsPage() {
               <Sheet open={isTemplatesSidebarOpen} onOpenChange={setIsTemplatesSidebarOpen}>
                 <SheetTrigger asChild>
                   <Button size="sm" variant="outline">
-                    <Copy className="mr-2 h-4 w-4" /> Use Template
+                    <Copy className="mr-2 h-4 w-4" /> Document Templates
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[350px] sm:w-[450px] overflow-y-auto p-6">
-                  <SheetHeader className="mb-5">
+                <SheetContent side="right" className="w-[400px] sm:w-[450px] p-0 flex flex-col">
+                  <div className="border-b p-4 flex items-center justify-between">
                     <SheetTitle className="flex items-center">
                       <Copy className="mr-2 h-5 w-5 text-primary" />
                       Use a Template
                     </SheetTitle>
-                  </SheetHeader>
-
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Select a template to start a new document signing process.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {availableTemplates.map((template) => (
-                        <Card
-                          key={template.id}
-                          className="p-4 cursor-pointer hover:bg-accent/50 transition-colors flex flex-col items-start text-left h-full"
-                          onClick={() => {
-                            console.log(`Selected template: ${template.name}`);
-                            toast.info("Template Selected", { description: `You selected: ${template.name}. Integration pending.` });
-                            setIsTemplatesSidebarOpen(false);
-                          }}
-                        >
-                          {template.icon}
-                          <h5 className="font-medium text-sm mb-1">{template.name}</h5>
-                          <p className="text-xs text-muted-foreground">
-                            {template.description}
-                          </p>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-auto pt-6">
                     <SheetClose asChild>
-                      <Button variant="outline" className="w-full">
-                        <X className="mr-2 h-4 w-4" /> Close
+                      <Button variant="ghost" size="icon">
+                        <X className="h-4 w-4" />
                       </Button>
                     </SheetClose>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center">
+                    <Terminal className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                    <h3 className="text-lg font-medium text-muted-foreground">Feature Coming Soon!</h3>
+                    <p className="text-sm text-muted-foreground/80 text-center mt-2">
+                      Pre-built document templates are under development.
+                    </p>
+                    <p className="text-sm text-muted-foreground/80 text-center">
+                      Stay tuned for updates!
+                    </p>
                   </div>
                 </SheetContent>
               </Sheet>

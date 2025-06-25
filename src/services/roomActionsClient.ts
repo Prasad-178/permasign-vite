@@ -1,6 +1,6 @@
 import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput } from '../types/types';
 
-const API_ROOT = import.meta.env.VITE_API_ROOT;
+const API_ROOT = "http://localhost:3001";
 const API_BASE_PATH = "/api/actions";
 
 // Fallback for local development if the environment variable is not set.
