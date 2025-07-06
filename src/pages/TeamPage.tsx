@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Mail } from 'lucide-react';
 import AppFooter from '../components/AppFooter';
 import { Badge } from '../components/ui/badge';
+import ScrollToTop from '../components/ScrollToTop';
 
 const teamMembers = [
   {
@@ -66,6 +67,7 @@ const TeamMemberCard = ({ member }: { member: (typeof teamMembers)[0] }) => (
 export default function TeamPage() {
   return (
     <div className="bg-background text-foreground">
+      <ScrollToTop />
       <main className="container mx-auto max-w-6xl py-16 px-4">
         <section className="text-center mb-20">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Meet the Team</h1>

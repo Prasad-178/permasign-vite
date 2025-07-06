@@ -2,6 +2,7 @@ import { ShieldCheck, KeyRound, FileLock, Eye, UserPlus, Server, Cloud } from 'l
 import { Card } from '../components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import AppFooter from '../components/AppFooter';
+import ScrollToTop from '../components/ScrollToTop';
 
 const KmsLink = () => (
     <a href="https://cloud.google.com/security/products/security-key-management?hl=en" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">
@@ -25,6 +26,7 @@ const Step = ({ icon, title, description, color }: { icon: React.ReactNode; titl
 export default function EncryptionExplainedPage() {
   return (
     <div className="bg-background text-foreground">
+      <ScrollToTop />
       <main className="container mx-auto max-w-5xl py-12 px-4">
         <section className="text-center mb-16">
           <ShieldCheck className="mx-auto h-16 w-16 text-primary" />
