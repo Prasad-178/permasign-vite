@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 // A simple placeholder SVG logo. You might want to reuse the one from Navbar.tsx
 // or extract it into its own component if you haven't already.
@@ -10,72 +10,105 @@ const PermaSignLogo = () => (
   </svg>
 );
 
+type FooterLinkItem = {
+    label: string;
+    href: string;
+    id?: string;
+};
 
-const footerLinks = [
-  {
-    title: "Product",
-    links: [
-      { label: "Features", href: "#" },
-      { label: "Pricing", href: "#" },
-      { label: "Security", href: "#" },
-      { label: "FAQ", href: "#" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About Us", href: "#" },
-      { label: "Contact", href: "#" },
-      { label: "Blog", href: "#" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms of Service", href: "#" },
-      { label: "Privacy Policy", href: "#" },
-    ],
-  },
+type FooterSection = {
+    title: string;
+    links: FooterLinkItem[];
+};
+
+const footerSections: FooterSection[] = [
+    {
+        title: 'Product',
+        links: [
+            { label: 'Features', href: '/#features', id: 'features' },
+            { label: 'How it Works', href: '/#how-it-works', id: 'how-it-works' },
+            { label: 'Pricing', href: '/#pricing', id: 'pricing' },
+        ],
+    },
+    {
+        title: 'Company',
+        links: [
+            { label: 'Our Team', href: '/team' },
+            { label: 'Security', href: '/security' },
+        ],
+    },
+    {
+        title: 'Contact',
+        links: [
+             { label: 'Email Us', href: 'mailto:ar.perma.sign@gmail.com' }
+        ]
+    }
 ];
 
 export default function AppFooter() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    event.preventDefault();
+    if (location.pathname === "/") {
+        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        navigate('/', { state: { scrollToId: targetId } });
+    }
+  };
+
   return (
-    <footer className="border-t border-border/40 bg-background py-12">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="space-y-4 col-span-2 md:col-span-1">
-            <Link to="/" className="flex items-center space-x-2">
-              <PermaSignLogo />
+    <footer className="border-t border-border/40 bg-background">
+      <div className="container mx-auto max-w-screen-2xl px-4 md:px-6 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="col-span-2 space-y-4">
+            <Link to="/" className="flex items-center space-x-3">
+              <img src="/permasign_logo.png" alt="PermaSign Logo" className="h-8 w-auto" />
               <span className="text-xl font-bold text-foreground">
                 PermaSign
               </span>
             </Link>
-            <p className="text-sm text-muted-foreground">
-              Securely sign and store your documents on the permanent web.
+            <p className="text-sm text-muted-foreground max-w-xs">
+              On-chain agreements, permanently secured.
             </p>
           </div>
-          {footerLinks.map((section) => (
-            <div key={section.title} className="space-y-2">
+          {footerSections.map((section) => (
+            <div key={section.title} className="space-y-4">
               <h4 className="text-sm font-semibold text-foreground">
                 {section.title}
               </h4>
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.id ? (
+                      <a 
+                        href={link.href} 
+                        onClick={(e) => handleAnchorLinkClick(e, link.id!)}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {link.label}
+                      </a>
+                    ) : link.href.startsWith('mailto:') ? (
+                        <a href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                            {link.label}
+                        </a>
+                    ) : (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
-        <div className="mt-8 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} PermaSign. All rights reserved.
+        <div className="mt-12 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
+          © {new Date().getFullYear()} PermaSign.
         </div>
       </div>
     </footer>
