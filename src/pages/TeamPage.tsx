@@ -10,7 +10,7 @@ const teamMembers = [
   {
     name: 'Prasad Sankar',
     role: 'Co-Founder',
-    avatar: '../../public/prasad.jpeg',
+    avatar: './prasad.jpeg',
     fallback: 'PS',
     bio: 'SWE-ML @ Stealth, 6x Hackathon Winner',
     skills: [
@@ -22,7 +22,7 @@ const teamMembers = [
   {
     name: 'Vaibhav Pandey',
     role: 'Co-Founder',
-    avatar: '../../public/vaibhav.png',
+    avatar: './vaibhav.png',
     fallback: 'VP',
     bio: 'SWE @ CoinDCX, Ex-Push Chain & Instadapp, 9x Hackathon Winner',
     skills: [
@@ -34,7 +34,7 @@ const teamMembers = [
   {
     name: 'Arun Thomas',
     role: 'Co-Founder',
-    avatar: '../../public/arun.png',
+    avatar: './arun.png',
     fallback: 'AT',
     bio: 'Figuring out the web3 world..',
     skills: [

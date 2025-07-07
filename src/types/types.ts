@@ -1,3 +1,6 @@
+export const backendURL = "https://permasign-backend-production.up.railway.app";
+// export const backendURL = "http://localhost:3001";
+
 export interface ActionResult<T> {
   success: boolean; // Explicit success/failure flag
   data?: T;

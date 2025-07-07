@@ -1,6 +1,7 @@
 import type { GetRoomsAdminResult, GetRoomMembersAdminResult, GetRoomDocumentsAdminResult, GetRoomDocumentsSignaturesAdminResult, GetRoomRolesAdminResult, GetRoleDocumentPermissionsAdminResult, GetAdminLogsResult } from "../types/types";
+import { backendURL as API_ROOT } from "../types/types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const API_BASE_URL = API_ROOT;
 
 async function handleResponse<T>(response: Response): Promise<T> {
   const data = await response.json();
