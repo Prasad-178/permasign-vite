@@ -95,16 +95,23 @@ export interface RoomRoles {
   documentTypes: string[];
 }
 
+export type RoomLog = {
+  timestamp: string;
+  actor: string;
+  message: string;
+}
+
 export interface RoomDetails {
     roomId: string;
     roomName: string;
     ownerEmail: string;
     createdAt: number;
-    members: { userEmail: string; role: RoomRole }[];
+    members: Member[];
     roomPubKey?: string;
     encryptedRoomPvtKey: string;
     documentDetails: DocumentInfo[];
     roomRoles: RoomRoles[];
+    activityLogs: RoomLog[];
 }
 export type GetRoomDetailsResult = ActionResult<RoomDetails | null>;
 
@@ -369,4 +376,9 @@ export interface CreateRoomFromTemplateInput {
   templateName: string;
   roomPublicKeyPem: string;
   roomPrivateKeyPem: string;
+}
+
+export interface Member {
+  userEmail: string;
+  role: RoomRole;
 }

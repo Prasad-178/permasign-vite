@@ -11,6 +11,7 @@ import { PricingSection } from "../components/landing/PricingSection";
 import { GetStartedSection } from "../components/landing/GetStartedSection";
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import AppFooter from "../components/AppFooter";
 
 // Set the worker source for PDF.js
 
@@ -55,6 +56,7 @@ export default function Home() {
                 <PricingSection />
                 <GetStartedSection />
             </main>
+            <AppFooter />
         </div>
     );
 }

@@ -4,6 +4,9 @@ import RoomsPage from "./pages/RoomsPage";
 import CreateRoomPage from "./pages/CreateRoomPage";
 import RoomDetailsPage from "./pages/Room";
 import TemplatesPage from "./pages/TemplatesPage";
+import EncryptionExplainedPage from "./pages/EncryptionExplainedPage";
+import TeamPage from "./pages/TeamPage";
+import AdminPage from "./pages/AdminPage.tsx";
 
 const routes: RouteObject[] = [
   {
@@ -25,6 +28,18 @@ const routes: RouteObject[] = [
   {
     path: "/companies/create/template",
     element: <TemplatesPage />,
+  },
+  {
+    path: "/security",
+    element: <EncryptionExplainedPage />,
+  },
+  {
+    path: "/team",
+    element: <TeamPage />,
+  },
+  {
+    path: "/admin",
+    element: <AdminPage />,
   },
 ];
 
