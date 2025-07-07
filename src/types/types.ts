@@ -114,7 +114,6 @@ export interface RoomDetails {
     activityLogs: RoomLog[];
 }
 export type GetRoomDetailsResult = ActionResult<RoomDetails | null>;
-
 export interface DocumentSignatures {
   documentId: string;
   roomId: string;
@@ -381,4 +380,137 @@ export interface CreateRoomFromTemplateInput {
 export interface Member {
   userEmail: string;
   role: RoomRole;
+}
+
+// Define the structure of a single Room object based on your schema
+export interface Room {
+  roomId: string;
+  roomName: string;
+  ownerEmail: string;
+  createdAt: number;
+  roomPubKey: string;
+  encryptedRoomPvtKey: string;
+}
+
+
+// Define the structure of the successful result
+export interface GetRoomsAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    rooms: Room[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+export interface RoomMember {
+  roomId: string;
+  userEmail: string;
+  role: string;
+}
+
+export interface GetRoomMembersAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    members: RoomMember[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+export interface GetRoomDocumentsAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    documents: RoomDocument[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+export interface DocumentSignature {
+  documentId: string;
+  roomId: string;
+  emailToSign: string;
+  signed: "true" | "false";
+  signature?: string;
+}
+
+export interface GetRoomDocumentsSignaturesAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    signatures: DocumentSignature[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+export interface RoomRoleNew {
+  roomId: string;
+  roleName: string;
+  isDeletable: number;
+}
+
+export interface GetRoomRolesAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    roles: RoomRoleNew[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+export interface RoleDocumentPermission {
+  roomId: string;
+  roleName: string;
+  documentType: string;
+}
+
+export interface GetRoleDocumentPermissionsAdminResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: {
+    permissions: RoleDocumentPermission[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+  messageId?: string;
+}
+
+
+export interface AdminLog {
+  logId: number;
+  timestamp: string;
+  actor: string;
+  action: string;
+  status: string;
+  details: string;
+}
+
+export interface GetAdminLogsResult {
+  logs: AdminLog[];
+  total: number;
+  page: number;
+  limit: number;
 }

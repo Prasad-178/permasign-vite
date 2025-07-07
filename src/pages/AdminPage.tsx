@@ -211,7 +211,12 @@ export default function AdminPage() {
 
           <TabsContent value="rooms">
             <DataView fetcher={getAdminRooms} activeAddress={activeAddress!}
-              columns={[{ key: 'roomId', label: 'Room ID' }, { key: 'roomName', label: 'Room Name' }, { key: 'ownerEmail', label: 'Owner' }, { key: 'createdAt', label: 'Created At' }]}
+              columns={[
+                { key: 'roomId', label: 'Room ID' },
+                { key: 'roomName', label: 'Room Name' },
+                { key: 'ownerEmail', label: 'Owner' },
+                { key: 'createdAt', label: 'Created At', render: (row: any) => new Date(parseInt(row.createdAt)).toLocaleString() }
+              ]}
               filterFields={[{ key: 'roomName', label: 'Room Name' }, { key: 'ownerEmail', label: 'Owner Email' }]} />
           </TabsContent>
           <TabsContent value="members">

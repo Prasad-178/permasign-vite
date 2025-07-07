@@ -1,10 +1,4 @@
-import type { GetRoomsAdminResult } from "../../../permasign-backend/src/actions/admin/getRooms";
-import type { GetRoomMembersAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomMembers";
-import type { GetRoomDocumentsAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomDocuments";
-import type { GetRoomDocumentsSignaturesAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomDocumentsSignatures";
-import type { GetRoomRolesAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomRoles";
-import type { GetRoleDocumentPermissionsAdminResult } from "../../../permasign-backend/src/actions/admin/getRoleDocumentPermissions";
-import type { GetAdminLogsResult } from "../../../permasign-backend/src/actions/admin/getAdminLogs";
+import type { GetRoomsAdminResult, GetRoomMembersAdminResult, GetRoomDocumentsAdminResult, GetRoomDocumentsSignaturesAdminResult, GetRoomRolesAdminResult, GetRoleDocumentPermissionsAdminResult, GetAdminLogsResult } from "../types/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
