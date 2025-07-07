@@ -940,22 +940,27 @@ export default function RoomDetailsPage() {
                   </TabsContent>
                   <TabsContent value="logs" className="flex-1 overflow-auto p-4 w-full">
                     <div className="bg-background rounded-md h-full flex justify-center">
-                      {roomDetails.activityLogs && roomDetails.activityLogs.length > 0 ? (
-                        <div className="font-mono text-xs text-muted-foreground space-y-2 self-start w-full max-w-5xl">
-                          {roomDetails.activityLogs.map((log, index) => (
-                            <div key={index} className="flex items-start gap-x-4 p-2 hover:bg-muted/50 rounded-md">
-                              <span className="w-40 flex-shrink-0">{new Date(parseInt(log.timestamp)).toLocaleString()}</span>
-                              <span className="font-medium w-48 flex-shrink-0 text-foreground">{log.actor}</span>
-                              <span className="whitespace-pre-wrap">{log.message}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                          <Terminal className="h-12 w-12 mb-4" />
-                          <p className="text-lg">No activity logs found for this room.</p>
-                        </div>
-                      )}
+                      <div className="self-start w-full max-w-5xl">
+                        {roomDetails.activityLogs && roomDetails.activityLogs.length > 0 ? (
+                          <div className="font-mono text-xs text-muted-foreground space-y-2">
+                            {roomDetails.activityLogs.map((log, index) => (
+                              <div key={index} className="flex items-start gap-x-4 p-2 hover:bg-muted/50 rounded-md">
+                                <span className="w-40 flex-shrink-0">{new Date(parseInt(log.timestamp)).toLocaleString()}</span>
+                                <span className="font-medium w-48 flex-shrink-0 text-foreground">{log.actor}</span>
+                                <span className="whitespace-pre-wrap">{log.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground pt-12">
+                            <Terminal className="h-12 w-12 mb-4" />
+                            <p className="text-lg">No activity logs found for this room.</p>
+                          </div>
+                        )}
+                        <p className="text-center text-xs text-muted-foreground mt-6 italic">
+                          Note: Company logs are only recorded from 8th July 2025.
+                        </p>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
