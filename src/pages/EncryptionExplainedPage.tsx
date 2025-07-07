@@ -67,7 +67,7 @@ export default function EncryptionExplainedPage() {
                         <UserPlus className="w-10 h-10 text-primary" />
                     </div>
                     <h3 className="text-xl font-semibold">4. Member Access</h3>
-                    <p className="text-muted-foreground mt-2 text-sm">Transparent role-based AO access control on AO ensures members can only perform actions permitted by their role.</p>
+                    <p className="text-muted-foreground mt-2 text-sm">Transparent role-based access control on AO ensures members can only perform actions permitted by their role.</p>
                 </Card>
             </div>
         </section>
