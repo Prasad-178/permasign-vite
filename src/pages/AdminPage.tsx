@@ -7,12 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { getAdminRooms, getAdminRoomMembers, getAdminRoomDocuments, getAdminRoomDocumentsSignatures, getAdminRoomRoles, getAdminRolePermissions } from '../services/adminActionsClient';
+import { getAdminRooms, getAdminRoomMembers, getAdminRoomDocuments, getAdminRoomDocumentsSignatures, getAdminRoomRoles, getAdminRolePermissions, getAdminLogs } from '../services/adminActionsClient';
 import { CustomLoader } from '../components/ui/CustomLoader';
 import { AlertCircle, ShieldBan, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 // Generic Data View Component
-const DataView = ({ fetcher, columns, filterFields, activeAddress }: { fetcher: (params: any) => Promise<any>, columns: { key: string, label: string }[], filterFields: { key: string, label: string }[], activeAddress: string }) => {
+const DataView = ({ fetcher, columns, filterFields, activeAddress }: { fetcher: (params: any) => Promise<any>, columns: { key: string, label: string, render?: (row: any) => React.ReactNode }[], filterFields: { key: string, label: string }[], activeAddress: string }) => {
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +105,11 @@ const DataView = ({ fetcher, columns, filterFields, activeAddress }: { fetcher: 
                   {data.length > 0 ? (
                     data.map((row, index) => (
                       <TableRow key={index}>
-                        {columns.map(col => <TableCell key={col.key}>{String(row[col.key] ?? 'N/A')}</TableCell>)}
+                        {columns.map(col => (
+                          <TableCell key={col.key}>
+                            {col.render ? col.render(row) : String(row[col.key] ?? 'N/A')}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     ))
                   ) : (
@@ -202,6 +206,7 @@ export default function AdminPage() {
             <TabsTrigger value="signatures">Signatures</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="permissions">Permissions</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="rooms">
@@ -233,6 +238,26 @@ export default function AdminPage() {
             <DataView fetcher={getAdminRolePermissions} activeAddress={activeAddress!}
               columns={[{ key: 'roomId', label: 'Room ID' }, { key: 'roleName', label: 'Role Name' }, { key: 'documentType', label: 'Document Type' }]}
               filterFields={[{ key: 'roomId', label: 'Room ID' }]} />
+          </TabsContent>
+          <TabsContent value="logs">
+            <DataView fetcher={getAdminLogs} activeAddress={activeAddress!}
+              columns={[
+                { 
+                  key: 'timestamp', 
+                  label: 'Timestamp',
+                  render: (row: any) => new Date(Number(row.timestamp)).toLocaleString() 
+                },
+                { key: 'actor', label: 'Actor' },
+                { key: 'action', label: 'Action' },
+                { key: 'status', label: 'Status' },
+                { key: 'details', label: 'Details' }
+              ]}
+              filterFields={[
+                { key: 'actor', label: 'Actor' },
+                { key: 'action', label: 'Action' },
+                { key: 'status', label: 'Status' },
+                { key: 'details', label: 'Details' }
+              ]} />
           </TabsContent>
         </Tabs>
       </div>

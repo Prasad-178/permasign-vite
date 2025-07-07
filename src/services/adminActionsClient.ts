@@ -4,6 +4,7 @@ import type { GetRoomDocumentsAdminResult } from "../../../permasign-backend/src
 import type { GetRoomDocumentsSignaturesAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomDocumentsSignatures";
 import type { GetRoomRolesAdminResult } from "../../../permasign-backend/src/actions/admin/getRoomRoles";
 import type { GetRoleDocumentPermissionsAdminResult } from "../../../permasign-backend/src/actions/admin/getRoleDocumentPermissions";
+import type { GetAdminLogsResult } from "../../../permasign-backend/src/actions/admin/getAdminLogs";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -46,4 +47,7 @@ export const getAdminRoomRoles = (params: { callerAddress: string; page?: number
   getAdminData<GetRoomRolesAdminResult>('/room-roles', params);
 
 export const getAdminRolePermissions = (params: { callerAddress: string; page?: number; roomId?: string; }) =>
-  getAdminData<GetRoleDocumentPermissionsAdminResult>('/role-permissions', params); 
+  getAdminData<GetRoleDocumentPermissionsAdminResult>('/role-permissions', params);
+
+export const getAdminLogs = (params: { callerAddress: string; page?: number; actor?: string; action?: string; status?: string; details?: string; }) =>
+  getAdminData<GetAdminLogsResult>('/logs', params); 
