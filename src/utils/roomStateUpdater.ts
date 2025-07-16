@@ -1,4 +1,4 @@
-import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles, type RoomRole } from '../types/types';
+import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles } from '../types/types';
 
 // Type for state update functions
 export type RoomStateUpdater = {

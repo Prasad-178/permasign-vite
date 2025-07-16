@@ -10,15 +10,14 @@ import RequireLogin from "../components/RequireLogin";
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { MessageSquare, RefreshCw, AlertTriangle, Terminal, Check, UserPlus, Loader2, X } from "lucide-react";
+import { MessageSquare, RefreshCw, AlertTriangle, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
-import { type RoomDetails, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE } from "../types/types";
+import { type RoomDetails, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RoomDocument, type GetRoomDetailsResult } from "../types/types";
 import DocumentSigningModal from "./components/DocumentSigningModal";
-import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
 import RoleManager from "./components/RoleManager";
 import MemberManager from "./components/MemberManager";
@@ -30,25 +29,12 @@ import AddSignerModal from "./components/AddSignerModal";
 import { useDocumentOperations } from "../hooks/useDocumentOperations";
 import { useSignerManagement } from "../hooks/useSignerManagement";
 import { useModalManagement } from "../hooks/useModalManagement";
-import { getDocumentCache } from "../utils/documentCache";
-import { stitchPdfWithSignatures, type SignatureInfo } from "../utils/pdfStitching";
 import {
   addMemberFormAdapter,
   removeMemberFormAdapter,
   getRoomDetailsAction,
-  signDocumentClientAction,
   uploadDocumentFormAdapter,
-  addSignerToDocumentClientAction,
-  removeSignerFromDocumentClientAction
 } from '../services/roomActionsClient';
-import {
-  type SignDocumentApiInput,
-  type SignDocumentResult,
-  type AddSignerToDocumentInput,
-  type RemoveSignerFromDocumentInput,
-  type ModifySignerResult
-} from '../types/types';
-import { Command, CommandGroup, CommandItem, CommandList } from "../components/ui/command";
 import { useRoomStateUpdater } from "../utils/roomStateUpdater";
 
 export default function RoomDetailsPage() {
@@ -183,13 +169,10 @@ export default function RoomDetailsPage() {
     isDownloadingDoc,
     isSigningDoc,
     setIsViewingDoc,
-    setIsDownloadingDoc,
-    setIsSigningDoc,
     getDecryptedRoomKey,
     retrieveAndDecrypt,
     handleDownloadDocument,
-    handleSignDocument,
-    downloadFileFromBase64
+    handleSignDocument
   } = useDocumentOperations({
     roomDetails,
     documents,
@@ -272,9 +255,6 @@ export default function RoomDetailsPage() {
       autoLoadFirstDocument();
     }
   }, [documents, currentUserEmail, selectedDocument, isLoadingDetails, getDecryptedRoomKey, retrieveAndDecrypt]);
-
-  // Get document cache instance for remaining invalidation calls
-  const documentCache = getDocumentCache();
 
   useEffect(() => {
     if (uploadState) {

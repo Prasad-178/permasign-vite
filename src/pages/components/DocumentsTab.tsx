@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import { Button } from "../../components/ui/button";
 import { FileText, AlertTriangle, RefreshCw } from "lucide-react";
 import { CustomLoader } from "../../components/ui/CustomLoader";
@@ -104,10 +103,6 @@ export default function DocumentsTab({
   uploadState,
   isSigningDoc,
   isSigningModalOpen,
-  isAddSignerModalOpen,
-  addSignerDocDetails,
-  newSignerEmail,
-  isSubmittingSigner,
   isRemovingSigner,
   onFetchRoomDetails,
   onViewDocument,
@@ -117,7 +112,6 @@ export default function DocumentsTab({
   onOpenViewModal,
   onExpandView,
   onOpenAddSignerModal,
-  onAddSignerToDocument,
   onRemoveSignerFromDocument,
   onSetIsUploadModalOpen,
   onSetSelectedFile,
@@ -126,9 +120,6 @@ export default function DocumentsTab({
   onSetSignerInput,
   onSetIsSignerSuggestionsOpen,
   onSetPreselectedCategory,
-  onSetIsAddSignerModalOpen,
-  onSetNewSignerEmail,
-  onSetAddSignerDocDetails,
   uploadFormAction,
   onFileChange,
   onAddSigner,
@@ -151,11 +142,6 @@ export default function DocumentsTab({
       onSetSignerInput("");
       if (uploadFormRef.current) uploadFormRef.current.reset();
     }
-  };
-
-  const handleAddSignerModalClose = () => {
-    onSetNewSignerEmail("");
-    onSetAddSignerDocDetails(null);
   };
 
   if (isLoadingDetails) {
