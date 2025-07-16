@@ -11,28 +11,24 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../components/ui/dialog";
-import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, Sparkles, BadgeDollarSign, Copy, RefreshCw, UploadCloud, FileText, Download, Eye, Loader2, AlertTriangle, Terminal, Check, UserPlus, Expand } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "../components/ui/dialog";
+import { MessageSquare, CalendarDays, UserCircle, BadgeInfo, BadgeDollarSign, Copy, RefreshCw, AlertTriangle, Terminal, Check, UserPlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import { useApi, useActiveAddress } from '@arweave-wallet-kit/react';
 import { format } from 'date-fns';
 import { useActionState } from "react";
 import { useConnection } from "@arweave-wallet-kit/react";
 import { type RoomDetails, type DocumentInfo, type ModifyMemberResult, type UploadDocumentResult, type RetrieveDocumentResult, type RoomDocument, type GetRoomDetailsResult, MAX_FILE_SIZE } from "../types/types";
-import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger, SheetClose } from "../components/ui/sheet";
-import { X } from "lucide-react";
 import DocumentSigningModal from "./components/DocumentSigningModal";
-import UploadSubmitButton from "./components/UploadSubmitButton";
 import { decryptKmsAction } from "../actions/decryptKmsAction";
 import DocumentTimeline from "./components/DocumentTimeline";
 import RoleManager from "./components/RoleManager";
 import MemberManager from "./components/MemberManager";
 import DocumentViewModal from "./components/DocumentViewModal";
+import DocumentsTab from "./components/DocumentsTab";
 import {
   addMemberFormAdapter,
   removeMemberFormAdapter,
@@ -966,776 +962,62 @@ export default function RoomDetailsPage() {
                 </Tabs>
               </TabsContent>
               <TabsContent value="documents" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                {isLoadingDetails ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <CustomLoader text="Loading documents..." />
-                  </div>
-                ) : detailsError ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center text-destructive p-4 border rounded-md bg-card">
-                    <AlertTriangle className="h-8 w-8 mb-4" />
-                    <p className="mb-2">Could not load room data:</p>
-                    <p className="text-sm mb-4">{detailsError}</p>
-                    <Button onClick={fetchRoomDetails} variant="destructive" size="sm">
-                      <RefreshCw className="mr-2 h-4 w-4" /> Retry
-                    </Button>
-                  </div>
-                ) : documents.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center h-full p-10 border rounded-md bg-card text-center">
-                    <FileText className="h-20 w-20 text-muted-foreground/20 mb-6" />
-                    <p className="text-xl font-medium text-muted-foreground mb-4">No documents found.</p>
-                    <p className="text-base text-muted-foreground mb-2 max-w-lg">
-                      Upload your first document to get started.
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-8 max-w-lg">
-                      All files are securely stored and encrypted.
-                    </p>
-                    <Dialog
-                      open={isUploadModalOpen}
-                      onOpenChange={(isOpen) => {
-                        setIsUploadModalOpen(isOpen);
-                        if (!isOpen) {
-                          setPreselectedCategory(null);
-                          setSelectedFile(null);
-                          setFileError(null);
-                          setSigners([]);
-                          setSignerInput("");
-                          if (uploadFormRef.current) uploadFormRef.current.reset();
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button size="lg" onClick={() => setPreselectedCategory(null)} disabled={!roomPublicKey}>
-                          <UploadCloud className="mr-2 h-5 w-5" /> Upload First Document
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[525px]">
-                        <DialogHeader>
-                          <DialogTitle>Upload New Document</DialogTitle>
-                          <DialogDescription>
-                            Select an agreement to upload to the company's shared space.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form ref={uploadFormRef} action={uploadFormAction}>
-                          <input type="hidden" name="roomId" value={roomId} />
-                          <input type="hidden" name="uploaderEmail" value={currentUserEmail || ""} />
-                          <input type="hidden" name="role" value={currentUserRole || ""} />
-                          <input type="hidden" name="roomPubKey" value={roomPublicKey || ""} />
-                          <input type="hidden" name="signers" value={signers.join(',')} />
-                          <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-start gap-4">
-                              <Label htmlFor="documentFile" className="text-right pt-2">File <span className="text-destructive">*</span></Label>
-                              <div className="col-span-3">
-                                <Input id="documentFile" name="documentFile" type="file" className="w-full" onChange={handleFileChange} required />
-                                {fileError && <p className="text-sm text-destructive mt-2">{fileError}</p>}
-                                {selectedFile && (
-                                    <div className="mt-2 text-sm text-muted-foreground text-center border rounded-lg p-2 bg-muted">
-                                        Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                                    </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-4 items-center gap-4">
-                              <Label htmlFor="category" className="text-right">Category <span className="text-destructive">*</span></Label>
-                              <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
-                                <SelectTrigger className="col-span-3 capitalize"><SelectValue placeholder="Select a category" /></SelectTrigger>
-                                <SelectContent>
-                                  {allowedUploadCategories.length > 0 ? (
-                                    allowedUploadCategories.map(cat => (
-                                      <SelectItem key={cat} value={cat} className="capitalize">{cat.replace(/_/g, ' ')}</SelectItem>
-                                    ))
-                                  ) : (
-                                    <div className="px-2 py-1.5 text-sm text-muted-foreground">No upload categories available for your role.</div>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div className="grid grid-cols-4 items-start gap-4 pt-2">
-                                <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
-                                <div className="col-span-3">
-                                    <div className="flex gap-2">
-                                        <div className="relative w-full signer-input-container">
-                                            <Input
-                                                placeholder="Type email or search members..."
-                                                value={signerInput}
-                                                onChange={(e) => setSignerInput(e.target.value)}
-                                                onFocus={() => setIsSignerSuggestionsOpen(true)}
-                                                className="w-full"
-                                            />
-                                            {isSignerSuggestionsOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md">
-                                                    <Command>
-                                                        <CommandList className="max-h-[200px] overflow-auto">
-                                                            {(() => {
-                                                                const filteredMembers = roomDetails?.members
-                                                                    .filter(member => 
-                                                                        !signers.includes(member.userEmail) &&
-                                                                        member.userEmail.toLowerCase().includes(signerInput.toLowerCase())
-                                                                    ) || [];
-                                                                
-                                                                const hasValidEmail = signerInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerInput);
-                                                                const isExistingMember = roomDetails?.members.some(m => m.userEmail === signerInput);
-                                                                
-                                                                return (
-                                                                    <>
-                                                                        {filteredMembers.length > 0 && (
-                                                                            <CommandGroup heading="Room Members">
-                                                                                {filteredMembers.map(member => (
-                                                                                    <CommandItem
-                                                                                        key={member.userEmail}
-                                                                                        value={member.userEmail}
-                                                                                        onSelect={() => {
-                                                                                            handleAddSigner(member.userEmail);
-                                                                                        }}
-                                                                                        className="cursor-pointer"
-                                                                                    >
-                                                                                        <Check className="mr-2 h-4 w-4 opacity-0" />
-                                                                                        <div className="flex flex-col">
-                                                                                            <span>{member.userEmail}</span>
-                                                                                            <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
-                                                                                        </div>
-                                                                                    </CommandItem>
-                                                                                ))}
-                                                                            </CommandGroup>
-                                                                        )}
-                                                                        {hasValidEmail && !isExistingMember && (
-                                                                            <CommandGroup heading="Add New Member">
-                                                                                <CommandItem
-                                                                                    value={signerInput}
-                                                                                    onSelect={() => {
-                                                                                        handleAddSigner(signerInput);
-                                                                                    }}
-                                                                                    className="cursor-pointer"
-                                                                                >
-                                                                                    <UserPlus className="mr-2 h-4 w-4" />
-                                                                                    <div className="flex flex-col">
-                                                                                        <span>Add "{signerInput}"</span>
-                                                                                        <span className="text-xs text-muted-foreground">Will be added as a member</span>
-                                                                                    </div>
-                                                                                </CommandItem>
-                                                                            </CommandGroup>
-                                                                        )}
-                                                                        {filteredMembers.length === 0 && !hasValidEmail && signerInput && (
-                                                                            <div className="p-2 text-sm text-muted-foreground text-center">
-                                                                                {signerInput ? "Enter a valid email address" : "No members found"}
-                                                                            </div>
-                                                                        )}
-                                                                        {!signerInput && (
-                                                                            <div className="p-2 text-sm text-muted-foreground text-center">
-                                                                                Type to search members or add new email
-                                                                            </div>
-                                                                        )}
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </CommandList>
-                                                    </Command>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <Button type="button" onClick={() => handleAddSigner()} disabled={!signerInput}>Add</Button>
-                                    </div>
-                                    {signers.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-3">
-                                            {signers.map(signer => (
-                                                <div key={signer} className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-medium">
-                                                    <span>{signer}</span>
-                                                    {signer !== roomDetails?.ownerEmail && (
-                                                        <button type="button" onClick={() => handleRemoveSigner(signer)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                                            <X className="h-3 w-3" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                          </div>
-                          {uploadState && !uploadState.success && (
-                            <p className="text-sm text-destructive text-center pb-4">
-                              Error: {uploadState.message} {uploadState.error ? `(${uploadState.error})` : ''}
-                            </p>
-                          )}
-                          {!roomPublicKey && (
-                                <p className="text-sm text-destructive text-center pb-4">
-                                    Error: Cannot upload - Room Public Key is missing.
-                                </p>
-                            )}
-                          <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                            <UploadSubmitButton />
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                ) : (
-                  <div className="flex h-[calc(100vh-180px)] space-x-4">
-                    <div className="w-1/2 overflow-auto border rounded-md bg-card">
-                      <div className="flex h-full">
-                        <div className="w-1/2 border-r p-3 overflow-y-auto">
-                          <h3 className="font-medium mb-3 text-sm">All Documents</h3>
-                           <Accordion type="multiple" defaultValue={defaultOpenRoles} className="w-full">
-                                {sortedRoles.map(role => (
-                                <AccordionItem value={role.roleName} key={role.roleName} className="border-b-0">
-                                    <AccordionTrigger className="text-sm font-medium capitalize hover:no-underline px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors">
-                                        {role.roleName.replace(/_/g, ' ')}
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pt-1 pb-0 pl-3">
-                                      <div className="space-y-1 py-1">
-                                          {role.documentTypes.map(docType => {
-                                              const docsInCategory = documents.filter(doc => doc.category === docType);
-                                              const latestDoc = docsInCategory.length > 0 ? docsInCategory.sort((a,b) => b.uploadedAt - a.uploadedAt)[0] : null;
-
-                                              let statusNode = null;
-                                              if (latestDoc) {
-                                                  const allSignersForDoc = documents.filter(doc => doc.documentId === latestDoc.documentId);
-                                                  const isVerified = allSignersForDoc.length > 0 && allSignersForDoc.every(doc => doc.signed === "true");
-                                                  const statusColor = isVerified ? "bg-green-500" : "bg-yellow-500";
-                                                  statusNode = (
-                                                    <div className="flex items-center">
-                                                      <div
-                                                        className={`w-2 h-2 rounded-full mr-1.5 ${statusColor}`}
-                                                        title={isVerified ? "Verified" : "Pending verification"}
-                                                      />
-                                                      <Button variant="ghost" size="icon" onClick={() => handleViewDocument(latestDoc.documentId)} disabled={!!isViewingDoc || !!isDownloadingDoc} title="View" className="h-7 w-7">
-                                                          {isViewingDoc === latestDoc.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                                                      </Button>
-                                                      <Button variant="ghost" size="icon" onClick={() => handleDownloadDocument(latestDoc.documentId)} disabled={!!isViewingDoc || !!isDownloadingDoc} title="Download" className="h-7 w-7">
-                                                          {isDownloadingDoc === latestDoc.documentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                                                      </Button>
-                                                    </div>
-                                                  );
-                                              } else if (allowedUploadCategories.includes(docType)) {
-                                                  statusNode = (
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary/70 hover:bg-primary/10 hover:text-primary" title={`Upload ${docType.replace(/_/g, ' ')}`} onClick={() => handleOpenUploadModal(docType)}>
-                                                      <UploadCloud className="h-4 w-4" />
-                                                    </Button>
-                                                  );
-                                              } else {
-                                                statusNode = <div className="h-7 w-7" />;
-                                              }
-
-                                              return (
-                                                  <div key={docType} className="flex items-center justify-between pl-2 pr-1 py-1 rounded-md transition-colors duration-150 hover:bg-accent">
-                                                      <span className={`capitalize text-sm ${!latestDoc ? 'text-muted-foreground/80' : 'text-foreground'}`}>{docType.replace(/_/g, ' ')}</span>
-                                                      {statusNode}
-                                                  </div>
-                                              )
-                                          })}
-                                      </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            ))}
-                          </Accordion>
-                        </div>
-
-                        <div className="w-1/2 overflow-auto border rounded-md bg-card p-3 flex flex-col">
-                          <div className="h-1/2 mb-3">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="font-medium text-sm">Document Preview</h3>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={handleExpandView}
-                                    disabled={!selectedDocument || isPreparingView}
-                                    title="Expand View"
-                                >
-                                    {isPreparingView ? <Loader2 className="h-4 w-4 animate-spin" /> : <Expand className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                            <div className="h-[calc(100%-2rem)] border rounded-lg overflow-hidden bg-background">
-                              {isDecrypting ? (
-                                <div className="flex flex-col items-center justify-center h-full">
-                                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                                  <p className="text-muted-foreground">Retrieving Document...</p>
-                                </div>
-                              ) : viewerDocuments.length > 0 ? (
-                                <DocViewer
-                                  documents={viewerDocuments}
-                                  pluginRenderers={DocViewerRenderers}
-                                  config={{
-                                    header: {
-                                      disableHeader: true,
-                                      disableFileName: true,
-                                      retainURLParams: false
-                                    }
-                                  }}
-                                  style={{ height: '100%' }}
-                                />
-                              ) : (
-                                <div className="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg p-6">
-                                  <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                                  <p className="text-center text-muted-foreground">
-                                    Select a document to preview its contents here.
-                                  </p>
-                                  <p className="text-center text-muted-foreground text-sm mt-2">
-                                    Supported formats include PDF, DOCX, PPTX, and more.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="h-1/2">
-                            <h3 className="font-medium mb-2 text-sm">Document Details</h3>
-                            <div className="h-[calc(100%-2rem)] border rounded-lg overflow-auto bg-background p-3">
-                              {selectedDocument ? (
-                                <div className="space-y-4">
-                                  <div className="flex justify-between items-center">
-                                    <h4 className="font-medium text-sm">{selectedDocument.originalFilename}</h4>
-                                    <span className="text-xs text-muted-foreground">
-                                      {format(new Date(selectedDocument.uploadedAt), 'PP')}
-                                    </span>
-                                  </div>
-
-                                  <div>
-                                    <h5 className="text-xs font-medium mb-2 flex justify-between items-center">
-                                      <span>Signatures</span>
-                                      {(() => {
-                                        if (!selectedDocument) return null;
-                                        const isUploader = currentUserEmail === selectedDocument.uploaderEmail;
-                                        const canManageSigners = isFounder || isUploader;
-                                        if (!canManageSigners) return null;
-                                        
-                                        // Only show Add button here, as requested
-                                        return (
-                                          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => handleOpenAddSignerModal(selectedDocument.documentId)}>
-                                            <UserPlus className="h-3.5 w-3.5 mr-1" /> Add
-                                          </Button>
-                                        );
-                                      })()}
-                                    </h5>
-                                    <table className="w-full text-sm">
-                                      <thead className="text-xs text-muted-foreground">
-                                        <tr>
-                                          <th className="text-left pb-2">Signer Email</th>
-                                          <th className="text-left pb-2">Required Role</th>
-                                          <th className="text-left pb-2">Signature</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y">
-                                        {documents
-                                          .filter(doc => doc.documentId === selectedDocument.documentId)
-                                          .map((signerRecord, index) => {
-                                            const isCurrentUserSigner = currentUserEmail === signerRecord.emailToSign;
-                                            const hasSigned = signerRecord.signed === "true";
-                                            const signatureDisplay = signerRecord.signature
-                                              ? `${signerRecord.signature.slice(0, 10)}...`
-                                              : 'N/A';
-
-                                          return (
-                                              <tr key={`${signerRecord.emailToSign}-${index}`} className="text-xs">
-                                                <td className="py-2">{signerRecord.emailToSign} {isCurrentUserSigner ? '(You)' : ''}</td>
-                                              <td className="py-2">
-                                                  <span className="capitalize">{signerRecord.roleToSign}</span>
-                                              </td>
-                                              <td className="py-2 font-mono">
-                                                {hasSigned ? (
-                                                  <span>{signatureDisplay}</span>
-                                                  ) : isCurrentUserSigner ? (
-                                                  <Button
-                                                    size="sm"
-                                                      className="relative overflow-hidden rounded-full text-xs px-3 py-1 h-auto bg-blue-500 hover:bg-blue-600 text-white hover:text-white min-w-[80px]"
-                                                    onClick={(e) => { e.stopPropagation(); openSigningModal(selectedDocument.documentId); }}
-                                                    disabled={isSigningDoc !== null}
-                                                      title="E-Sign this document"
-                                                  >
-                                                    {isSigningDoc === selectedDocument.documentId && isSigningModalOpen ? (
-                                                      <Loader2 className="h-4 w-4 animate-spin text-current" />
-                                                    ) : (
-                                                      'E-Sign'
-                                                    )}
-                                                  </Button>
-                                                ) : (
-                                                    <span className="text-muted-foreground italic">Not Yet Signed</span>
-                                                )}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                    <p className="text-xs text-muted-foreground mt-3 italic">
-                                      Note: Signatures are generated using the user's private Arweave key via the Wallet Kit. Each signature is cryptographically linked to the document identifier and can be verified against the signer's public key (Arweave address).
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                                  <p className="text-sm">Select a document to view details</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-1/2 overflow-auto border rounded-md bg-card p-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium text-lg">Documents Pending Signature</h3>
-                        <Dialog
-                          open={isUploadModalOpen}
-                          onOpenChange={(isOpen) => {
-                            setIsUploadModalOpen(isOpen);
-                            if (!isOpen) {
-                              setPreselectedCategory(null);
-                              setSelectedFile(null);
-                              setFileError(null);
-                              setSigners([]);
-                              setSignerInput("");
-                              if (uploadFormRef.current) uploadFormRef.current.reset();
-                            }
-                          }}
-                        >
-                          <DialogTrigger asChild>
-                            <Button size="sm" onClick={() => setPreselectedCategory(null)} disabled={!roomPublicKey}>
-                              <UploadCloud className="mr-2 h-4 w-4" /> Upload Document
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[525px]">
-                            <DialogHeader>
-                              <DialogTitle>Upload New Document</DialogTitle>
-                              <DialogDescription>
-                                Select an agreement to upload to the company's shared space.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <form ref={uploadFormRef} action={uploadFormAction}>
-                              <input type="hidden" name="roomId" value={roomId} />
-                              <input type="hidden" name="uploaderEmail" value={currentUserEmail || ""} />
-                              <input type="hidden" name="role" value={currentUserRole || ""} />
-                              <input type="hidden" name="roomPubKey" value={roomPublicKey || ""} />
-                              <input type="hidden" name="signers" value={signers.join(',')} />
-                              <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-start gap-4">
-                                  <Label htmlFor="documentFile-2" className="text-right pt-2">File <span className="text-destructive">*</span></Label>
-                                  <div className="col-span-3">
-                                    <Input id="documentFile-2" name="documentFile" type="file" className="w-full" onChange={handleFileChange} required />
-                                    {fileError && <p className="text-sm text-destructive mt-2">{fileError}</p>}
-                                    {selectedFile && (
-                                        <div className="mt-2 text-sm text-muted-foreground text-center border rounded-lg p-2 bg-muted">
-                                            Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                                        </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="category-2" className="text-right">Category <span className="text-destructive">*</span></Label>
-                                  <Select name="category" required key={preselectedCategory} defaultValue={preselectedCategory ?? undefined}>
-                                    <SelectTrigger className="col-span-3 capitalize"><SelectValue placeholder="Select a category" /></SelectTrigger>
-                                    <SelectContent>
-                                      {allowedUploadCategories.length > 0 ? (
-                                        allowedUploadCategories.map(cat => (
-                                          <SelectItem key={cat} value={cat} className="capitalize">{cat.replace(/_/g, ' ')}</SelectItem>
-                                        ))
-                                      ) : (
-                                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No upload categories available for your role.</div>
-                                      )}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="grid grid-cols-4 items-start gap-4 pt-2">
-                                  <Label className="text-right pt-2">Signers <span className="text-destructive">*</span></Label>
-                                  <div className="col-span-3">
-                                      <div className="flex gap-2">
-                                          <div className="relative w-full signer-input-container">
-                                              <Input
-                                                  placeholder="Type email or search members..."
-                                                  value={signerInput}
-                                                  onChange={(e) => setSignerInput(e.target.value)}
-                                                  onFocus={() => setIsSignerSuggestionsOpen(true)}
-                                                  className="w-full"
-                                              />
-                                              {isSignerSuggestionsOpen && (
-                                                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md">
-                                                      <Command>
-                                                          <CommandList className="max-h-[200px] overflow-auto">
-                                                              {(() => {
-                                                                  const filteredMembers = roomDetails?.members
-                                                                      .filter(member => 
-                                                                          !signers.includes(member.userEmail) &&
-                                                                          member.userEmail.toLowerCase().includes(signerInput.toLowerCase())
-                                                                      ) || [];
-                                                                  
-                                                                  const hasValidEmail = signerInput && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signerInput);
-                                                                  const isExistingMember = roomDetails?.members.some(m => m.userEmail === signerInput);
-                                                                  
-                                                                  return (
-                                                                      <>
-                                                                          {filteredMembers.length > 0 && (
-                                                                              <CommandGroup heading="Room Members">
-                                                                                  {filteredMembers.map(member => (
-                                                                                      <CommandItem
-                                                                                          key={member.userEmail}
-                                                                                          value={member.userEmail}
-                                                                                          onSelect={() => {
-                                                                                              handleAddSigner(member.userEmail);
-                                                                                          }}
-                                                                                          className="cursor-pointer"
-                                                                                      >
-                                                                                          <Check className="mr-2 h-4 w-4 opacity-0" />
-                                                                                          <div className="flex flex-col">
-                                                                                              <span>{member.userEmail}</span>
-                                                                                              <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
-                                                                                          </div>
-                                                                                      </CommandItem>
-                                                                                  ))}
-                                                                              </CommandGroup>
-                                                                          )}
-                                                                          {hasValidEmail && !isExistingMember && (
-                                                                              <CommandGroup heading="Add New Member">
-                                                                                  <CommandItem
-                                                                                      value={signerInput}
-                                                                                      onSelect={() => {
-                                                                                          handleAddSigner(signerInput);
-                                                                                      }}
-                                                                                      className="cursor-pointer"
-                                                                                  >
-                                                                                      <UserPlus className="mr-2 h-4 w-4" />
-                                                                                      <div className="flex flex-col">
-                                                                                          <span>Add "{signerInput}"</span>
-                                                                                          <span className="text-xs text-muted-foreground">Will be added as a member</span>
-                                                                                      </div>
-                                                                                  </CommandItem>
-                                                                              </CommandGroup>
-                                                                          )}
-                                                                          {filteredMembers.length === 0 && !hasValidEmail && signerInput && (
-                                                                              <div className="p-2 text-sm text-muted-foreground text-center">
-                                                                                  {signerInput ? "Enter a valid email address" : "No members found"}
-                                                                              </div>
-                                                                          )}
-                                                                          {!signerInput && (
-                                                                              <div className="p-2 text-sm text-muted-foreground text-center">
-                                                                                  Type to search members or add new email
-                                                                              </div>
-                                                                          )}
-                                                                      </>
-                                                                  );
-                                                              })()}
-                                                          </CommandList>
-                                                      </Command>
-                                                  </div>
-                                              )}
-                                          </div>
-                                          <Button type="button" onClick={() => handleAddSigner()} disabled={!signerInput}>Add</Button>
-                                      </div>
-                                      {signers.length > 0 && (
-                                          <div className="flex flex-wrap gap-2 mt-3">
-                                              {signers.map(signer => (
-                                                  <div key={signer} className="flex items-center gap-1.5 bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs font-medium">
-                                                      <span>{signer}</span>
-                                                      {signer !== roomDetails?.ownerEmail && (
-                                                          <button type="button" onClick={() => handleRemoveSigner(signer)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                                                              <X className="h-3 w-3" />
-                                                          </button>
-                                                      )}
-                                                  </div>
-                                              ))}
-                                          </div>
-                                      )}
-                                  </div>
-                                </div>
-                              </div>
-                              {uploadState && !uploadState.success && (
-                                <p className="text-sm text-destructive text-center pb-4">
-                                  Error: {uploadState.message} {uploadState.error ? `(${uploadState.error})` : ''}
-                                </p>
-                              )}
-                              {!roomPublicKey && (
-                                    <p className="text-sm text-destructive text-center pb-4">
-                                        Error: Cannot upload - Room Public Key is missing.
-                                    </p>
-                                )}
-                              <DialogFooter>
-                                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                                <UploadSubmitButton />
-                          </DialogFooter>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-
-                      <div className="space-y-6">
-                        {(() => {
-                          const documentGroups = new Map<string, {
-                            document: DocumentInfo,
-                            signers: Array<{ email: string, role: string, signed: string }>
-                          }>();
-
-                          documents.forEach(doc => {
-                            const email = doc.emailToSign;
-                            const role = doc.roleToSign;
-                            const signed = doc.signed || "false";
-
-                            if (!email || !role) {
-                                console.warn(`Skipping document record for docId ${doc.documentId} due to missing emailToSign or roleToSign`);
-                                return;
-                            }
-
-                            if (!documentGroups.has(doc.documentId)) {
-                              documentGroups.set(doc.documentId, {
-                                document: doc,
-                                signers: [{ email, role, signed }]
-                              });
-                            } else {
-                              const existingSigners = documentGroups.get(doc.documentId)?.signers;
-                              if (!existingSigners?.some(s => s.email === email && s.role === role)) {
-                                  existingSigners?.push({ email, role, signed });
-                              }
-                            }
-                          });
-
-                          const pendingSignatureDocs = Array.from(documentGroups.values()).filter(({ signers }) => {
-                            const allSigned = signers.every(signer => signer.signed === "true");
-                            return !allSigned;
-                          });
-
-                          if (pendingSignatureDocs.length === 0 && documents.length > 0) {
-                            return (
-                              <div className="flex flex-col items-center justify-center h-40 text-center border-2 border-dashed rounded-lg p-6 text-muted-foreground">
-                                <Sparkles className="h-10 w-10 mb-3 text-green-500" />
-                                <p className="font-medium">All documents have been signed!</p>
-                                <p className="text-sm">No pending signatures required.</p>
-                              </div>
-                            );
-                          } else if (pendingSignatureDocs.length === 0 && documents.length === 0) {
-                             return null;
-                          }
-
-                          return pendingSignatureDocs.map(({ document: doc, signers }) => {
-                            const categoryInfo = doc.category; // Use the dynamic category string
-                            const overallStatusColor = "bg-yellow-500";
-                            const overallStatusText = "Pending";
-
-                            const isUploader = currentUserEmail === doc.uploaderEmail;
-                            const canManageSigners = isFounder || isUploader;
-
-                            return (
-                              <div key={doc.documentId} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">
-                                <div className="flex items-start justify-between mb-4">
-                                  <div>
-                                    <h4 className="font-medium flex items-center text-lg capitalize">
-                                      <div className={`w-3 h-3 rounded-full ${overallStatusColor} mr-2`} title={overallStatusText} />
-                                      {categoryInfo?.replace(/_/g, ' ') || doc.category}
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground mt-1">{doc.originalFilename}</p>
-                                  </div>
-                                  <div className="flex space-x-2">
-                                    <Button
-                                      variant="outline" size="sm"
-                                      onClick={(e) => { e.stopPropagation(); handleOpenViewModal(doc); }}
-                                      disabled={isPreparingView}
-                                      className="flex items-center cursor-pointer"
-                                    >
-                                      {isPreparingView && selectedDocument?.documentId === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Eye className="h-3.5 w-3.5 mr-1.5" />} View
-                                    </Button>
-                                    <Button
-                                      variant="outline" size="sm"
-                                      onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc.documentId); }}
-                                      disabled={!!isViewingDoc || !!isDownloadingDoc}
-                                      className="flex items-center cursor-pointer"
-                                    >
-                                      {isDownloadingDoc === doc.documentId ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1.5" />} Download
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 border rounded-md overflow-hidden">
-                                  <div className="bg-muted/30 p-3 flex justify-between items-center">
-                                    <h5 className="font-medium text-sm">Signers</h5>
-                                    <div className="flex items-center gap-2">
-                                      {canManageSigners && (
-                                         <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => handleOpenAddSignerModal(doc.documentId)}>
-                                            <UserPlus className="h-3.5 w-3.5 mr-1.5" /> Add Signer
-                                          </Button>
-                                      )}
-                                      <div className="flex items-center">
-                                        <div className={`w-2.5 h-2.5 rounded-full ${overallStatusColor} mr-2`} />
-                                        <span className="text-sm">{overallStatusText}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <table className="w-full">
-                                    <thead className="bg-muted/20 text-xs font-medium text-muted-foreground">
-                                      <tr>
-                                        <th className="p-2 text-left">Email</th>
-                                        <th className="p-2 text-left">Role</th>
-                                        <th className="p-2 text-left">Status</th>
-                                        <th className="p-2 text-right">Action</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                      {signers.map((signer, index) => {
-                                        const isSigned = signer.signed === "true";
-                                        const statusColor = isSigned ? "bg-green-500" : "bg-yellow-500";
-                                        const statusText = isSigned ? "Signed" : "Pending";
-                                        const isCurrentUserSigner = currentUserEmail === signer.email;
-
-                                        const canRemove = canManageSigners && !isSigned && signer.email !== roomDetails?.ownerEmail;
-                                        const removalKey = `${doc.documentId}-${signer.email}`;
-
-                                        return (
-                                          <tr key={`${signer.email}-${index}`} className="hover:bg-muted/10">
-                                            <td className="p-2 text-sm">
-                                              {signer.email}
-                                              {isCurrentUserSigner && <span className="ml-1 text-xs text-muted-foreground">(You)</span>}
-                                            </td>
-                                            <td className="p-2">
-                                              <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full capitalize">{signer.role}</span>
-                                            </td>
-                                            <td className="p-2">
-                                              <div className="flex items-center">
-                                                <div className={`w-2 h-2 rounded-full ${statusColor} mr-2`} />
-                                                <span className="text-sm">{statusText}</span>
-                                              </div>
-                                            </td>
-                                            <td className="p-2 text-right">
-                                              {!isSigned && isCurrentUserSigner && (
-                                                <Button
-                                                  size="sm"
-                                                  className="relative overflow-hidden rounded-full text-xs px-3 py-1 h-auto bg-blue-500 hover:bg-blue-600 text-white hover:text-white min-w-[80px]"
-                                                  onClick={(e) => { e.stopPropagation(); openSigningModal(doc.documentId); }}
-                                                  disabled={isSigningDoc !== null}
-                                                >
-                                                  {isSigningDoc === doc.documentId && isSigningModalOpen ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin text-current" />
-                                                  ) : (
-                                                    'E-Sign'
-                                                  )}
-                                                </Button>
-                                              )}
-                                              {canRemove && (
-                                                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Remove Signer" onClick={() => handleRemoveSignerFromDocument(doc.documentId, { emailToSign: signer.email, signed: signer.signed })} disabled={isRemovingSigner === removalKey}>
-                                                      {isRemovingSigner === removalKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                                                  </Button>
-                                              )}
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-
-                                <div className="flex justify-between items-center text-xs text-muted-foreground mt-3">
-                                  <span>Uploaded by: {doc.uploaderEmail}</span>
-                                  <span>Size: {formatFileSize(doc.fileSize)}</span>
-                                  <span>Date: {format(new Date(doc.uploadedAt), 'PP')}</span>
-                                </div>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <DocumentsTab
+                  roomDetails={roomDetails!}
+                  documents={documents}
+                  currentUserEmail={currentUserEmail}
+                  currentUserRole={currentUserRole || null}
+                  isLoadingDetails={isLoadingDetails}
+                  detailsError={detailsError}
+                  selectedDocument={selectedDocument}
+                  viewerDocuments={viewerDocuments}
+                  isDecrypting={isDecrypting}
+                  isViewingDoc={isViewingDoc}
+                  isDownloadingDoc={isDownloadingDoc}
+                  isPreparingView={isPreparingView}
+                  isUploadModalOpen={isUploadModalOpen}
+                  selectedFile={selectedFile}
+                  fileError={fileError}
+                  signers={signers}
+                  signerInput={signerInput}
+                  isSignerSuggestionsOpen={isSignerSuggestionsOpen}
+                  preselectedCategory={preselectedCategory}
+                  uploadFormRef={uploadFormRef as React.RefObject<HTMLFormElement>}
+                  uploadState={uploadState}
+                  isSigningDoc={isSigningDoc}
+                  isSigningModalOpen={isSigningModalOpen}
+                  isAddSignerModalOpen={isAddSignerModalOpen}
+                  addSignerDocDetails={addSignerDocDetails}
+                  newSignerEmail={newSignerEmail}
+                  isSubmittingSigner={isSubmittingSigner}
+                  isAddSignerSuggestionsOpen={isAddSignerSuggestionsOpen}
+                  isRemovingSigner={isRemovingSigner}
+                  onFetchRoomDetails={fetchRoomDetails}
+                  onViewDocument={handleViewDocument}
+                  onDownloadDocument={handleDownloadDocument}
+                  onOpenUploadModal={handleOpenUploadModal}
+                  onOpenSigningModal={openSigningModal}
+                  onOpenViewModal={handleOpenViewModal}
+                  onExpandView={handleExpandView}
+                  onOpenAddSignerModal={handleOpenAddSignerModal}
+                  onAddSignerToDocument={handleAddSignerToDocument}
+                  onRemoveSignerFromDocument={handleRemoveSignerFromDocument}
+                  onSetIsUploadModalOpen={setIsUploadModalOpen}
+                  onSetSelectedFile={setSelectedFile}
+                  onSetFileError={setFileError}
+                  onSetSigners={setSigners}
+                  onSetSignerInput={setSignerInput}
+                  onSetIsSignerSuggestionsOpen={setIsSignerSuggestionsOpen}
+                  onSetPreselectedCategory={setPreselectedCategory}
+                  onSetIsAddSignerModalOpen={setIsAddSignerModalOpen}
+                  onSetNewSignerEmail={setNewSignerEmail}
+                  onSetIsAddSignerSuggestionsOpen={setIsAddSignerSuggestionsOpen}
+                  onSetAddSignerDocDetails={setAddSignerDocDetails}
+                  uploadFormAction={uploadFormAction}
+                  onFileChange={handleFileChange}
+                  onAddSigner={handleAddSigner}
+                  onRemoveSigner={handleRemoveSigner}
+                />
               </TabsContent>
 
               <TabsContent value="members" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
@@ -1952,9 +1234,4 @@ export default function RoomDetailsPage() {
   );
 }
 
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return bytes + ' bytes';
-  else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  else if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  else return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-}
+
