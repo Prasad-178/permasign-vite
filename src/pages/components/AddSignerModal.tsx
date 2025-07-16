@@ -1,23 +1,22 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Command, CommandGroup, CommandItem, CommandList } from "../../components/ui/command";
 import { Check, UserPlus, Loader2 } from "lucide-react";
-import type { RoomDetails } from "../../types/types";
+import { type RoomDetails } from "../../types/types";
 
 interface AddSignerModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  roomDetails: RoomDetails;
+  roomDetails: RoomDetails | null;
   addSignerDocDetails: { documentId: string; currentSigners: string[] } | null;
   newSignerEmail: string;
+  setNewSignerEmail: (email: string) => void;
   isSubmittingSigner: boolean;
-  isAddSignerSuggestionsOpen: boolean;
-  onSetNewSignerEmail: (email: string) => void;
-  onSetIsAddSignerSuggestionsOpen: (open: boolean) => void;
-  onAddSignerToDocument: () => void;
-  onClose: () => void;
+  onAddSignerToDocument: () => Promise<void>;
+  onSetAddSignerDocDetails: (details: { documentId: string; currentSigners: string[] } | null) => void;
 }
 
 export default function AddSignerModal({
@@ -26,20 +25,29 @@ export default function AddSignerModal({
   roomDetails,
   addSignerDocDetails,
   newSignerEmail,
+  setNewSignerEmail,
   isSubmittingSigner,
-  isAddSignerSuggestionsOpen,
-  onSetNewSignerEmail,
-  onSetIsAddSignerSuggestionsOpen,
   onAddSignerToDocument,
-  onClose
+  onSetAddSignerDocDetails
 }: AddSignerModalProps) {
+  const [isAddSignerSuggestionsOpen, setIsAddSignerSuggestionsOpen] = useState(false);
+
+  const handleClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setNewSignerEmail("");
+      onSetAddSignerDocDetails(null);
+      setIsAddSignerSuggestionsOpen(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setNewSignerEmail("");
+    onSetAddSignerDocDetails(null);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      onOpenChange(open);
-      if (!open) {
-        onClose();
-      }
-    }}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Signer</DialogTitle>
@@ -56,8 +64,8 @@ export default function AddSignerModal({
               <Input
                 id="new-signer-email"
                 value={newSignerEmail}
-                onChange={(e) => onSetNewSignerEmail(e.target.value)}
-                onFocus={() => onSetIsAddSignerSuggestionsOpen(true)}
+                onChange={(e) => setNewSignerEmail(e.target.value)}
+                onFocus={() => setIsAddSignerSuggestionsOpen(true)}
                 className="w-full"
                 placeholder="new.signer@example.com"
                 autoComplete="off"
@@ -86,8 +94,8 @@ export default function AddSignerModal({
                                     key={member.userEmail}
                                     value={member.userEmail}
                                     onSelect={() => {
-                                      onSetNewSignerEmail(member.userEmail);
-                                      onSetIsAddSignerSuggestionsOpen(false);
+                                      setNewSignerEmail(member.userEmail);
+                                      setIsAddSignerSuggestionsOpen(false);
                                     }}
                                     className="cursor-pointer"
                                   >
@@ -105,8 +113,8 @@ export default function AddSignerModal({
                                 <CommandItem
                                   value={newSignerEmail}
                                   onSelect={() => {
-                                    onSetNewSignerEmail(newSignerEmail); // Keep the value
-                                    onSetIsAddSignerSuggestionsOpen(false);
+                                    setNewSignerEmail(newSignerEmail);
+                                    setIsAddSignerSuggestionsOpen(false);
                                   }}
                                   className="cursor-pointer"
                                 >
@@ -145,7 +153,7 @@ export default function AddSignerModal({
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={handleCancel} className="cursor-pointer">
               Cancel
             </Button>
           </DialogClose>

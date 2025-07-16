@@ -191,15 +191,15 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       <div className="flex-1 overflow-auto border rounded-md bg-card p-4">
         <ul className="space-y-2">
           {roomDetails.members.map((member) => (
-            <li key={member.userEmail} className="flex items-center justify-between p-2 hover:bg-muted/30 transition-colors border rounded-md">
-              <div className="flex items-center gap-3">
+            <li key={member.userEmail} className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors border rounded-md">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 {getRoleIcon(member.role, "h-5 w-5 text-muted-foreground")}
-                <div>
-                  <p className="font-medium">{member.userEmail} {member.userEmail === currentUserEmail ? <span className="text-xs font-normal text-muted-foreground">(You)</span> : ''}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{member.userEmail} {member.userEmail === currentUserEmail ? <span className="text-xs font-normal text-muted-foreground">(You)</span> : ''}</p>
                   <p className="text-sm capitalize text-muted-foreground">{member.role.replace(/_/g, ' ')}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                 {isFounder && member.role !== 'founder' && (
                   <Button
                     variant="ghost"

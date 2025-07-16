@@ -8,7 +8,7 @@ import DocumentPreviewPane from "./DocumentPreviewPane";
 import DocumentDetailsPane from "./DocumentDetailsPane";
 import DocumentsPendingSignature from "./DocumentsPendingSignature";
 import DocumentUploadModal from "./DocumentUploadModal";
-import AddSignerModal from "./AddSignerModal";
+
 
 interface DocumentsTabProps {
   // Room and document data
@@ -47,7 +47,6 @@ interface DocumentsTabProps {
   addSignerDocDetails: { documentId: string; currentSigners: string[] } | null;
   newSignerEmail: string;
   isSubmittingSigner: boolean;
-  isAddSignerSuggestionsOpen: boolean;
   isRemovingSigner: string | null;
   
   // Actions
@@ -72,7 +71,6 @@ interface DocumentsTabProps {
   onSetPreselectedCategory: (category: string | null) => void;
   onSetIsAddSignerModalOpen: (open: boolean) => void;
   onSetNewSignerEmail: (email: string) => void;
-  onSetIsAddSignerSuggestionsOpen: (open: boolean) => void;
   onSetAddSignerDocDetails: (details: { documentId: string; currentSigners: string[] } | null) => void;
   
   // Form actions
@@ -110,7 +108,6 @@ export default function DocumentsTab({
   addSignerDocDetails,
   newSignerEmail,
   isSubmittingSigner,
-  isAddSignerSuggestionsOpen,
   isRemovingSigner,
   onFetchRoomDetails,
   onViewDocument,
@@ -131,7 +128,6 @@ export default function DocumentsTab({
   onSetPreselectedCategory,
   onSetIsAddSignerModalOpen,
   onSetNewSignerEmail,
-  onSetIsAddSignerSuggestionsOpen,
   onSetAddSignerDocDetails,
   uploadFormAction,
   onFileChange,
@@ -160,7 +156,6 @@ export default function DocumentsTab({
   const handleAddSignerModalClose = () => {
     onSetNewSignerEmail("");
     onSetAddSignerDocDetails(null);
-    onSetIsAddSignerSuggestionsOpen(false);
   };
 
   if (isLoadingDetails) {
@@ -325,19 +320,7 @@ export default function DocumentsTab({
         onSetIsSignerSuggestionsOpen={onSetIsSignerSuggestionsOpen}
       />
 
-      <AddSignerModal
-        isOpen={isAddSignerModalOpen}
-        onOpenChange={onSetIsAddSignerModalOpen}
-        roomDetails={roomDetails}
-        addSignerDocDetails={addSignerDocDetails}
-        newSignerEmail={newSignerEmail}
-        isSubmittingSigner={isSubmittingSigner}
-        isAddSignerSuggestionsOpen={isAddSignerSuggestionsOpen}
-        onSetNewSignerEmail={onSetNewSignerEmail}
-        onSetIsAddSignerSuggestionsOpen={onSetIsAddSignerSuggestionsOpen}
-        onAddSignerToDocument={onAddSignerToDocument}
-        onClose={handleAddSignerModalClose}
-      />
+
     </div>
   );
 } 

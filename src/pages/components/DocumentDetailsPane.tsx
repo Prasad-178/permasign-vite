@@ -19,7 +19,7 @@ export default function DocumentDetailsPane({
   selectedDocument,
   documents,
   currentUserEmail,
-  roomDetails,
+//   roomDetails,
   isFounder,
   isSigningDoc,
   isSigningModalOpen,
@@ -119,7 +119,16 @@ export default function DocumentDetailsPane({
               </tbody>
             </table>
             <p className="text-xs text-muted-foreground mt-3 italic">
-              Note: Signatures are generated using the user's private Arweave key via the Wallet Kit. Each signature is cryptographically linked to the document identifier and can be verified against the signer's public key (Arweave address).
+              Note: Learn more about our{" "}
+              <a 
+                href="/#/security" 
+                className="text-blue-600 hover:text-blue-800 underline hover:no-underline font-medium not-italic"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                security and encryption process
+              </a>
+              {" "}for document signing.
             </p>
           </div>
         </div>

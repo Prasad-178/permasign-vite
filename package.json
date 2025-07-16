@@ -28,6 +28,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.508.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "3.4.120",
     "posthog-js": "^1.255.1",
     "react": "^19.1.0",
