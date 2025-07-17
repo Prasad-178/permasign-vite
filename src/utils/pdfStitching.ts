@@ -15,760 +15,249 @@ export interface PdfStitchingOptions {
   documentName: string;
 }
 
-export async function stitchPdfWithSignatures(options: PdfStitchingOptions): Promise<Uint8Array> {
-  const { originalPdfBytes, signatures, documentName } = options;
-
+// Enhanced safe string truncation with different limits for different fields
+function safeTruncate(input: any, maxLength: number): string {
   try {
-    // Load the original PDF
-    const pdfDoc = await PDFDocument.load(originalPdfBytes);
+    if (!input) return 'N/A';
+    const str = String(input);
+    return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+  } catch {
+    return 'N/A';
+  }
+}
+
+// Format timestamp to readable date
+function formatTimestamp(timestamp: number): string {
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  } catch {
+    return 'Date unavailable';
+  }
+}
+
+export async function stitchPdfWithSignatures(options: PdfStitchingOptions): Promise<Uint8Array> {
+  try {
+    // Validate inputs
+    if (!options || !options.originalPdfBytes || !Array.isArray(options.signatures)) {
+      throw new Error('Invalid input');
+    }
+
+    // Load PDF
+    const pdfDoc = await PDFDocument.load(options.originalPdfBytes);
     
     // Embed fonts
     const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
 
-    // Add signature pages for each signer
-    for (let i = 0; i < signatures.length; i++) {
-      const signature = signatures[i];
-      const page = pdfDoc.addPage([612, 792]); // Standard letter size
-      
-      await addSignaturePage(page, signature, documentName, i + 1, signatures.length, {
-        helveticaFont,
-        helveticaBoldFont,
-        courierFont
-      });
-    }
-
-    // Add a summary page at the end
-    if (signatures.length > 1) {
-      const summaryPage = pdfDoc.addPage([612, 792]);
-      await addSignatureSummaryPage(summaryPage, signatures, documentName, {
-        helveticaFont,
-        helveticaBoldFont,
-        courierFont
-      });
-    }
-
-    // Return the stitched PDF as bytes
-    return await pdfDoc.save();
-  } catch (error) {
-    console.error('Error stitching PDF with signatures:', error);
-    throw new Error(`Failed to stitch PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-async function addSignaturePage(
-  page: any, 
-  signature: SignatureInfo, 
-  documentName: string,
-  pageNumber: number,
-  totalSigners: number,
-  fonts: { helveticaFont: any; helveticaBoldFont: any; courierFont: any }
-) {
-  const { helveticaFont, helveticaBoldFont, courierFont } = fonts;
-  const { width, height } = page.getSize();
-  
-  // Professional colors
-  const primaryBlue = rgb(0.067, 0.278, 0.529); // Professional blue #114487
-  const darkGray = rgb(0.2, 0.2, 0.2);
-  const lightGray = rgb(0.96, 0.96, 0.96);
-  const goldAccent = rgb(0.8, 0.647, 0.176); // Professional gold accent
-  const successGreen = rgb(0.067, 0.533, 0.2); // Success green
-  
-  // Header with gradient-like effect
-  page.drawRectangle({
-    x: 0,
-    y: height - 100,
-    width: width,
-    height: 100,
-    color: primaryBlue,
-  });
-  
-  // Add accent line
-  page.drawRectangle({
-    x: 0,
-    y: height - 105,
-    width: width,
-    height: 5,
-    color: goldAccent,
-  });
-  
-  page.drawText('PERMASIGN DIGITAL SIGNATURE CERTIFICATE', {
-    x: 50,
-    y: height - 40,
-    size: 22,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  page.drawText('CRYPTOGRAPHICALLY VERIFIED & BLOCKCHAIN SECURED', {
-    x: 50,
-    y: height - 60,
-    size: 11,
-    font: helveticaFont,
-    color: rgb(0.9, 0.9, 0.9),
-  });
-  
-  page.drawText(`Signature ${pageNumber} of ${totalSigners} | Signatures appended to end of document`, {
-    x: 50,
-    y: height - 80,
-    size: 10,
-    font: helveticaFont,
-    color: rgb(0.8, 0.8, 0.8),
-  });
-
-  // Document Information Section with better styling
-  let yPos = height - 140;
-  
-  page.drawText('DOCUMENT INFORMATION', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Professional info box
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 80,
-    width: width - 80,
-    height: 70,
-    color: lightGray,
-    borderColor: primaryBlue,
-    borderWidth: 1,
-  });
-  
-  page.drawText(`Document Name:`, {
-    x: 55,
-    y: yPos - 30,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText(documentName, {
-    x: 55,
-    y: yPos - 45,
-    size: 12,
-    font: helveticaFont,
-    color: primaryBlue,
-  });
-  
-  const signedDate = signature.timestamp ? new Date(signature.timestamp).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  }) : 'Unknown Date';
-  
-  page.drawText(`Signed Date:`, {
-    x: 55,
-    y: yPos - 65,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText(signedDate, {
-    x: 150,
-    y: yPos - 65,
-    size: 11,
-    font: helveticaFont,
-    color: darkGray,
-  });
-
-  // Signer Information Section with professional layout
-  yPos -= 120;
-  
-  page.drawText('AUTHORIZED SIGNER', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Signer info box
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 100,
-    width: width - 80,
-    height: 90,
-    color: rgb(1, 1, 1),
-    borderColor: primaryBlue,
-    borderWidth: 2,
-  });
-  
-  yPos -= 25;
-  
-  // Professional grid layout for signer details
-  page.drawText('Full Name:', {
-    x: 55,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText(signature.signerName, {
-    x: 150,
-    y: yPos,
-    size: 12,
-    font: helveticaFont,
-    color: primaryBlue,
-  });
-  
-  yPos -= 20;
-  
-  page.drawText('Email Address:', {
-    x: 55,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText(signature.signerEmail, {
-    x: 150,
-    y: yPos,
-    size: 11,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  yPos -= 20;
-  
-  page.drawText('Role/Title:', {
-    x: 55,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText(signature.role.charAt(0).toUpperCase() + signature.role.slice(1).replace(/_/g, ' '), {
-    x: 150,
-    y: yPos,
-    size: 11,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  yPos -= 20;
-  
-  page.drawText('Status:', {
-    x: 55,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText('[VERIFIED] AUTHENTICATED', {
-    x: 150,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: successGreen,
-  });
-
-  // Digital Signature Display
-  yPos -= 60;
-  
-  page.drawText('DIGITAL SIGNATURE', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Professional signature box
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 80,
-    width: width - 80,
-    height: 70,
-    color: rgb(0.99, 0.99, 1),
-    borderColor: primaryBlue,
-    borderWidth: 3,
-  });
-  
-  // Signature text (professional, straight)
-  page.drawText(signature.signerName, {
-    x: 60,
-    y: yPos - 35,
-    size: 28,
-    font: helveticaBoldFont,
-    color: primaryBlue,
-    // Removed rotation for professional straight text
-  });
-  
-  page.drawText('Digitally signed using PermaSign', {
-    x: 60,
-    y: yPos - 55,
-    size: 10,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  page.drawText(signedDate, {
-    x: 60,
-    y: yPos - 68,
-    size: 9,
-    font: helveticaFont,
-    color: darkGray,
-  });
-
-  // Cryptographic Verification Section with full hash
-  yPos -= 120;
-  
-  page.drawText('CRYPTOGRAPHIC VERIFICATION', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Security notice
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 25,
-    width: width - 80,
-    height: 20,
-    color: rgb(0.95, 0.98, 1),
-    borderColor: primaryBlue,
-    borderWidth: 1,
-  });
-  
-  page.drawText('[SECURE] This signature is cryptographically secured and immutably stored on Arweave blockchain', {
-    x: 50,
-    y: yPos - 18,
-    size: 10,
-    font: helveticaFont,
-    color: primaryBlue,
-  });
-  
-  yPos -= 40;
-  
-  page.drawText('Signature Hash (Truncated for Display):', {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Truncate signature hash for display to prevent call stack overflow
-  const fullHash = signature.signatureHash || signature.signature || 'No hash available';
-  const truncatedHash = fullHash.length > 20 ? fullHash.substring(0, 20) + '...' : fullHash;
-  
-  page.drawText(truncatedHash, {
-    x: 50,
-    y: yPos - 20,
-    size: 10,
-    font: courierFont,
-    color: darkGray,
-  });
-  
-  // Add note about full hash availability
-  page.drawText('(Full hash stored on blockchain for verification)', {
-    x: 50,
-    y: yPos - 40,
-    size: 8,
-    font: helveticaFont,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-  
-  // Verification QR code area placeholder
-  yPos -= 80;
-  
-  page.drawRectangle({
-    x: width - 150,
-    y: yPos - 60,
-    width: 100,
-    height: 60,
-    color: lightGray,
-    borderColor: darkGray,
-    borderWidth: 1,
-  });
-  
-  page.drawText('QR Code', {
-    x: width - 125,
-    y: yPos - 25,
-    size: 10,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  page.drawText('Verification', {
-    x: width - 135,
-    y: yPos - 40,
-    size: 10,
-    font: helveticaFont,
-    color: darkGray,
-  });
-
-  // Professional Footer
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: width,
-    height: 50,
-    color: lightGray,
-    borderColor: primaryBlue,
-    borderWidth: 1,
-  });
-  
-  page.drawText('This digital signature certificate confirms the authenticity and integrity of the signed document.', {
-    x: 50,
-    y: 30,
-    size: 10,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText('Powered by PermaSign | Learn more at permasign.app/security', {
-    x: 50,
-    y: 15,
-    size: 9,
-    font: helveticaFont,
-    color: primaryBlue,
-  });
-  
-  page.drawText('[NOTE] Digital signatures are appended to the end of the original document for verification.', {
-    x: width - 350,
-    y: 15,
-    size: 8,
-    font: helveticaFont,
-    color: rgb(0.8, 0.4, 0),
-  });
-}
-
-async function addSignatureSummaryPage(
-  page: any,
-  signatures: SignatureInfo[],
-  documentName: string,
-  fonts: { helveticaFont: any; helveticaBoldFont: any; courierFont: any }
-) {
-  const { helveticaFont, helveticaBoldFont } = fonts;
-  const { width, height } = page.getSize();
-  
-  // Professional colors matching signature pages
-  const primaryBlue = rgb(0.067, 0.278, 0.529);
-  const darkGray = rgb(0.2, 0.2, 0.2);
-  const lightGray = rgb(0.96, 0.96, 0.96);
-  const goldAccent = rgb(0.8, 0.647, 0.176);
-  const successGreen = rgb(0.067, 0.533, 0.2);
-  
-  // Header matching individual signature pages
-  page.drawRectangle({
-    x: 0,
-    y: height - 100,
-    width: width,
-    height: 100,
-    color: primaryBlue,
-  });
-  
-  // Add accent line
-  page.drawRectangle({
-    x: 0,
-    y: height - 105,
-    width: width,
-    height: 5,
-    color: goldAccent,
-  });
-  
-  page.drawText('SIGNATURE SUMMARY & VERIFICATION', {
-    x: 50,
-    y: height - 40,
-    size: 22,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  page.drawText('COMPLETE SIGNATURE AUDIT TRAIL', {
-    x: 50,
-    y: height - 60,
-    size: 11,
-    font: helveticaFont,
-    color: rgb(0.9, 0.9, 0.9),
-  });
-  
-  page.drawText(`${signatures.length} signature(s) | All signatures appended to end of document`, {
-    x: 50,
-    y: height - 80,
-    size: 10,
-    font: helveticaFont,
-    color: rgb(0.8, 0.8, 0.8),
-  });
-
-  // Document info section
-  let yPos = height - 140;
-  
-  page.drawText('DOCUMENT SUMMARY', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  // Document info box
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 60,
-    width: width - 80,
-    height: 50,
-    color: lightGray,
-    borderColor: primaryBlue,
-    borderWidth: 1,
-  });
-  
-  page.drawText(`Document: ${documentName}`, {
-    x: 55,
-    y: yPos - 25,
-    size: 12,
-    font: helveticaBoldFont,
-    color: primaryBlue,
-  });
-  
-  page.drawText(`Total Signatures: ${signatures.length} | All Verified: [YES] | Status: Complete`, {
-    x: 55,
-    y: yPos - 45,
-    size: 10,
-    font: helveticaFont,
-    color: successGreen,
-  });
-
-  // Signatures table with enhanced styling
-  yPos -= 90;
-  
-  page.drawText('SIGNATURE VERIFICATION TABLE', {
-    x: 50,
-    y: yPos,
-    size: 16,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  yPos -= 30;
-  
-  // Professional table headers with background
-  page.drawRectangle({
-    x: 40,
-    y: yPos - 5,
-    width: width - 80,
-    height: 25,
-    color: primaryBlue,
-  });
-  
-  page.drawText('SIGNER NAME', {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  page.drawText('ROLE', {
-    x: 220,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  page.drawText('DATE SIGNED', {
-    x: 320,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  page.drawText('VERIFICATION', {
-    x: 460,
-    y: yPos,
-    size: 11,
-    font: helveticaBoldFont,
-    color: rgb(1, 1, 1),
-  });
-  
-  // Table rows with alternating colors
-  yPos -= 25;
-  
-  signatures.forEach((signature, index) => {
-    const rowY = yPos - (index * 30);
+    // Add signature certificate page
+    const certPage = pdfDoc.addPage([612, 792]);
+    const { width, height } = certPage.getSize();
     
-    // Alternating row colors with borders
-    const rowColor = index % 2 === 0 ? rgb(0.98, 0.98, 0.98) : rgb(1, 1, 1);
-    page.drawRectangle({
-      x: 40,
-      y: rowY - 5,
-      width: width - 80,
-      height: 30,
-      color: rowColor,
-      borderColor: lightGray,
-      borderWidth: 0.5,
-    });
+    // Safe document name
+    const docName = safeTruncate(options.documentName, 50);
     
-    // Signer name
-    page.drawText(signature.signerName, {
-      x: 50,
-      y: rowY + 5,
-      size: 10,
+    // Header section
+    certPage.drawText('DIGITAL SIGNATURE CERTIFICATE', {
+      x: width / 2 - 150,
+      y: height - 60,
+      size: 18,
       font: helveticaBoldFont,
-      color: darkGray,
+      color: rgb(0.2, 0.2, 0.2),
     });
-    
-    // Email on second line
-    page.drawText(signature.signerEmail, {
-      x: 50,
-      y: rowY - 8,
-      size: 8,
+
+    certPage.drawText('Powered by PermaSign', {
+      x: width / 2 - 70,
+      y: height - 85,
+      size: 12,
       font: helveticaFont,
       color: rgb(0.5, 0.5, 0.5),
     });
-    
-    // Role
-    page.drawText(signature.role.charAt(0).toUpperCase() + signature.role.slice(1).replace(/_/g, ' '), {
-      x: 220,
-      y: rowY,
-      size: 10,
-      font: helveticaFont,
-      color: darkGray,
+
+    // Document info section
+    let yPos = height - 130;
+    certPage.drawText('Document Information', {
+      x: 50,
+      y: yPos,
+      size: 14,
+      font: helveticaBoldFont,
+      color: rgb(0.2, 0.2, 0.2),
     });
-    
-    // Date signed
-    const dateStr = signature.timestamp ? new Date(signature.timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }) : 'Unknown';
-    
-    page.drawText(dateStr, {
-      x: 320,
-      y: rowY + 5,
-      size: 10,
+
+    yPos -= 25;
+    certPage.drawText(`Document: ${docName}`, {
+      x: 70,
+      y: yPos,
+      size: 11,
       font: helveticaFont,
-      color: darkGray,
+      color: rgb(0.3, 0.3, 0.3),
     });
+
+    yPos -= 20;
+    certPage.drawText(`Total Signatures: ${options.signatures.length}`, {
+      x: 70,
+      y: yPos,
+      size: 11,
+      font: helveticaFont,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+
+    yPos -= 20;
+    certPage.drawText(`Certificate Generated: ${formatTimestamp(Date.now())}`, {
+      x: 70,
+      y: yPos,
+      size: 11,
+      font: helveticaFont,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+
+    // Signatures section
+    yPos -= 40;
+    certPage.drawText('Digital Signatures', {
+      x: 50,
+      y: yPos,
+      size: 14,
+      font: helveticaBoldFont,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+
+    // Process each signature
+    const maxSignatures = Math.min(options.signatures.length, 8);
     
-    // Time on second line
-    if (signature.timestamp) {
-      const timeStr = new Date(signature.timestamp).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
+    for (let i = 0; i < maxSignatures; i++) {
+      const sig = options.signatures[i];
+      if (!sig || yPos < 100) break;
+      
+      yPos -= 30;
+      
+      // Signature details with safe truncation
+      const signerName = safeTruncate(sig.signerName, 40);
+      const signerEmail = safeTruncate(sig.signerEmail, 40);
+      const role = safeTruncate(sig.role, 20);
+      const signatureHash = safeTruncate(sig.signatureHash || sig.signature, 32);
+      
+      // Signature header
+      certPage.drawText(`${i + 1}. ${signerName}`, {
+        x: 70,
+        y: yPos,
+        size: 12,
+        font: helveticaBoldFont,
+        color: rgb(0.2, 0.2, 0.2),
       });
-      page.drawText(timeStr, {
-        x: 320,
-        y: rowY - 8,
-        size: 8,
+
+      yPos -= 18;
+      certPage.drawText(`Email: ${signerEmail}`, {
+        x: 90,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+
+      yPos -= 15;
+      certPage.drawText(`Role: ${role}`, {
+        x: 90,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+
+      yPos -= 15;
+      certPage.drawText(`Signed: ${formatTimestamp(sig.timestamp)}`, {
+        x: 90,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+
+      yPos -= 15;
+      certPage.drawText(`Signature Hash: ${signatureHash}`, {
+        x: 90,
+        y: yPos,
+        size: 9,
+        font: helveticaFont,
+        color: rgb(0.6, 0.6, 0.6),
+      });
+
+      yPos -= 5;
+      // Add line separator
+      certPage.drawLine({
+        start: { x: 70, y: yPos },
+        end: { x: width - 70, y: yPos },
+        thickness: 0.5,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+    }
+
+    // Footer section
+    if (yPos > 120) {
+      yPos = 80;
+      certPage.drawText('Verification', {
+        x: 50,
+        y: yPos,
+        size: 12,
+        font: helveticaBoldFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+
+      yPos -= 20;
+      certPage.drawText('This certificate verifies the digital signatures applied to the above document.', {
+        x: 70,
+        y: yPos,
+        size: 10,
+        font: helveticaFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+
+      yPos -= 15;
+      certPage.drawText('All signatures are cryptographically secured and stored on the blockchain.', {
+        x: 70,
+        y: yPos,
+        size: 10,
         font: helveticaFont,
         color: rgb(0.5, 0.5, 0.5),
       });
     }
+
+    return await pdfDoc.save();
     
-    // Verification status
-    page.drawText('[VERIFIED]', {
-      x: 460,
-      y: rowY,
-      size: 10,
-      font: helveticaBoldFont,
-      color: successGreen,
-    });
-  });
+  } catch (error) {
+    console.error('PDF signature certificate generation failed:', error);
+    
+    // Return minimal fallback PDF
+    try {
+      const fallbackDoc = await PDFDocument.create();
+      const fallbackFont = await fallbackDoc.embedFont(StandardFonts.Helvetica);
+      const fallbackPage = fallbackDoc.addPage([612, 792]);
+      
+      fallbackPage.drawText('Signature Certificate Generation Failed', {
+        x: 50,
+        y: 750,
+        size: 14,
+        font: fallbackFont,
+        color: rgb(0.8, 0.2, 0.2),
+      });
 
-  // Security notice section
-  const finalY = yPos - (signatures.length * 30) - 40;
-  
-  page.drawRectangle({
-    x: 40,
-    y: finalY - 80,
-    width: width - 80,
-    height: 70,
-    color: rgb(0.95, 0.98, 1),
-    borderColor: primaryBlue,
-    borderWidth: 2,
-  });
-  
-  page.drawText('[SECURITY] VERIFICATION NOTICE', {
-    x: 55,
-    y: finalY - 25,
-    size: 12,
-    font: helveticaBoldFont,
-    color: primaryBlue,
-  });
-  
-  page.drawText('- All signatures are cryptographically secured using SHA-256 hashing', {
-    x: 55,
-    y: finalY - 45,
-    size: 9,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  page.drawText('- Signature data is immutably stored on Arweave blockchain for permanent verification', {
-    x: 55,
-    y: finalY - 58,
-    size: 9,
-    font: helveticaFont,
-    color: darkGray,
-  });
-  
-  page.drawText('- This summary page and all signature certificates are appended to the original document', {
-    x: 55,
-    y: finalY - 71,
-    size: 9,
-    font: helveticaFont,
-    color: darkGray,
-  });
-
-  // Professional Footer matching signature pages
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: width,
-    height: 50,
-    color: lightGray,
-    borderColor: primaryBlue,
-    borderWidth: 1,
-  });
-  
-  page.drawText('This signature summary confirms all digital signatures attached to this document have been verified.', {
-    x: 50,
-    y: 30,
-    size: 10,
-    font: helveticaBoldFont,
-    color: darkGray,
-  });
-  
-  page.drawText('Powered by PermaSign | Blockchain-secured digital signatures | permasign.app/security', {
-    x: 50,
-    y: 15,
-    size: 9,
-    font: helveticaFont,
-    color: primaryBlue,
-  });
-}
-
-function breakTextIntoLines(text: string, maxLength: number): string[] {
-  if (!text || maxLength <= 0) return [''];
-  if (text.length <= maxLength) return [text];
-  
-  const lines: string[] = [];
-  for (let i = 0; i < text.length; i += maxLength) {
-    lines.push(text.slice(i, i + maxLength));
-    // Safety check to prevent infinite loops
-    if (lines.length > 1000) {
-      lines.push('...[content truncated for safety]');
-      break;
+      fallbackPage.drawText('Please contact support for assistance.', {
+        x: 50,
+        y: 720,
+        size: 12,
+        font: fallbackFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      
+      return await fallbackDoc.save();
+    } catch {
+      throw new Error('PDF processing failed completely');
     }
   }
-  return lines;
 } 

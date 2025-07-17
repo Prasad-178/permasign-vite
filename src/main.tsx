@@ -4,14 +4,15 @@ import App from "./App.tsx";
 import "./styles/globals.css";
 import { ArweaveWalletKit } from "@arweave-wallet-kit/react";
 import OthentStrategy from "@arweave-wallet-kit/othent-strategy";
-import { analytics, initAnalytics } from "./lib/analytics";
+import { initAnalytics } from "./lib/analytics";
 import { PostHogProvider } from "posthog-js/react";
+import posthog from 'posthog-js';
 
 initAnalytics();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <PostHogProvider client={analytics}>
+    <PostHogProvider client={posthog}>
     <ArweaveWalletKit
       config={{
         permissions: [

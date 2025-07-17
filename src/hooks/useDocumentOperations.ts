@@ -96,11 +96,13 @@ export function useDocumentOperations({
   const downloadFileFromBase64 = useCallback((base64Data: string, fileName: string, contentType: string) => {
     try {
       const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
+      
+      // Use a more memory-efficient approach for large files
+      const byteArray = new Uint8Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) { 
-        byteNumbers[i] = byteCharacters.charCodeAt(i); 
+        byteArray[i] = byteCharacters.charCodeAt(i); 
       }
-      const byteArray = new Uint8Array(byteNumbers);
+      
       const blob = new Blob([byteArray], { type: contentType });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -181,8 +183,14 @@ export function useDocumentOperations({
               documentName: filename
             });
 
-            // Convert back to base64 for download
-            const stitchedBase64 = btoa(String.fromCharCode(...stitchedPdfBytes));
+            // Convert back to base64 for download - use chunked approach to prevent call stack overflow
+            let binaryString = '';
+            const chunkSize = 8192; // Process in chunks to avoid call stack issues
+            for (let i = 0; i < stitchedPdfBytes.length; i += chunkSize) {
+              const chunk = stitchedPdfBytes.slice(i, i + chunkSize);
+              binaryString += String.fromCharCode(...chunk);
+            }
+            const stitchedBase64 = btoa(binaryString);
             const stitchedFilename = filename.replace(/\.pdf$/i, '_with_signatures.pdf');
 
             toast.success("Signature certificates added!", { id: toastId, description: "Downloading enhanced PDF..." });
