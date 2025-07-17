@@ -355,7 +355,7 @@ async function addSignaturePage(
   
   yPos -= 40;
   
-  page.drawText('Full Signature Hash (SHA-256):', {
+  page.drawText('Signature Hash (Truncated for Display):', {
     x: 50,
     y: yPos,
     size: 11,
@@ -363,41 +363,29 @@ async function addSignaturePage(
     color: darkGray,
   });
   
-  // Display full signature hash in multiple lines with proper formatting
+  // Truncate signature hash for display to prevent call stack overflow
   const fullHash = signature.signatureHash || signature.signature || 'No hash available';
-  let hashLines: string[];
+  const truncatedHash = fullHash.length > 20 ? fullHash.substring(0, 20) + '...' : fullHash;
   
-  // Safety check to prevent infinite loops with very long or malformed hashes
-  if (fullHash.length > 10000) {
-    console.warn('Signature hash too long, truncating for PDF display');
-    const truncatedHash = fullHash.substring(0, 1000) + '...[truncated]';
-    hashLines = breakTextIntoLines(truncatedHash, 75);
-    
-    for (let i = 0; i < Math.min(hashLines.length, 10); i++) {
-      page.drawText(hashLines[i], {
-        x: 50,
-        y: yPos - 20 - (i * 14),
-        size: 9,
-        font: courierFont,
-        color: darkGray,
-      });
-    }
-  } else {
-    hashLines = breakTextIntoLines(fullHash, 75);
-    
-    for (let i = 0; i < hashLines.length; i++) {
-      page.drawText(hashLines[i], {
-        x: 50,
-        y: yPos - 20 - (i * 14),
-        size: 9,
-        font: courierFont,
-        color: darkGray,
-      });
-    }
-  }
+  page.drawText(truncatedHash, {
+    x: 50,
+    y: yPos - 20,
+    size: 10,
+    font: courierFont,
+    color: darkGray,
+  });
+  
+  // Add note about full hash availability
+  page.drawText('(Full hash stored on blockchain for verification)', {
+    x: 50,
+    y: yPos - 40,
+    size: 8,
+    font: helveticaFont,
+    color: rgb(0.5, 0.5, 0.5),
+  });
   
   // Verification QR code area placeholder
-  yPos -= (hashLines.length * 14) + 40;
+  yPos -= 80;
   
   page.drawRectangle({
     x: width - 150,

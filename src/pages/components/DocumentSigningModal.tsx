@@ -146,11 +146,16 @@ export default function DocumentSigningModal({
                   </Label>
                   <Input
                     id="signer-name"
+                    name="signer-display-name"
                     value={signerName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setSignerName(e.target.value)}
                     placeholder="Type your full name here"
                     className="w-full"
                     disabled={isSigning}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                 </div>
                 

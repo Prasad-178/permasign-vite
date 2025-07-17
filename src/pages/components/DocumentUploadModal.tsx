@@ -117,6 +117,14 @@ export default function DocumentUploadModal({
     }
   }, [selectedFile]);
 
+  // Set category input when preselectedCategory changes (from upload button clicks)
+  useEffect(() => {
+    if (preselectedCategory && isOpen) {
+      onSetCategoryInput(preselectedCategory.replace(/_/g, ' '));
+      console.log("Category preselected:", preselectedCategory);
+    }
+  }, [preselectedCategory, isOpen, onSetCategoryInput]);
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' bytes';
     else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
