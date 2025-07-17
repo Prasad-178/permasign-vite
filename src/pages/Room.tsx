@@ -52,6 +52,14 @@ export default function RoomDetailsPage() {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isChatSidebarOpen, setIsChatSidebarOpen] = useState(false);
 
+  // Prevent page-level scrolling
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const uploadFormRef = useRef<HTMLFormElement>(null);
   const addMemberFormRef = useRef<HTMLFormElement>(null);
 
@@ -75,6 +83,8 @@ export default function RoomDetailsPage() {
   const [selectedDocument, setSelectedDocument] = useState<RoomDocument | null>(null);
   const [viewerDocuments, setViewerDocuments] = useState<any[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const [categoryInput, setCategoryInput] = useState("");
+  const [isCategorySuggestionsOpen, setIsCategorySuggestionsOpen] = useState(false);
 
   const objectUrlsRef = useRef<string[]>([]);
   if (objectUrlsRef) {
@@ -460,11 +470,16 @@ export default function RoomDetailsPage() {
           setIsSignerSuggestionsOpen(false);
         }
       }
+      if (!target.closest('.category-input-container')) {
+        if (isCategorySuggestionsOpen) {
+          setIsCategorySuggestionsOpen(false);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isSignerSuggestionsOpen]);
+  }, [isSignerSuggestionsOpen, isCategorySuggestionsOpen]);
 
 
 
@@ -529,7 +544,7 @@ export default function RoomDetailsPage() {
 
   return (
     <RequireLogin>
-      <div className="flex flex-col h-screen -mt-12 relative">
+      <div className="flex flex-col h-screen -mt-12 relative overflow-hidden">
         <RoomHeader 
           roomDetails={roomDetails}
           currentUserEmail={currentUserEmail}
@@ -541,7 +556,7 @@ export default function RoomDetailsPage() {
         <div className="flex-1 overflow-hidden">
           <Tabs defaultValue="documents" className="h-full flex flex-col">
             <div className="flex justify-center">
-              <TabsList className="mt-2">
+              <TabsList className="mt-1">
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="timeline">Timeline</TabsTrigger>
                 <TabsTrigger value="members">Members ({roomDetails.members.length})</TabsTrigger>
@@ -549,7 +564,7 @@ export default function RoomDetailsPage() {
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-hidden px-4 pb-4">
+            <div className="flex-1 overflow-hidden px-4 pb-2">
               <TabsContent value="timeline" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
                 <Tabs defaultValue="activity" className="h-full flex flex-col">
                   <div className="flex justify-center">
@@ -614,6 +629,8 @@ export default function RoomDetailsPage() {
                   signers={signers}
                   signerInput={signerInput}
                   isSignerSuggestionsOpen={isSignerSuggestionsOpen}
+                  categoryInput={categoryInput}
+                  isCategorySuggestionsOpen={isCategorySuggestionsOpen}
                   preselectedCategory={preselectedCategory}
                   uploadFormRef={uploadFormRef as React.RefObject<HTMLFormElement>}
                   uploadState={uploadState}
@@ -640,6 +657,8 @@ export default function RoomDetailsPage() {
                   onSetSigners={setSigners}
                   onSetSignerInput={setSignerInput}
                   onSetIsSignerSuggestionsOpen={setIsSignerSuggestionsOpen}
+                  onSetCategoryInput={setCategoryInput}
+                  onSetIsCategorySuggestionsOpen={setIsCategorySuggestionsOpen}
                   onSetPreselectedCategory={setPreselectedCategory}
                   onSetIsAddSignerModalOpen={setIsAddSignerModalOpen}
                   onSetNewSignerEmail={setNewSignerEmail}
@@ -656,6 +675,7 @@ export default function RoomDetailsPage() {
                   roomDetails={roomDetails}
                   currentUserEmail={currentUserEmail}
                   fetchRoomDetails={fetchRoomDetails}
+                  stateUpdater={stateUpdater}
                 />
               </TabsContent>
 
@@ -665,6 +685,7 @@ export default function RoomDetailsPage() {
                           roomDetails={roomDetails}
                           currentUserEmail={currentUserEmail}
                           fetchRoomDetails={fetchRoomDetails}
+                          stateUpdater={stateUpdater}
                       />
                   </div>
               </TabsContent>

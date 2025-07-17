@@ -4,7 +4,7 @@ import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles } from
 export type RoomStateUpdater = {
   updateDocument: (updatedDocument: DocumentInfo) => void;
   addDocument: (newDocument: DocumentInfo) => void;
-  updateDocumentSignature: (documentId: string, signerEmail: string, signature: string) => void;
+  updateDocumentSignature: (documentId: string, signerEmail: string, signature: string, signedAt?: number) => void;
   addMember: (newMember: Member) => void;
   removeMember: (memberEmail: string) => void;
   updateMemberRole: (memberEmail: string, newRole: string) => void;
@@ -38,7 +38,8 @@ export function createRoomStateUpdater(
   const updateDocumentSignature = (
     documentId: string, 
     signerEmail: string, 
-    signature: string
+    signature: string,
+    signedAt?: number
   ) => {
     setDocuments(prevDocs => 
       prevDocs.map(doc => {
@@ -46,7 +47,8 @@ export function createRoomStateUpdater(
           return {
             ...doc,
             signed: "true",
-            signature: signature
+            signature: signature,
+            signedAt: signedAt || Date.now()
           };
         }
         return doc;

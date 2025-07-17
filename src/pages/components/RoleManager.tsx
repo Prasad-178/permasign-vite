@@ -3,6 +3,7 @@
 
 import { useActionState, useRef, useState, useEffect } from "react";
 import { type RoomDetails, type ModifyRoleResult, type RoomRoles } from "../../types/types";
+import { type RoomStateUpdater } from "../../utils/roomStateUpdater";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -19,6 +20,7 @@ interface RoleManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
   fetchRoomDetails: () => void;
+  stateUpdater: RoomStateUpdater;
 }
 
 const getRoleIcon = (roleName: string) => {
@@ -27,7 +29,7 @@ const getRoleIcon = (roleName: string) => {
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
 
-export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDetails }: RoleManagerProps) {
+export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDetails, stateUpdater }: RoleManagerProps) {
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
   const addRoleFormRef = useRef<HTMLFormElement>(null);
 
@@ -40,6 +42,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
 
   const [addRoleState, addRoleFormAction] = useActionState<ModifyRoleResult | null, FormData>(addRoleFormAdapter, null);
 
@@ -49,12 +52,20 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
         toast.success("Role Action Successful", { description: addRoleState.message });
         setIsAddRoleModalOpen(false);
         addRoleFormRef.current?.reset();
-        fetchRoomDetails();
+        // Add the new role to local state
+        if (newRoleName.trim()) {
+          const newRole: RoomRoles = {
+            roleName: newRoleName.trim(),
+            documentTypes: []
+          };
+          stateUpdater.addRole(newRole);
+          setNewRoleName("");
+        }
       } else {
         toast.error("Failed to Add Role", { description: addRoleState.error || addRoleState.message });
       }
     }
-  }, [addRoleState, fetchRoomDetails]);
+  }, [addRoleState, newRoleName, stateUpdater]);
 
   const handleAddDocType = async () => {
     if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
@@ -70,7 +81,11 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
     if (result.success) {
       toast.success("Permission Added", { description: `Document type "${newDocType.trim()}" added to ${selectedRole.roleName}.` });
       setNewDocType("");
-      fetchRoomDetails(); // This will refresh the data in the modal as well
+      // Update local state instead of full refresh
+      const updatedDocTypes = [...selectedRole.documentTypes, newDocType.trim()];
+      stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
+      // Update the selected role for the modal
+      setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
     } else {
       toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -89,7 +104,11 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
     });
     if (result.success) {
       toast.success("Permission Removed", { description: `Document type "${docType}" removed from ${selectedRole.roleName}.` });
-      fetchRoomDetails();
+      // Update local state instead of full refresh
+      const updatedDocTypes = selectedRole.documentTypes.filter(dt => dt !== docType);
+      stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
+      // Update the selected role for the modal
+      setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
     } else {
       toast.error("Failed to Remove Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -113,7 +132,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
 
       if (result.success) {
         toast.success("Role Deleted", { description: result.message || `Role "${roleToDelete}" has been deleted.` });
-        fetchRoomDetails();
+        // Update local state instead of full refresh
+        stateUpdater.removeRole(roleToDelete);
       } else {
         toast.error("Failed to Delete Role", { description: result.error || result.message || "An unknown error occurred." });
       }
@@ -159,7 +179,13 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
             <h2 className="text-2xl font-bold tracking-tight">Role Management</h2>
             <p className="text-muted-foreground">Add new roles or configure permissions for existing ones.</p>
         </div>
-        <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
+        <Dialog open={isAddRoleModalOpen} onOpenChange={(open) => {
+          setIsAddRoleModalOpen(open);
+          if (!open) {
+            setNewRoleName("");
+            addRoleFormRef.current?.reset();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Add New Role
@@ -178,7 +204,17 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="newRoleName" className="text-right">Role Name</Label>
-                  <Input id="newRoleName" name="newRoleName" type="text" title="Role name" required className="col-span-3" placeholder="e.g. Legal Team" />
+                  <Input 
+                  id="newRoleName" 
+                  name="newRoleName" 
+                  type="text" 
+                  title="Role name" 
+                  required 
+                  className="col-span-3" 
+                  placeholder="e.g. Legal Team"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                />
                 </div>
               </div>
               {addRoleState && !addRoleState.success && (

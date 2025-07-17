@@ -124,6 +124,7 @@ export interface DocumentSignatures {
   signed: "false" | "true";
   roleToSign: RoomRole;
   signature: string;
+  signedAt: number | null;
 }
 
 // Structure for Add/Remove member results
@@ -171,6 +172,7 @@ export interface DocumentInfo {
     roleToSign?: RoomRole;
     emailToSign?: string;
     signature?: string;
+    signedAt?: number | null;
 }
 export interface RoomDocument extends DocumentInfo {}
 export type ListDocumentsResult = ActionResult<DocumentInfo[]>;
@@ -448,6 +450,7 @@ export interface DocumentSignature {
   emailToSign: string;
   signed: "true" | "false";
   signature?: string;
+  signedAt?: number | null;
 }
 
 export interface GetRoomDocumentsSignaturesAdminResult {

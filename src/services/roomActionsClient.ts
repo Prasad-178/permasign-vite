@@ -549,22 +549,110 @@ export async function uploadDocumentFormAdapter(
   const signersString = formData.get("signers") as string;
   const signers = signersString ? signersString.split(',').map(s => s.trim()).filter(s => s) : [];
 
+  // Handle drag & drop scenario where file data is in hidden fields
+  const fileName = formData.get("fileName") as string;
+  const fileSize = formData.get("fileSize") as string;
+  const fileType = formData.get("fileType") as string;
+  const fileDataB64 = formData.get("fileDataB64") as string;
+  const hasBase64Data = formData.get("hasBase64Data") === "true";
 
   // === [MODIFIED] Client-side Validation ===
-  // The check for a valid category against a hardcoded list has been removed.
-  // The backend now handles the validation against the dynamic role permissions.
-  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role || !signers || signers.length === 0) {
-      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role, signers: !!signers && signers.length > 0 });
-      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, room public key, or signers)." , data: null};
+  // Check if we have either a file object OR the hidden field data (for drag & drop)
+  const hasFileFromInput = documentFile && documentFile.size > 0;
+  const hasFileFromHiddenFields = fileName && fileSize;
+  
+  console.log("Upload validation debug:", {
+    documentFile: !!documentFile,
+    documentFileSize: documentFile?.size,
+    hasFileFromInput,
+    fileName,
+    fileSize,
+    hasFileFromHiddenFields
+  });
+  
+  // Detailed validation with specific error messages
+  if (!roomId) {
+    return { success: false, message: "Client validation: Room ID is missing." , data: null};
   }
-  if (documentFile.size > 100 * 1024 * 1024) { // Example: 100MB limit
+  if (!uploaderEmail) {
+    return { success: false, message: "Client validation: Uploader email is missing." , data: null};
+  }
+     if (!hasFileFromInput && !hasFileFromHiddenFields) {
+     console.error("No file found in either input or hidden fields");
+     return { success: false, message: "Client validation: No file selected for upload." , data: null};
+   }
+  if (!category || category.trim() === "") {
+    return { success: false, message: "Client validation: Please enter a document category." , data: null};
+  }
+  if (!roomPubKey) {
+    return { success: false, message: "Client validation: Room public key is missing." , data: null};
+  }
+  if (!role) {
+    return { success: false, message: "Client validation: User role is missing." , data: null};
+  }
+  if (!signers || signers.length === 0) {
+    return { success: false, message: "Client validation: Please add at least one signer to the document." , data: null};
+  }
+
+  console.log("Client Adapter Validation passed:", { 
+    roomId: !!roomId, 
+    uploaderEmail: !!uploaderEmail, 
+    hasFileFromInput: !!hasFileFromInput,
+    hasFileFromHiddenFields: !!hasFileFromHiddenFields,
+    category: !!category, 
+    categoryValue: category,
+    roomPubKey: !!roomPubKey, 
+    role: !!role, 
+    roleValue: role,
+    signers: !!signers && signers.length > 0,
+    signersValue: signers
+  });
+
+  // File size validation for both scenarios
+  const fileSizeNumber = hasFileFromInput ? documentFile!.size : parseInt(fileSize || "0");
+  if (fileSizeNumber > 100 * 1024 * 1024) { // Example: 100MB limit
       return { success: false, message: "Client validation: File is too large (max 100MB).", data: null };
   }
 
   try {
-    console.log("Client Adapter: Converting file to base64...");
-    const fileDataB64 = await fileToBase64(documentFile);
-    console.log(`Client Adapter: File converted. Base64 string length (approx): ${fileDataB64.length}`);
+    let fileDataB64Final: string;
+    let fileNameFinal: string;
+    let fileTypeFinal: string;
+    let fileSizeFinal: number;
+
+    if (hasFileFromInput) {
+      // Use file from input field (works for both normal upload and drag & drop)
+      console.log("Client Adapter: Converting file from input to base64...");
+      fileDataB64Final = await fileToBase64(documentFile!);
+      fileNameFinal = documentFile!.name;
+      fileTypeFinal = documentFile!.type || "application/octet-stream";
+      fileSizeFinal = documentFile!.size;
+      console.log(`Client Adapter: File converted. Base64 string length (approx): ${fileDataB64Final.length}`);
+    } else if (hasFileFromHiddenFields) {
+      // Fallback to hidden fields if available
+      console.log("Client Adapter: Using file data from hidden fields...");
+      
+      if (hasBase64Data && fileDataB64) {
+        fileDataB64Final = fileDataB64;
+        console.log(`Client Adapter: Using existing base64 data. Length (approx): ${fileDataB64Final.length}`);
+      } else {
+        // Try to get the file from the file input and convert it
+        console.log("Client Adapter: Base64 data not available, looking for file input...");
+        const fileInput = document.querySelector('input[name="documentFile"]') as HTMLInputElement;
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          console.log("Client Adapter: Converting file to base64...");
+          fileDataB64Final = await fileToBase64(fileInput.files[0]);
+        } else {
+          throw new Error("File data not available for processing");
+        }
+      }
+      
+      fileNameFinal = fileName;
+      fileTypeFinal = fileType || "application/octet-stream";
+      fileSizeFinal = parseInt(fileSize);
+    } else {
+      throw new Error("No valid file source found");
+    }
 
     const input: UploadDocumentApiInput = {
       roomId,
@@ -572,10 +660,10 @@ export async function uploadDocumentFormAdapter(
       category,
       role,
       roomPubKey,
-      fileName: documentFile.name,
-      fileType: documentFile.type || "application/octet-stream",
-      fileDataB64,
-      fileSize: documentFile.size,
+      fileName: fileNameFinal,
+      fileType: fileTypeFinal,
+      fileDataB64: fileDataB64Final,
+      fileSize: fileSizeFinal,
       signers,
     };
 

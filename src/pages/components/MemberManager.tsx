@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useActionState } from "react";
 import { type RoomDetails, type ModifyMemberResult, type UpdateMemberRoleResult } from "../../types/types";
+import { type RoomStateUpdater } from "../../utils/roomStateUpdater";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -20,6 +21,7 @@ interface MemberManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
   fetchRoomDetails: () => void;
+  stateUpdater: RoomStateUpdater;
 }
 
 const getRoleIcon = (roleName: string, className: string) => {
@@ -32,10 +34,12 @@ const getRoleIcon = (roleName: string, className: string) => {
     return <Shield className={className} />;
 };
 
-export default function MemberManager({ roomDetails, currentUserEmail, fetchRoomDetails }: MemberManagerProps) {
+export default function MemberManager({ roomDetails, currentUserEmail, fetchRoomDetails, stateUpdater }: MemberManagerProps) {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [memberToUpdate, setMemberToUpdate] = useState<{ email: string; role: string } | null>(null);
   const [newRole, setNewRole] = useState("");
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("");
   const addMemberFormRef = useRef<HTMLFormElement>(null);
   const updateRoleFormRef = useRef<HTMLFormElement>(null);
 
@@ -66,8 +70,18 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
           if (actionType === "Add Member") {
             setIsAddMemberModalOpen(false);
             if (addMemberFormRef.current) addMemberFormRef.current.reset();
+            // Add member to local state
+            if (newMemberEmail && newMemberRole) {
+              stateUpdater.addMember({
+                userEmail: newMemberEmail,
+                role: newMemberRole
+              });
+              setNewMemberEmail("");
+              setNewMemberRole("");
+            }
           }
-          fetchRoomDetails();
+          // Use local state update instead of full refresh
+          // fetchRoomDetails();
         } else {
           toast.error(`Failed to ${actionType.toLowerCase()}`, {
             description: state.error || state.message || "An unknown error occurred.",
@@ -77,14 +91,15 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       }
     };
     handleMemberActionResult(addMemberState, "Add Member");
-  }, [addMemberState, fetchRoomDetails]);
+  }, [addMemberState, newMemberEmail, newMemberRole, stateUpdater]);
 
   useEffect(() => {
     const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
       if (state) {
         if (state.success) {
           toast.success(`${actionType} Successful`, { description: state.message });
-          fetchRoomDetails();
+          // Use local state update instead of full refresh
+          // fetchRoomDetails();
         } else {
           toast.error(`Failed to ${actionType.toLowerCase()}`, {
             description: state.error || state.message || "An unknown error occurred.",
@@ -94,15 +109,20 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       }
     };
     handleMemberActionResult(removeMemberState, "Remove Member");
-  }, [removeMemberState, fetchRoomDetails]);
+  }, [removeMemberState]);
 
   useEffect(() => {
     if (updateRoleState) {
       if (updateRoleState.success) {
         toast.success("Role Updated", { description: updateRoleState.message });
+        // Update member role in local state
+        if (memberToUpdate) {
+          stateUpdater.updateMemberRole(memberToUpdate.email, newRole);
+        }
         setMemberToUpdate(null);
         if (updateRoleFormRef.current) updateRoleFormRef.current.reset();
-        fetchRoomDetails();
+        // Use local state update instead of full refresh
+        // fetchRoomDetails();
       } else {
         toast.error("Failed to update role", {
           description: updateRoleState.error || updateRoleState.message || "An unknown error occurred.",
@@ -110,7 +130,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
         });
       }
     }
-  }, [updateRoleState, fetchRoomDetails]);
+  }, [updateRoleState, memberToUpdate, newRole, stateUpdater]);
 
   const currentUserRole = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role;
   const isFounder = currentUserRole === 'founder';
@@ -133,7 +153,14 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
           <p className="text-sm text-muted-foreground">Manage who has access to this room.</p>
         </div>
         {canManageMembers && (
-          <Dialog open={isAddMemberModalOpen} onOpenChange={setIsAddMemberModalOpen}>
+          <Dialog open={isAddMemberModalOpen} onOpenChange={(open) => {
+            setIsAddMemberModalOpen(open);
+            if (!open) {
+              setNewMemberEmail("");
+              setNewMemberRole("");
+              addMemberFormRef.current?.reset();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <UserPlus className="mr-2 h-4 w-4" /> Add Member
@@ -153,11 +180,24 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="newUserEmail" className="text-right">Email</Label>
-                    <Input id="newUserEmail" name="newUserEmail" type="email" required className="col-span-3" />
+                    <Input 
+                      id="newUserEmail" 
+                      name="newUserEmail" 
+                      type="email" 
+                      required 
+                      className="col-span-3"
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="newUserRole" className="text-right">Role</Label>
-                    <Select name="newUserRole" required>
+                    <Select 
+                      name="newUserRole" 
+                      required
+                      value={newMemberRole}
+                      onValueChange={setNewMemberRole}
+                    >
                       <SelectTrigger className="col-span-3 capitalize">
                         <SelectValue placeholder="Select a role to add" />
                       </SelectTrigger>

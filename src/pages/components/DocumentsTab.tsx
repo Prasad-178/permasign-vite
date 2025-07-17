@@ -1,5 +1,5 @@
 import { Button } from "../../components/ui/button";
-import { FileText, AlertTriangle, RefreshCw } from "lucide-react";
+import { FileText, AlertTriangle, RefreshCw, Upload } from "lucide-react";
 import { CustomLoader } from "../../components/ui/CustomLoader";
 import type { DocumentInfo, RoomDetails, UploadDocumentResult } from "../../types/types";
 import AllDocumentsPane from "./AllDocumentsPane";
@@ -7,6 +7,7 @@ import DocumentPreviewPane from "./DocumentPreviewPane";
 import DocumentDetailsPane from "./DocumentDetailsPane";
 import DocumentsPendingSignature from "./DocumentsPendingSignature";
 import DocumentUploadModal from "./DocumentUploadModal";
+import { useCallback, useState, useRef, useEffect } from "react";
 
 
 interface DocumentsTabProps {
@@ -33,6 +34,8 @@ interface DocumentsTabProps {
   signers: string[];
   signerInput: string;
   isSignerSuggestionsOpen: boolean;
+  categoryInput: string;
+  isCategorySuggestionsOpen: boolean;
   preselectedCategory: string | null;
   uploadFormRef: React.RefObject<HTMLFormElement>;
   uploadState: UploadDocumentResult | null;
@@ -67,6 +70,8 @@ interface DocumentsTabProps {
   onSetSigners: (signers: string[]) => void;
   onSetSignerInput: (input: string) => void;
   onSetIsSignerSuggestionsOpen: (open: boolean) => void;
+  onSetCategoryInput: (input: string) => void;
+  onSetIsCategorySuggestionsOpen: (open: boolean) => void;
   onSetPreselectedCategory: (category: string | null) => void;
   onSetIsAddSignerModalOpen: (open: boolean) => void;
   onSetNewSignerEmail: (email: string) => void;
@@ -98,6 +103,8 @@ export default function DocumentsTab({
   signers,
   signerInput,
   isSignerSuggestionsOpen,
+  categoryInput,
+  isCategorySuggestionsOpen,
   preselectedCategory,
   uploadFormRef,
   uploadState,
@@ -119,12 +126,17 @@ export default function DocumentsTab({
   onSetSigners,
   onSetSignerInput,
   onSetIsSignerSuggestionsOpen,
+  onSetCategoryInput,
+  onSetIsCategorySuggestionsOpen,
   onSetPreselectedCategory,
   uploadFormAction,
   onFileChange,
   onAddSigner,
   onRemoveSigner
 }: DocumentsTabProps) {
+  
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Derived state
   const roomPublicKey = roomDetails?.roomPubKey;
@@ -140,9 +152,99 @@ export default function DocumentsTab({
       onSetFileError(null);
       onSetSigners([]);
       onSetSignerInput("");
+      onSetCategoryInput("");
+      onSetIsCategorySuggestionsOpen(false);
       if (uploadFormRef.current) uploadFormRef.current.reset();
     }
   };
+
+  const handleUploadFirstDocument = () => {
+    onSetPreselectedCategory(null);
+    onSetCategoryInput("");
+    onSetIsUploadModalOpen(true);
+  };
+
+  // Optimized drag and drop handlers with debouncing and better performance
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Clear any existing timeout
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+    
+    // Only set drag over if not already set (prevent unnecessary re-renders)
+    if (!isDragOver) {
+      setIsDragOver(true);
+    }
+  }, [isDragOver]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only handle drag leave for the main container to prevent flickering
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Check if the mouse is actually outside the container
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      // Use a small timeout to prevent flickering when dragging over child elements
+      dragTimeoutRef.current = setTimeout(() => {
+        setIsDragOver(false);
+      }, 50);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Clear any pending timeout
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+    
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const file = files[0];
+      
+      // Basic file validation before processing
+      if (file.size > 100 * 1024 * 1024) { // 100MB limit
+        onSetFileError("File is too large (max 100MB).");
+        return;
+      }
+      
+      // Set the file and clear any previous states
+      onSetSelectedFile(file);
+      onSetFileError(null);
+      onSetPreselectedCategory(null);
+      
+      // Ensure category input is cleared for user to enter
+      onSetCategoryInput("");
+      
+      // Initialize signers if not already set
+      if (signers.length === 0 && roomDetails?.ownerEmail) {
+        onSetSigners([roomDetails.ownerEmail]);
+      }
+      
+      // Open the modal
+      onSetIsUploadModalOpen(true);
+    }
+  }, [onSetSelectedFile, onSetFileError, onSetPreselectedCategory, onSetIsUploadModalOpen, onSetCategoryInput, signers.length, roomDetails?.ownerEmail, onSetSigners]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoadingDetails) {
     return (
@@ -159,7 +261,7 @@ export default function DocumentsTab({
         <p className="mb-2">Could not load room data:</p>
         <p className="text-sm mb-4">{detailsError}</p>
         <Button onClick={onFetchRoomDetails} variant="destructive" size="sm">
-          <RefreshCw className="mr-2 h-4 w-4" /> Retry
+          <RefreshCw className="mr-2 h-4 w-4" /> Try Again
         </Button>
       </div>
     );
@@ -167,18 +269,46 @@ export default function DocumentsTab({
 
   if (documents.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center h-full p-10 border rounded-md bg-card text-center">
-        <FileText className="h-20 w-20 text-muted-foreground/20 mb-6" />
-        <p className="text-xl font-medium text-muted-foreground mb-4">No documents found.</p>
-        <p className="text-base text-muted-foreground mb-2 max-w-lg">
-          Upload your first document to get started.
-        </p>
-        <p className="text-sm text-muted-foreground mb-8 max-w-lg">
-          All files are securely stored and encrypted.
-        </p>
-        <Button size="lg" onClick={() => onSetPreselectedCategory(null)} disabled={!roomPublicKey}>
-          <FileText className="mr-2 h-5 w-5" /> Upload First Document
-        </Button>
+      <div className="h-[calc(100vh-220px)] flex flex-col overflow-hidden">
+        <div 
+          className={`flex-1 flex flex-col items-center justify-center border-2 rounded-md bg-card text-center transition-all duration-200 mb-4 ${
+            isDragOver 
+              ? 'border-primary border-dashed bg-primary/5' 
+              : 'border-dashed border-muted-foreground/20'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="max-w-lg px-8">
+            {isDragOver ? (
+              <>
+                <Upload className="h-20 w-20 text-primary mb-6 mx-auto" />
+                <p className="text-xl font-medium text-primary mb-4">Drop your document here</p>
+                <p className="text-base text-muted-foreground mb-4">
+                  Release to upload your first document
+                </p>
+              </>
+            ) : (
+              <>
+                <FileText className="h-20 w-20 text-muted-foreground/20 mb-6 mx-auto" />
+                <p className="text-xl font-medium text-muted-foreground mb-4">No documents found.</p>
+                <p className="text-base text-muted-foreground mb-2">
+                  Upload your first document to get started.
+                </p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  All files are securely stored and encrypted.
+                </p>
+                <p className="text-xs text-muted-foreground/70 mb-8">
+                  💡 You can also drag and drop files directly onto this area
+                </p>
+                <Button size="lg" onClick={handleUploadFirstDocument} disabled={!roomPublicKey}>
+                  <FileText className="mr-2 h-5 w-5" /> Upload First Document
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
         
         <DocumentUploadModal
           isOpen={isUploadModalOpen}
@@ -195,6 +325,8 @@ export default function DocumentsTab({
           signers={signers}
           signerInput={signerInput}
           isSignerSuggestionsOpen={isSignerSuggestionsOpen}
+          categoryInput={categoryInput}
+          isCategorySuggestionsOpen={isCategorySuggestionsOpen}
           uploadFormRef={uploadFormRef}
           uploadFormAction={uploadFormAction}
           uploadState={uploadState}
@@ -203,14 +335,16 @@ export default function DocumentsTab({
           onRemoveSigner={onRemoveSigner}
           onSetSignerInput={onSetSignerInput}
           onSetIsSignerSuggestionsOpen={onSetIsSignerSuggestionsOpen}
+          onSetCategoryInput={onSetCategoryInput}
+          onSetIsCategorySuggestionsOpen={onSetIsCategorySuggestionsOpen}
         />
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-180px)] space-x-4">
-      <div className="w-1/2 overflow-auto border rounded-md bg-card">
+    <div className="flex h-[calc(100vh-220px)] space-x-4">
+      <div className="w-1/2 border rounded-md bg-card">
         <div className="flex h-full">
           <AllDocumentsPane
             roomDetails={roomDetails}
@@ -223,7 +357,7 @@ export default function DocumentsTab({
             onOpenUploadModal={onOpenUploadModal}
           />
 
-          <div className="w-1/2 overflow-auto border rounded-md bg-card p-3 flex flex-col">
+          <div className="w-1/2 border rounded-md bg-card p-3 flex flex-col">
             <DocumentPreviewPane
               selectedDocument={selectedDocument}
               viewerDocuments={viewerDocuments}
@@ -296,6 +430,8 @@ export default function DocumentsTab({
         signers={signers}
         signerInput={signerInput}
         isSignerSuggestionsOpen={isSignerSuggestionsOpen}
+        categoryInput={categoryInput}
+        isCategorySuggestionsOpen={isCategorySuggestionsOpen}
         uploadFormRef={uploadFormRef}
         uploadFormAction={uploadFormAction}
         uploadState={uploadState}
@@ -304,6 +440,8 @@ export default function DocumentsTab({
         onRemoveSigner={onRemoveSigner}
         onSetSignerInput={onSetSignerInput}
         onSetIsSignerSuggestionsOpen={onSetIsSignerSuggestionsOpen}
+        onSetCategoryInput={onSetCategoryInput}
+        onSetIsCategorySuggestionsOpen={onSetIsCategorySuggestionsOpen}
       />
 
 

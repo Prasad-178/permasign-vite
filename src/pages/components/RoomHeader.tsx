@@ -2,6 +2,7 @@ import { CalendarDays, UserCircle } from "lucide-react";
 import { format } from 'date-fns';
 import { type RoomDetails } from "../../types/types";
 import DocumentTemplatesSidebar from "./DocumentTemplatesSidebar";
+import UserPlanBadge from "./UserPlanBadge";
 
 interface RoomHeaderProps {
   roomDetails: RoomDetails;
@@ -19,8 +20,8 @@ export default function RoomHeader({
   onTemplatesSidebarChange
 }: RoomHeaderProps) {
   return (
-    <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 sticky top-0 z-10">
-      <div className="flex justify-between items-start">
+    <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 sticky top-0 z-10">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-1">{roomDetails.roomName}</h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -35,6 +36,11 @@ export default function RoomHeader({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <UserPlanBadge 
+            userPlan="Pro"
+            currentUserEmail={currentUserEmail}
+            currentUserRole={currentUserRole}
+          />
           <DocumentTemplatesSidebar 
             isOpen={isTemplatesSidebarOpen}
             onOpenChange={onTemplatesSidebarChange}

@@ -176,10 +176,16 @@ export function useSignerManagement({
 
   // Initialize signers with room owner when upload modal opens
   const initializeSigners = useCallback(() => {
-    if (roomDetails?.ownerEmail && signers.length === 0) {
-      setSigners([roomDetails.ownerEmail]);
+    if (roomDetails?.ownerEmail) {
+      // Always ensure room owner is included, but don't duplicate
+      if (!signers.includes(roomDetails.ownerEmail)) {
+        setSigners(prev => {
+          const newSigners = prev.filter(email => email !== roomDetails.ownerEmail);
+          return [roomDetails.ownerEmail, ...newSigners];
+        });
+      }
     }
-  }, [roomDetails?.ownerEmail, signers.length]);
+  }, [roomDetails?.ownerEmail, signers]);
 
   return {
     // Upload modal signer state

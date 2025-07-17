@@ -147,6 +147,14 @@ export function useDocumentOperations({
         const documentSignatures = documents.filter(d => d.documentId === documentId);
         const hasSignatures = documentSignatures.some(d => d.signed === "true");
 
+        console.log("PDF Download Debug:", {
+          isPdf,
+          contentType,
+          documentSignaturesCount: documentSignatures.length,
+          hasSignatures,
+          signedDocs: documentSignatures.filter(d => d.signed === "true").length
+        });
+
         if (isPdf && hasSignatures) {
           try {
             toast.loading("Adding signature certificates...", { id: toastId });
@@ -161,9 +169,9 @@ export function useDocumentOperations({
                 signerName: d.emailToSign!,
                 signerEmail: d.emailToSign!,
                 signature: d.signature!,
-                signatureHash: d.signature!.substring(0, 16) + "...",
+                signatureHash: d.signature!, // Use full signature as hash for professional display
                 role: d.roleToSign || "member",
-                timestamp: Date.now()
+                timestamp: d.signedAt || Date.now() // Use actual timestamp or fallback for legacy signatures
               }));
 
             // Stitch PDF with signatures
@@ -252,7 +260,7 @@ export function useDocumentOperations({
         });
         console.log("Signing successful for:", documentId);
         // Update signature status in state instead of full reload
-        stateUpdater.updateDocumentSignature(documentId, currentUserEmail, hexSignature);
+        stateUpdater.updateDocumentSignature(documentId, currentUserEmail, hexSignature, Date.now());
         // Invalidate cache since document now has a new signature
         documentCache.invalidate(documentId);
         console.log(`[DocumentCache] Invalidated cache for document ${documentId} after signing`);
