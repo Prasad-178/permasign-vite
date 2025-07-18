@@ -19,7 +19,7 @@ import { Badge as UiBadge } from "../../components/ui/badge";
 interface RoleManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
-  fetchRoomDetails: () => void;
+  // fetchRoomDetails: () => void;
   stateUpdater: RoomStateUpdater;
 }
 
@@ -29,7 +29,7 @@ const getRoleIcon = (roleName: string) => {
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
 
-export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDetails, stateUpdater }: RoleManagerProps) {
+export default function RoleManager({ roomDetails, currentUserEmail, stateUpdater }: RoleManagerProps) {
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
   const addRoleFormRef = useRef<HTMLFormElement>(null);
 
@@ -56,10 +56,13 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
         if (newRoleName.trim()) {
           const newRole: RoomRoles = {
             roleName: newRoleName.trim(),
-            documentTypes: []
+            documentTypes: [],
+            isDeletable: true
           };
           stateUpdater.addRole(newRole);
           setNewRoleName("");
+          // Refresh logs to show the activity
+          stateUpdater.refreshLogs();
         }
       } else {
         toast.error("Failed to Add Role", { description: addRoleState.error || addRoleState.message });
@@ -86,6 +89,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
       stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
       // Update the selected role for the modal
       setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
+      // Refresh logs to show the activity
+      stateUpdater.refreshLogs();
     } else {
       toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -109,6 +114,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
       stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
       // Update the selected role for the modal
       setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
+      // Refresh logs to show the activity
+      stateUpdater.refreshLogs();
     } else {
       toast.error("Failed to Remove Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -134,6 +141,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
         toast.success("Role Deleted", { description: result.message || `Role "${roleToDelete}" has been deleted.` });
         // Update local state instead of full refresh
         stateUpdater.removeRole(roleToDelete);
+        // Refresh logs to show the activity
+        stateUpdater.refreshLogs();
       } else {
         toast.error("Failed to Delete Role", { description: result.error || result.message || "An unknown error occurred." });
       }
@@ -245,7 +254,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <p className="text-xs text-muted-foreground">
-                {role.isDeletable ? "Custom role." : "System role."}
+                {role.isDeletable ? "Custom Role" : "System Role"}
               </p>
             </CardContent>
           </Card>

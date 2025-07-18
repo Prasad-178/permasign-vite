@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
-import { FileText, Expand, Loader2, CheckCircle, Clock, Shield } from "lucide-react";
+import { FileText, Expand, Loader2, CheckCircle, Clock } from "lucide-react";
 import { type DocumentInfo } from "../../types/types";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -70,7 +70,7 @@ export default function DocumentPreviewPane({
   
   // Check if document has signature information
   const hasSignatureInfo = selectedDocument?.emailToSign && selectedDocument?.signature;
-  const isSignaturePending = selectedDocument?.emailToSign && selectedDocument?.signed === "false";
+  // const isSignaturePending = selectedDocument?.emailToSign && selectedDocument?.signed === "false";
   const isSignatureComplete = selectedDocument?.emailToSign && selectedDocument?.signed === "true";
 
   return (

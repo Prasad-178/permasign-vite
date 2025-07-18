@@ -169,7 +169,7 @@ export default function RoomDetailsPage() {
   // Removed automatic initial document loading as per user request
 
   // Initialize state updater for selective updates
-  const stateUpdater = useRoomStateUpdater(roomDetails, setRoomDetails, documents, setDocuments);
+  const stateUpdater = useRoomStateUpdater(roomDetails, setRoomDetails, documents, setDocuments, currentUserEmail);
 
   const currentUserRole = roomDetails?.members.find(m => m.userEmail === currentUserEmail)?.role;
 
@@ -277,6 +277,8 @@ export default function RoomDetailsPage() {
         setSelectedFile(null);
         setFileError(null);
         if (uploadFormRef.current) uploadFormRef.current.reset();
+        // Refresh logs to show the upload activity
+        stateUpdater.refreshLogs();
         fetchRoomDetails();
       } else {
         toast.error("Upload Failed", {
@@ -674,7 +676,7 @@ export default function RoomDetailsPage() {
                 <MemberManager
                   roomDetails={roomDetails}
                   currentUserEmail={currentUserEmail}
-                  fetchRoomDetails={fetchRoomDetails}
+                  // fetchRoomDetails={fetchRoomDetails}
                   stateUpdater={stateUpdater}
                 />
               </TabsContent>
@@ -684,7 +686,7 @@ export default function RoomDetailsPage() {
                       <RoleManager
                           roomDetails={roomDetails}
                           currentUserEmail={currentUserEmail}
-                          fetchRoomDetails={fetchRoomDetails}
+                          // fetchRoomDetails={fetchRoomDetails}
                           stateUpdater={stateUpdater}
                       />
                   </div>

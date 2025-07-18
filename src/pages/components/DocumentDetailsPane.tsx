@@ -46,7 +46,7 @@ export default function DocumentDetailsPane({
   // Get signature records for this document
   const signatureRecords = documents.filter(doc => doc.documentId === selectedDocument.documentId);
   const completedSignatures = signatureRecords.filter(doc => doc.signed === "true");
-  const pendingSignatures = signatureRecords.filter(doc => doc.signed === "false");
+  // const pendingSignatures = signatureRecords.filter(doc => doc.signed === "false");
 
   return (
     <div className="h-[65%]">

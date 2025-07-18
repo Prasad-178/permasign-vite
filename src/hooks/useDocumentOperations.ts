@@ -269,6 +269,8 @@ export function useDocumentOperations({
         console.log("Signing successful for:", documentId);
         // Update signature status in state instead of full reload
         stateUpdater.updateDocumentSignature(documentId, currentUserEmail, hexSignature, Date.now());
+        // Refresh logs to show the signing activity
+        stateUpdater.refreshLogs();
         // Invalidate cache since document now has a new signature
         documentCache.invalidate(documentId);
         console.log(`[DocumentCache] Invalidated cache for document ${documentId} after signing`);

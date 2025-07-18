@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput, backendURL as API_ROOT } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput, backendURL as API_ROOT, type RoomDetails, type RoomLog } from '../types/types';
 
 const API_BASE_PATH = "/api/actions";
 
@@ -1035,6 +1035,50 @@ export async function createRoomFromTemplateAction(
     return {
       success: false,
       message: "Failed to create room from template due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Client-side function to fetch room activity logs separately
+ */
+export async function getRoomActivityLogsClientAction(
+  roomId: string,
+  callerEmail: string,
+  page: number = 1
+): Promise<{ success: boolean; data?: { logs: RoomLog[]; total: number; page: number; limit: number }; message?: string; error?: string }> {
+  console.log(`Client Service: Fetching activity logs for room ${roomId} page ${page} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/get-room-activity-logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ roomId, callerEmail, page }),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during get room activity logs:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to fetch room activity logs.",
+      };
+    }
+
+    console.log("Client Service: Get room activity logs API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in getRoomActivityLogsClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to fetch room activity logs due to a network or client-side error.",
       error: error.message || "An unexpected error occurred while trying to contact the server.",
     };
   }

@@ -20,7 +20,7 @@ import RemoveMemberSubmitButton from "./RemoveMemberSubmitButton";
 interface MemberManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
-  fetchRoomDetails: () => void;
+  // fetchRoomDetails: () => void;
   stateUpdater: RoomStateUpdater;
 }
 
@@ -34,7 +34,7 @@ const getRoleIcon = (roleName: string, className: string) => {
     return <Shield className={className} />;
 };
 
-export default function MemberManager({ roomDetails, currentUserEmail, fetchRoomDetails, stateUpdater }: MemberManagerProps) {
+export default function MemberManager({ roomDetails, currentUserEmail, stateUpdater }: MemberManagerProps) {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [memberToUpdate, setMemberToUpdate] = useState<{ email: string; role: string } | null>(null);
   const [newRole, setNewRole] = useState("");
@@ -78,6 +78,8 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
               });
               setNewMemberEmail("");
               setNewMemberRole("");
+              // Refresh logs to show the activity
+              stateUpdater.refreshLogs();
             }
           }
           // Use local state update instead of full refresh
@@ -98,6 +100,8 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       if (state) {
         if (state.success) {
           toast.success(`${actionType} Successful`, { description: state.message });
+          // Refresh logs to show the activity
+          stateUpdater.refreshLogs();
           // Use local state update instead of full refresh
           // fetchRoomDetails();
         } else {
@@ -121,6 +125,8 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
         }
         setMemberToUpdate(null);
         if (updateRoleFormRef.current) updateRoleFormRef.current.reset();
+        // Refresh logs to show the activity
+        stateUpdater.refreshLogs();
         // Use local state update instead of full refresh
         // fetchRoomDetails();
       } else {

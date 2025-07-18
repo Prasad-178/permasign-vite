@@ -113,6 +113,8 @@ export function useSignerManagement({
         // Add signer to state instead of full reload
         if (addSignerDocDetails) {
           stateUpdater.addSignerToDocument(addSignerDocDetails.documentId, newSignerEmail, currentUserRole || "member");
+          // Refresh logs to show the activity
+          stateUpdater.refreshLogs();
           // Invalidate cache since document signer list has changed
           documentCache.invalidate(addSignerDocDetails.documentId);
           console.log(`[DocumentCache] Invalidated cache for document ${addSignerDocDetails.documentId} after adding signer`);
@@ -161,6 +163,8 @@ export function useSignerManagement({
         toast.success("Signer Removed", { id: toastId, description: result.message });
         // Remove signer from state instead of full reload
         stateUpdater.removeSignerFromDocument(documentId, signerRecord.emailToSign);
+        // Refresh logs to show the activity
+        stateUpdater.refreshLogs();
         // Invalidate cache since document signer list has changed
         documentCache.invalidate(documentId);
         console.log(`[DocumentCache] Invalidated cache for document ${documentId} after removing signer`);
