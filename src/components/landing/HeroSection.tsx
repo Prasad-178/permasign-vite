@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { ArrowRight, ShieldCheck } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { Button } from "../ui/button"
 import { AnimateOnScroll } from "../ui/animate-on-scroll"
 import { usePostHog } from "posthog-js/react"

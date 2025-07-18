@@ -57,6 +57,8 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
     null
   );
 
+  if (isAddMemberPending) {}
+
   useEffect(() => {
     const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string, email?: string) => {
       if (state) {

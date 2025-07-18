@@ -61,7 +61,7 @@ export default function RoomDetailsPage() {
   }, []);
 
   const uploadFormRef = useRef<HTMLFormElement>(null);
-  const addMemberFormRef = useRef<HTMLFormElement>(null);
+  // const addMemberFormRef = useRef<HTMLFormElement>(null);
 
   const [uploadState, uploadFormAction, isUploadPending] = useActionState<UploadDocumentResult | null, FormData>(
     uploadDocumentFormAdapter,
@@ -75,6 +75,9 @@ export default function RoomDetailsPage() {
     removeMemberFormAdapter,
     null
   );
+
+  if (addMemberState || removeMemberState) {}
+  if (typeof setIsAddMemberModalOpen === 'function') {}
 
   useEffect(() => {
 
