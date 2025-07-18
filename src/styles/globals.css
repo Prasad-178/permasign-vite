@@ -344,3 +344,425 @@
 html {
   scroll-behavior: smooth;
 }
+
+
+/* Inter Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+/* Lexend Font */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+
+@layer base {
+  :root {
+    --font-sans: "Inter", sans-serif;
+    --font-heading: "Lexend", sans-serif;
+  }
+
+  body {
+    @apply font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    /* @apply font-heading; */
+  }
+}
+
+/* Grainy background effect */
+body.grainy-bg {
+  position: relative;
+  background-color: hsl(var(--background));
+}
+
+.grainy-bg::before {
+  content: "";
+  position: fixed; /* Use fixed to cover the viewport */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><g fill-opacity="0.2"><circle fill="%23e5e7eb" cx="400" cy="400" r="600"/><circle fill="%23d1d5db" cx="400" cy="400" r="500"/><circle fill="%239ca3af" cx="400" cy="400" r="400"/><circle fill="%236b7280" cx="400" cy="400" r="300"/><circle fill="%234b5563" cx="400" cy="400" r="200"/><circle fill="%23374151" cx="400" cy="400" r="100"/></g></svg>');
+  opacity: 0.025; /* Adjust opacity */
+  pointer-events: none; /* Make sure it doesn't interfere with clicks */
+  z-index: -1; /* Place it behind content */
+  animation: grain 8s steps(10) infinite;
+}
+
+.dark .grainy-bg::before {
+   background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><g fill-opacity="0.35"><circle fill="%234b5563" cx="400" cy="400" r="600"/><circle fill="%23374151" cx="400" cy="400" r="500"/><circle fill="%231f2937" cx="400" cy="400" r="400"/><circle fill="%23111827" cx="400" cy="400" r="300"/><circle fill="%23000000" cx="400" cy="400" r="200"/><circle fill="%23000000" cx="400" cy="400" r="100"/></g></svg>');
+   opacity: 0.05;
+}
+
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+/* General button hover effect */
+.btn-hover-effect {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.btn-hover-effect:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.dark .btn-hover-effect:hover {
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.08);
+}
+
+/* Feature card hover effect */
+.feature-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+.dark .feature-card:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* For the recommended template card */
+.recommended-card {
+  position: relative;
+  overflow: hidden;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 15px hsl(var(--primary) / 0.2);
+}
+
+.recommended-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.recommended-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top right, hsl(var(--primary) / 0.15), transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.recommended-card:hover::after {
+  opacity: 1;
+}
+
+/* For the template cards */
+.template-card {
+  transition: all 0.3s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+  border-color: hsl(var(--border));
+}
+
+.dark .template-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.template-card.selected {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary)), 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.dark .template-card.selected {
+   box-shadow: 0 0 0 2px hsl(var(--primary)), 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* For the modal options */
+.modal-option-card {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.modal-option-card:hover {
+  transform: scale(1.03);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 4px 15px hsl(var(--primary) / 0.1);
+}
+
+.dark .modal-option-card:hover {
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.2);
+}
+
+.modal-option-card.recommended {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.dark .modal-option-card.recommended {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+.modal-option-card .recommended-badge {
+  position: absolute;
+  top: -12px;
+  right: 16px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 5px hsl(var(--primary) / 0.2);
+}
+
+/* For the security page */
+.security-feature-card {
+  background: linear-gradient(145deg, hsl(var(--card)), hsl(var(--card) / 0.95));
+  border-left: 4px solid hsl(var(--primary));
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.security-feature-card:hover {
+  transform: translateY(-5px) translateX(5px);
+  box-shadow: -8px 8px 20px rgba(0,0,0,0.08);
+}
+
+.dark .security-feature-card:hover {
+  box-shadow: -8px 8px 25px rgba(0,0,0,0.2);
+}
+
+.security-flow-step {
+  position: relative;
+  padding-left: 2.5rem;
+  padding-bottom: 2rem;
+  border-left: 2px solid hsl(var(--border));
+}
+
+.security-flow-step:last-child {
+  border-left: 2px solid transparent;
+  padding-bottom: 0;
+}
+
+.security-flow-step::before {
+  content: '';
+  position: absolute;
+  left: -11px; /* (20px icon width / 2) + 1px border */
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: hsl(var(--background));
+  border: 4px solid hsl(var(--primary));
+}
+
+.security-flow-step .step-icon {
+  position: absolute;
+  left: -20px;
+  top: -5px;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 50%;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.3);
+}
+
+/* For the navbar */
+.navbar-link {
+  position: relative;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.2s ease-in-out;
+}
+
+.navbar-link:hover {
+  color: hsl(var(--foreground));
+}
+
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 50%;
+  background-color: hsl(var(--primary));
+  transition: all 0.3s ease-in-out;
+  transform: translateX(-50%);
+}
+
+.navbar-link:hover::after {
+  width: 100%;
+}
+
+.navbar-link.active {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.navbar-link.active::after {
+  width: 100%;
+}
+
+/* For the footer */
+.footer-link {
+  transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.footer-link:hover {
+  color: hsl(var(--primary));
+  transform: translateX(2px);
+}
+
+/* For the room cards */
+.room-card {
+  transition: all 0.3s ease;
+  border: 1px solid hsl(var(--border));
+}
+
+.room-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  border-color: hsl(var(--primary));
+}
+
+.dark .room-card:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.room-card-footer {
+  transition: background-color 0.3s ease;
+}
+
+.room-card:hover .room-card-footer {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.dark .room-card:hover .room-card-footer {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+/* For the empty state card */
+.empty-state-card {
+  border-style: dashed;
+  transition: all 0.3s ease;
+}
+
+.empty-state-card:hover {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 25px hsl(var(--primary) / 0.1);
+}
+
+/* For the create room page */
+.create-room-card {
+  transition: all 0.3s ease;
+}
+
+.create-room-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.dark .create-room-card:hover {
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* For the templates page */
+.template-card-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.template-card-details-modal .role-permission-item {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 1rem;
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* For the security page accordion */
+.security-accordion-trigger {
+  font-size: 1.125rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.security-accordion-trigger:hover {
+  background-color: hsl(var(--muted) / 0.7);
+}
+
+.security-accordion-content .step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.security-accordion-content .step-item:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.security-accordion-content .step-icon-container {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* For the document cache section */
+.doc-cache-section {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-top: 3rem;
+  background: linear-gradient(145deg, hsl(var(--background)), hsl(var(--card)));
+}
+
+.doc-cache-section h3 {
+  border-bottom: 2px solid hsl(var(--primary));
+  padding-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.doc-cache-points li {
+  position: relative;
+  padding-left: 1.75rem;
+}
+
+.doc-cache-points li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.doc-cache-warning {
+  background-color: hsl(var(--destructive) / 0.1);
+  border-left: 4px solid hsl(var(--destructive));
+  padding: 1rem;
+  border-radius: 0.5rem;
+}

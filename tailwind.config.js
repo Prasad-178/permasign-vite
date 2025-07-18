@@ -1,3 +1,5 @@
+import tailwindcssAnimate from 'tailwindcss-animate';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class", // This is crucial!
@@ -73,9 +75,9 @@ export default {
       },
        fontFamily: {
          sans: ["var(--font-sans)", "sans-serif"], // Ensure font is applied
+         heading: ["var(--font-heading)", "sans-serif"],
        },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-} 
-
+  plugins: [tailwindcssAnimate],
+}

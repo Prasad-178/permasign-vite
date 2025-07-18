@@ -45,6 +45,7 @@ export default function TemplatesPage() {
 
     const [viewedTemplate, setViewedTemplate] = useState<Template | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -52,7 +53,6 @@ export default function TemplatesPage() {
             setTemplatesError(null);
             try {
                 const result = await listTemplatesAction();
-                console.log("result is: ", result);
                 if (result.success && result.data) {
                     setTemplates(result.data);
                 } else {
@@ -70,7 +70,6 @@ export default function TemplatesPage() {
 
     useEffect(() => {
         const getOthentEmail = async () => {
-          console.log("things: ", connected, api?.othent, activeAddress, ownerOthentDetails, isFetchingDetails);
             if (connected && api?.othent && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
                 setIsFetchingDetails(true);
                 try {
@@ -87,17 +86,16 @@ export default function TemplatesPage() {
                 } finally {
                     setIsFetchingDetails(false);
                 }
-            } else if (!connected || !activeAddress) {
-                if (ownerOthentDetails) setOwnerOthentDetails(null);
             }
         };
         getOthentEmail();
-    }, [api?.othent, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
+    }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
 
-    const handleSelectTemplate = (template: Template) => {
+    const handleUseTemplateClick = (template: Template) => {
         setSelectedTemplate(template);
         setRoomName("");
         setIsRoomNameTouched(false);
+        setIsCreateModalOpen(true);
     };
 
     const handleViewDetails = (template: Template) => {
@@ -143,6 +141,7 @@ export default function TemplatesPage() {
                         id: toastId,
                         description: `Company '${roomName.trim()}' created! Redirecting...`,
                     });
+                    setIsCreateModalOpen(false);
                     navigate(`/companies/${result.roomId}`);
                 } else {
                     throw new Error(result.message || result.error || "Failed to create company.");
@@ -154,13 +153,13 @@ export default function TemplatesPage() {
     };
 
     if (isLoadingTemplates) {
-        return <CustomLoader text="Loading templates..." />;
+        return <div className="flex h-screen items-center justify-center"><CustomLoader text="Loading templates..." /></div>;
     }
 
     if (templatesError) {
         return (
             <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
-                <Card className="border-destructive">
+                <Card className="border-destructive bg-destructive/10">
                     <CardHeader>
                         <CardTitle className="text-destructive flex items-center justify-center gap-2">
                             <AlertCircle /> Error Loading Templates
@@ -175,38 +174,34 @@ export default function TemplatesPage() {
     }
 
     const isLoading = isFetchingDetails || isProcessing;
-    const isFormDisabled = isLoading || !connected || !ownerOthentDetails?.email || !selectedTemplate;
+    const isFormDisabled = isLoading || !connected || !ownerOthentDetails?.email;
     const showRoomNameError = isRoomNameTouched && !roomName.trim();
 
     return (
         <RequireLogin>
-            <div className="container mx-auto max-w-5xl py-12 px-4 animate-fade-in">
-                <div className="text-center mb-10">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground/80" strokeWidth={1.5} />
-                    <h1 className="text-3xl font-bold tracking-tight mt-4">Create a Company from a Template</h1>
-                    <p className="mt-2 text-lg text-muted-foreground">
-                        Select a template to quickly set up your company with predefined roles and document categories.
+            <div className="container mx-auto max-w-6xl py-12 px-4 animate-fade-in">
+                <div className="text-center mb-12">
+                    <FileText className="mx-auto h-14 w-14 text-muted-foreground/80" strokeWidth={1.5} />
+                    <h1 className="text-4xl font-bold tracking-tighter mt-4">Create a Company from a Template</h1>
+                    <p className="mt-3 text-lg text-muted-foreground max-w-3xl mx-auto">
+                        Select a template to rapidly set up your company with predefined roles and document categories, ensuring best practices from the start.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                <div className="template-card-grid mb-12">
                     {templates.map(template => {
                         const uniqueDocTypesCount = new Set(Object.values(template.permissions).flat()).size;
                         
                         return (
                             <Card 
                                 key={template.name} 
-                                className={`flex flex-col h-full transition-all duration-300 group rounded-lg ${selectedTemplate?.name === template.name ? 'border-primary ring-2 ring-primary ring-offset-background' : 'hover:shadow-xl hover:-translate-y-2'}`}
-                            >
+                                className="template-card flex flex-col h-full">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        {selectedTemplate?.name === template.name 
-                                            ? <CheckCircle className="w-6 h-6 text-primary flex-shrink-0" />
-                                            : <FileText className="w-6 h-6 text-muted-foreground/80 flex-shrink-0" />
-                                        }
-                                        <span className="text-lg">{template.name}</span>
+                                    <CardTitle className="flex items-center gap-3 text-xl">
+                                        <FileText className="w-7 h-7 text-muted-foreground/80 flex-shrink-0" />
+                                        <span>{template.name}</span>
                                     </CardTitle>
-                                    <CardDescription className="pt-1">{template.description}</CardDescription>
+                                    <CardDescription className="pt-1 text-base">{template.description}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow pt-2">
                                     <div className="space-y-3 text-sm">
@@ -228,10 +223,10 @@ export default function TemplatesPage() {
                                     </div>
                                 </CardContent>
                                 <CardFooter className="grid grid-cols-2 gap-3 mt-auto pt-5">
-                                    <Button variant="outline" className="w-full" onClick={() => handleViewDetails(template)}>
+                                    <Button variant="outline" className="w-full btn-hover-effect" onClick={() => handleViewDetails(template)}>
                                         <Info className="w-4 h-4 mr-2"/> View Details
                                     </Button>
-                                    <Button className="w-full" onClick={() => handleSelectTemplate(template)}>
+                                    <Button className="w-full btn-hover-effect" onClick={() => handleUseTemplateClick(template)}>
                                         <CheckCircle className="w-4 h-4 mr-2"/> Use Template
                                     </Button>
                                 </CardFooter>
@@ -241,15 +236,15 @@ export default function TemplatesPage() {
                 </div>
 
                 {selectedTemplate && (
-                    <Card className="w-full max-w-2xl mx-auto shadow-md border-border/60 animate-fade-in rounded-lg">
-                        <form onSubmit={handleSubmit}>
-                            <CardHeader>
-                                <CardTitle>Finalize Company Setup</CardTitle>
-                                <CardDescription>
+                    <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                        <DialogContent className="sm:max-w-[480px]">
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl">Create Company from '{selectedTemplate.name}'</DialogTitle>
+                                <DialogDescription>
                                     You have selected the <span className="font-semibold text-primary">{selectedTemplate.name}</span> template. Please provide a name for your new company.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmit} className="grid gap-6 pt-4">
                                 <div>
                                     <Label htmlFor="roomName" className="font-semibold">Company Name</Label>
                                     <Input
@@ -257,49 +252,49 @@ export default function TemplatesPage() {
                                         value={roomName}
                                         onChange={(e) => setRoomName(e.target.value)}
                                         onBlur={() => setIsRoomNameTouched(true)}
-                                        placeholder="e.g., QuantumLeap AI"
+                                        placeholder="e.g., QuantumLeap AI, Inc."
                                         required
                                         disabled={isFormDisabled}
-                                        className="mt-2 text-base py-6"
+                                        className="mt-2"
                                     />
                                     {showRoomNameError && <p className="text-sm text-destructive pt-2">Company name is required.</p>}
                                 </div>
-                            </CardContent>
-                            <CardFooter className="flex-col items-stretch">
+                                
                                 {!isFetchingDetails && connected && !ownerOthentDetails?.email && (
-                                    <div className="flex items-center gap-2 text-sm text-destructive mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                                    <div className="flex items-center gap-2 text-sm text-destructive p-3 bg-destructive/10 rounded-md border border-destructive/20">
                                         <AlertCircle className="w-4 h-4 flex-shrink-0"/>
                                         <span>Could not load your email. Please try reconnecting your wallet.</span>
                                     </div>
                                 )}
+
                                 <Button type="submit" disabled={isFormDisabled || !roomName.trim()} className="w-full" size="lg">
                                     {isProcessing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Company...</>)
                                     : isFetchingDetails ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Account...</>)
-                                    : ("Create Company")
+                                    : ("Create & Launch Company")
                                     }
                                 </Button>
-                            </CardFooter>
-                        </form>
-                    </Card>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 )}
 
                 {viewedTemplate && (
                     <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                        <DialogContent className="sm:max-w-[625px]">
+                        <DialogContent className="sm:max-w-[625px] template-card-details-modal">
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2"><FileText /> Template: {viewedTemplate.name}</DialogTitle>
-                                <DialogDescription>{viewedTemplate.description}</DialogDescription>
+                                <DialogTitle className="flex items-center gap-3 text-2xl"><FileText /> {viewedTemplate.name}</DialogTitle>
+                                <DialogDescription className="text-base">{viewedTemplate.description}</DialogDescription>
                             </DialogHeader>
                             <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-                                <h3 className="font-semibold mb-3 text-lg">Roles & Document Permissions</h3>
+                                <h3 className="font-semibold mb-4 text-lg">Roles & Document Permissions</h3>
                                 <div className="space-y-4">
                                     {Object.entries(viewedTemplate.permissions).map(([role, docs]) => (
-                                        <div key={role} className="border p-4 rounded-lg bg-muted/30">
-                                            <h4 className="font-semibold capitalize flex items-center mb-2"><Users className="w-4 h-4 mr-2" />{role}</h4>
-                                            <ul className="list-inside list-disc space-y-1 pl-2">
+                                        <div key={role} className="p-4 rounded-lg bg-muted/50 role-permission-item">
+                                            <h4 className="font-semibold capitalize flex items-center mb-2 text-base"><Users className="w-4 h-4 mr-2 text-primary" />{role}</h4>
+                                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 pl-2">
                                                 {docs.map(doc => (
                                                     <li key={doc} className="text-sm flex items-start">
-                                                        <ScrollText className="w-3.5 h-3.5 mr-2 mt-0.5 text-primary/70 flex-shrink-0" />
+                                                        <ScrollText className="w-3.5 h-3.5 mr-2 mt-0.5 text-primary/80 flex-shrink-0" />
                                                         {doc}
                                                     </li>
                                                 ))}
@@ -314,4 +309,4 @@ export default function TemplatesPage() {
             </div>
         </RequireLogin>
     );
-} 
+}

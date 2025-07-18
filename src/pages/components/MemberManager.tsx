@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -20,7 +18,6 @@ import RemoveMemberSubmitButton from "./RemoveMemberSubmitButton";
 interface MemberManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
-  // fetchRoomDetails: () => void;
   stateUpdater: RoomStateUpdater;
 }
 
@@ -37,11 +34,13 @@ const getRoleIcon = (roleName: string, className: string) => {
 export default function MemberManager({ roomDetails, currentUserEmail, stateUpdater }: MemberManagerProps) {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [memberToUpdate, setMemberToUpdate] = useState<{ email: string; role: string } | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
   const [newRole, setNewRole] = useState("");
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberRole, setNewMemberRole] = useState("");
   const addMemberFormRef = useRef<HTMLFormElement>(null);
   const updateRoleFormRef = useRef<HTMLFormElement>(null);
+  const removeMemberFormRef = useRef<HTMLFormElement>(null);
 
   const [addMemberState, addMemberFormAction, isAddMemberPending] = useActionState<ModifyMemberResult | null, FormData>(
     addMemberFormAdapter,
@@ -59,76 +58,52 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
   );
 
   useEffect(() => {
-
-  }, [isAddMemberPending, isRemoveMemberPending])
-
-  useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
+    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string, email?: string) => {
       if (state) {
         if (state.success) {
           toast.success(`${actionType} Successful`, { description: state.message });
           if (actionType === "Add Member") {
             setIsAddMemberModalOpen(false);
             if (addMemberFormRef.current) addMemberFormRef.current.reset();
-            // Add member to local state
-            if (newMemberEmail && newMemberRole) {
-              stateUpdater.addMember({
-                userEmail: newMemberEmail,
-                role: newMemberRole
-              });
-              setNewMemberEmail("");
-              setNewMemberRole("");
-              // Refresh logs to show the activity
-              stateUpdater.refreshLogs();
-            }
+            // Add member to state directly
+            stateUpdater.addMember({ userEmail: newMemberEmail, role: newMemberRole });
+            stateUpdater.refreshLogs();
+            setNewMemberEmail("");
+            setNewMemberRole("");
+          } else if (actionType === "Remove Member" && email) {
+            stateUpdater.removeMember(email);
+            stateUpdater.refreshLogs();
+            setMemberToRemove(null); // Clear the member being removed
           }
-          // Use local state update instead of full refresh
-          // fetchRoomDetails();
         } else {
           toast.error(`Failed to ${actionType.toLowerCase()}`, {
             description: state.error || state.message || "An unknown error occurred.",
             duration: 7000
           });
         }
+        // Reset pending state for the specific action
+        if (actionType === "Remove Member") {
+          setMemberToRemove(null);
+        }
       }
     };
-    handleMemberActionResult(addMemberState, "Add Member");
-  }, [addMemberState, newMemberEmail, newMemberRole, stateUpdater]);
 
-  useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
-      if (state) {
-        if (state.success) {
-          toast.success(`${actionType} Successful`, { description: state.message });
-          // Refresh logs to show the activity
-          stateUpdater.refreshLogs();
-          // Use local state update instead of full refresh
-          // fetchRoomDetails();
-        } else {
-          toast.error(`Failed to ${actionType.toLowerCase()}`, {
-            description: state.error || state.message || "An unknown error occurred.",
-            duration: 7000
-          });
-        }
-      }
-    };
-    handleMemberActionResult(removeMemberState, "Remove Member");
-  }, [removeMemberState]);
+    handleMemberActionResult(addMemberState, "Add Member");
+    if (memberToRemove) {
+      handleMemberActionResult(removeMemberState, "Remove Member", memberToRemove);
+    }
+  }, [addMemberState, removeMemberState, stateUpdater, memberToRemove]);
 
   useEffect(() => {
     if (updateRoleState) {
       if (updateRoleState.success) {
         toast.success("Role Updated", { description: updateRoleState.message });
-        // Update member role in local state
         if (memberToUpdate) {
           stateUpdater.updateMemberRole(memberToUpdate.email, newRole);
         }
         setMemberToUpdate(null);
         if (updateRoleFormRef.current) updateRoleFormRef.current.reset();
-        // Refresh logs to show the activity
         stateUpdater.refreshLogs();
-        // Use local state update instead of full refresh
-        // fetchRoomDetails();
       } else {
         toast.error("Failed to update role", {
           description: updateRoleState.error || updateRoleState.message || "An unknown error occurred.",
@@ -143,12 +118,22 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
   const isCFO = currentUserRole === 'cfo';
 
   const canManageMembers = isFounder || isCFO;
-  // Users should be able to assign any role except 'founder'.
   const availableRolesToAdd = roomDetails.roomRoles.filter(role => role.roleName !== 'founder');
 
   const handleOpenUpdateModal = (member: { userEmail: string; role: string }) => {
     setMemberToUpdate({ email: member.userEmail, role: member.role });
     setNewRole(member.role);
+  };
+
+  const handleRemoveMember = (email: string) => {
+    setMemberToRemove(email);
+    // Programmatically submit the form
+    setTimeout(() => {
+        const form = document.getElementById(`remove-member-form-${email}`) as HTMLFormElement;
+        if (form) {
+            form.requestSubmit();
+        }
+    }, 0);
   };
 
   return (
@@ -258,22 +243,26 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
                   </Button>
                 )}
                 {canManageMembers && member.role !== 'founder' && (
-                  <form action={removeMemberFormAction}>
+                  <form
+                    id={`remove-member-form-${member.userEmail}`}
+                    action={removeMemberFormAction}
+                    ref={removeMemberFormRef}
+                    style={{ display: 'inline' }}
+                  >
                     <input type="hidden" name="roomId" value={roomDetails.roomId} />
                     <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
                     <input type="hidden" name="userToRemoveEmail" value={member.userEmail} />
-                    <RemoveMemberSubmitButton email={member.userEmail} />
+                    <RemoveMemberSubmitButton
+                      email={member.userEmail}
+                      isPending={isRemoveMemberPending && memberToRemove === member.userEmail}
+                      onClick={() => handleRemoveMember(member.userEmail)}
+                    />
                   </form>
                 )}
               </div>
             </li>
           ))}
         </ul>
-        {removeMemberState && !removeMemberState.success && (
-          <p className="text-sm text-destructive text-center pt-4">
-            Error removing member: {removeMemberState.message} {removeMemberState.error ? `(${removeMemberState.error})` : ''}
-          </p>
-        )}
       </div>
 
       {/* Update Member Role Dialog */}
@@ -328,4 +317,5 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
       </Dialog>
     </>
   );
-} 
+}
+ 

@@ -81,22 +81,37 @@ export function createRoomStateUpdater(
         members: prevRoom.members.filter(member => member.userEmail !== memberEmail)
       };
     });
+
+    // Also remove the user from any documents they were assigned to sign
+    setDocuments(prevDocs => 
+      prevDocs.filter(doc => doc.emailToSign !== memberEmail)
+    );
   };
 
   const updateMemberRole = (memberEmail: string, newRole: string) => {
     if (!roomDetails) return;
-    
+  
+    // Update member's role in the main member list
     setRoomDetails(prevRoom => {
-      if (!prevRoom) return prevRoom;
+      if (!prevRoom) return null;
       return {
         ...prevRoom,
-        members: prevRoom.members.map(member => 
-          member.userEmail === memberEmail 
+        members: prevRoom.members.map(member =>
+          member.userEmail === memberEmail
             ? { ...member, role: newRole }
             : member
-        )
+        ),
       };
     });
+  
+    // Also update the role in the documents list for any pending signatures
+    setDocuments(prevDocs =>
+      prevDocs.map(doc =>
+        doc.emailToSign === memberEmail
+          ? { ...doc, roleToSign: newRole }
+          : doc
+      )
+    );
   };
 
   const addRole = (newRole: RoomRoles) => {
@@ -118,9 +133,23 @@ export function createRoomStateUpdater(
       if (!prevRoom) return prevRoom;
       return {
         ...prevRoom,
+        // Update members who had the deleted role to 'member'
+        members: prevRoom.members.map(member => 
+          member.role === roleName ? { ...member, role: 'member' } : member
+        ),
+        // Remove the role from the list of roles
         roomRoles: prevRoom.roomRoles.filter(role => role.roleName !== roleName)
       };
     });
+
+    // Update documents that were assigned to the deleted role
+    setDocuments(prevDocs =>
+      prevDocs.map(doc =>
+        doc.roleToSign === roleName
+          ? { ...doc, roleToSign: 'member' }
+          : doc
+      )
+    );
   };
 
   const updateRolePermissions = (roleName: string, newDocumentTypes: string[]) => {

@@ -1,18 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { useState, useEffect } from 'react';
-import { useApi, useActiveAddress } from '@arweave-wallet-kit/react'; // Import AWK hooks
+import { useApi, useActiveAddress, useConnection } from '@arweave-wallet-kit/react';
 import { usePostHog } from 'posthog-js/react';
-import RequireLogin from "../components/RequireLogin"; // Adjusted path if necessary
+import RequireLogin from "../components/RequireLogin";
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
-import { Link, useNavigate } from "react-router-dom"; // Changed from next/link
-import { PlusCircle, ArrowRight, AlertCircle, FolderLock, FilePlus, Users } from "lucide-react";
-import { listMyDataRooms } from '../services/roomActionsClient'; // Adjusted path if necessary
+import { Link, useNavigate } from "react-router-dom";
+import { PlusCircle, ArrowRight, AlertCircle, FolderLock, FilePlus, Users, Star } from "lucide-react";
+import { listMyDataRooms } from '../services/roomActionsClient';
 import { CustomLoader } from '../components/ui/CustomLoader';
-import { type RoomInfo } from '../types/types'; // Adjusted path if necessary
+import { type RoomInfo } from '../types/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../components/ui/dialog";
+import { Badge } from '../components/ui/badge';
 
 export default function RoomsPage() {
   useEffect(() => {
@@ -21,30 +19,24 @@ export default function RoomsPage() {
 
   const api = useApi();
   const activeAddress = useActiveAddress();
+  const { connected } = useConnection();
   const posthog = usePostHog();
   const navigate = useNavigate();
 
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  if (userEmail) {}
-
-  if (userEmail) {}
-
-  // const getInitials = (name: string) => {
-  //   if (!name) return '??';
-  //   const words = name.replace(/[^a-zA-Z0-9 ]/g, "").split(' ').filter(Boolean);
-  //   if (words.length > 1) {
-  //     return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-  //   }
-  //   return name.substring(0, 2).toUpperCase();
-  // };
+  useEffect(() => {
+    if (!isLoading && !error && connected && rooms.length === 0) {
+      setIsCreateModalOpen(true);
+    }
+  }, [isLoading, error, connected, rooms.length]);
 
   const handleCreateCompanyClick = (from: 'header' | 'empty_state') => {
     posthog?.capture('create_company_clicked', { from_location: from });
+    setIsCreateModalOpen(true);
   };
 
   const handleOpenCompanyClick = (roomId: string, roomName: string) => {
@@ -58,47 +50,23 @@ export default function RoomsPage() {
 
   useEffect(() => {
     const loadUserDataAndRooms = async () => {
-      // State 1: Wallet status is being determined (`activeAddress` is undefined).
-      // We do nothing and wait, keeping the loader visible.
-      if (activeAddress === undefined) {
-        return;
-      }
-
-      // State 2: Wallet is confirmed to be disconnected (`activeAddress` is null).
-      // We must stop loading. The RequireLogin component will redirect the user.
+      if (activeAddress === undefined) return;
       if (activeAddress === null) {
         setIsLoading(false);
         setRooms([]);
         setError(null);
         return;
       }
-      
-      // State 3: User is connected (`activeAddress` is a string).
-      // Now, we must also wait for the API services to be ready.
-      if (!api?.othent) {
-        // API not ready, we wait. isLoading remains true.
-        return;
-      }
+      if (!api?.othent) return;
 
-      // All conditions met. Let's fetch the data.
       setError(null);
-
       try {
-        console.log("Attempting to fetch Othent user details...");
         const details = await api.othent.getUserDetails();
-        console.log("Othent details received:", details);
-
         if (!details?.email) {
           throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
         }
-        
         const email = details.email;
-        setUserEmail(email); // Set email for potential UI display
-
-        console.log("Fetching rooms for email:", email);
         const result = await listMyDataRooms(email);
-        console.log("Rooms fetched:", result);
-
         if (result.success && result.data) {
           setRooms(result.data);
         } else {
@@ -109,8 +77,6 @@ export default function RoomsPage() {
         setError(err.message || 'An unknown error occurred.');
         setRooms([]);
       } finally {
-        // This runs whether the fetch succeeded or failed.
-        // We are done with the process, so we must stop loading.
         setIsLoading(false);
       }
     };
@@ -120,122 +86,80 @@ export default function RoomsPage() {
 
   return (
     <RequireLogin>
-      <div className="container mx-auto p-4 md:p-8 max-w-4xl">
+      <div className="container mx-auto p-4 md:p-8 max-w-5xl">
         <div className="flex justify-between items-center mb-8 animate-fade-in">
-          <h1 className="text-3xl font-bold">My Companies</h1>
+          <h1 className="text-3xl font-bold tracking-tight">My Companies</h1>
           {!isLoading && !error && rooms.length > 0 && (
-             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogTrigger asChild>
-                    <Button onClick={() => handleCreateCompanyClick('header')}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Create New Company
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[650px]">
-                    <DialogHeader>
-                        <DialogTitle>Create a New Company</DialogTitle>
-                        <DialogDescription>
-                            Choose how you want to set up your new secure company space.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                        <Card className="flex flex-col justify-between hover:border-primary transition-colors">
-                            <CardHeader>
-                                <FilePlus className="w-8 h-8 text-primary mb-2" />
-                                <CardTitle>From Scratch</CardTitle>
-                                <CardDescription>Start with a blank slate. You'll be the founder and can invite members and define roles as you go.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button className="w-full" onClick={() => handleNavigate('/companies/create')}>
-                                    Create Blank Company
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                         <Card className="flex flex-col justify-between hover:border-primary transition-colors">
-                            <CardHeader>
-                                <Users className="w-8 h-8 text-primary mb-2" />
-                                <CardTitle>From a Template</CardTitle>
-                                <CardDescription>Use a pre-defined template with roles and document categories to get started faster.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                 <Button className="w-full" variant="secondary" onClick={() => handleNavigate('/companies/create/template')}>
-                                    Use a Template
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <Button onClick={() => handleCreateCompanyClick('header')}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Create New Company
+            </Button>
           )}
         </div>
 
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Create a New Secure Company</DialogTitle>
+              <DialogDescription className="text-base">
+                Choose a starting point for your new company space. Using a template is recommended for a faster setup.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <div className="modal-option-card p-6 border rounded-lg relative recommended flex flex-col" onClick={() => handleNavigate('/companies/create/template')}>
+                <Badge className="absolute top-4 right-4">Recommended</Badge>
+                <div className="flex-grow">
+                  <Users className="w-10 h-10 text-primary mb-3" />
+                  <h3 className="text-lg font-semibold">From a Template</h3>
+                  <p className="text-muted-foreground text-sm mt-1">Use a pre-defined template with roles and document categories to get started faster.</p>
+                </div>
+                <Button className="w-full mt-6 premium-shine-button relative overflow-hidden">
+                  <Star className="mr-2 h-4 w-4" /> Use a Template
+                </Button>
+              </div>
+              <div className="modal-option-card p-6 border rounded-lg flex flex-col" onClick={() => handleNavigate('/companies/create')}>
+                <div className="flex-grow">
+                  <FilePlus className="w-10 h-10 text-primary mb-3" />
+                  <h3 className="text-lg font-semibold">From Scratch</h3>
+                  <p className="text-muted-foreground text-sm mt-1">Start with a blank slate. You'll be the founder and can invite members and define roles as you go.</p>
+                </div>
+                <Button className="w-full mt-6" variant="secondary">
+                  Create Blank Company
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {isLoading && (
-          <div className="flex justify-center items-center py-10">
-            <CustomLoader size={48} text="Loading..." />
+          <div className="flex justify-center items-center py-20">
+            <CustomLoader size={48} text="Loading your companies..." />
           </div>
         )}
 
         {!isLoading && error && (
-          <Card className="bg-destructive/10 border-destructive shadow-md animate-fade-in">
-            <CardHeader className="flex flex-row items-center gap-2">
-               <AlertCircle className="w-5 h-5 text-destructive" />
-               <CardTitle>Error Loading Rooms</CardTitle>
+          <Card className="bg-destructive/10 border-destructive shadow-md animate-fade-in empty-state-card">
+            <CardHeader className="flex flex-row items-center gap-3">
+               <AlertCircle className="w-6 h-6 text-destructive" />
+               <CardTitle className="text-xl">Error Loading Companies</CardTitle>
             </CardHeader>
             <CardContent>
-              <p>{error}</p>
-              {error?.includes("Othent") && <p className="mt-2 text-sm text-muted-foreground">Ensure you have linked an email via Othent.</p>}
+              <p className="text-base">{error}</p>
+              {error?.includes("Othent") && <p className="mt-2 text-sm text-muted-foreground">Please ensure your wallet is correctly linked with an email via Othent and try again.</p>}
             </CardContent>
           </Card>
         )}
 
         {!isLoading && !error && rooms.length === 0 && (
           <div className="text-center py-16 animate-fade-in">
-            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border/60 rounded-xl bg-card">
-              <FolderLock className="w-16 h-16 text-muted-foreground/70 mb-6" strokeWidth={1.5} />
-              <h2 className="text-2xl font-bold tracking-tight">Manage Your High-Value Agreements Securely</h2>
-              <p className="mt-3 text-muted-foreground max-w-md">
-                Invite members, manage agreements, and sign contracts on PermaSign.
+            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border/60 rounded-xl bg-card empty-state-card">
+              <FolderLock className="w-20 h-20 text-muted-foreground/60 mb-6" strokeWidth={1.5} />
+              <h2 className="text-2xl font-bold tracking-tight">Welcome to PermaSign</h2>
+              <p className="mt-3 text-muted-foreground max-w-md text-lg">
+                Create your first secure company space to manage high-value agreements on the blockchain.
               </p>
-               <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                <DialogTrigger asChild>
-                    <Button size="lg" className="mt-8" onClick={() => handleCreateCompanyClick('empty_state')}>
-                      Get Started Now
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[650px]">
-                    <DialogHeader>
-                        <DialogTitle>Create a New Company</DialogTitle>
-                        <DialogDescription>
-                            Choose how you want to set up your new secure company space.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                        <Card className="flex flex-col justify-between hover:border-primary transition-colors">
-                            <CardHeader>
-                                <FilePlus className="w-8 h-8 text-primary mb-2" />
-                                <CardTitle>From Scratch</CardTitle>
-                                <CardDescription>Start with a blank slate. You'll be the founder and can invite members and define roles as you go.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button className="w-full" onClick={() => handleNavigate('/companies/create')}>
-                                    Create Blank Company
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                         <Card className="flex flex-col justify-between hover:border-primary transition-colors">
-                            <CardHeader>
-                                <Users className="w-8 h-8 text-primary mb-2" />
-                                <CardTitle>From a Template</CardTitle>
-                                <CardDescription>Use a pre-defined template with roles and document categories to get started faster.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                 <Button className="w-full" variant="secondary" onClick={() => handleNavigate('/companies/create/template')}>
-                                    Use a Template
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </div>
-                </DialogContent>
-            </Dialog>
+              <Button size="lg" className="mt-8 btn-hover-effect" onClick={() => handleCreateCompanyClick('empty_state')}>
+                <PlusCircle className="mr-2 h-5 w-5" /> Get Started Now
+              </Button>
             </div>
           </div>
         )}
@@ -243,22 +167,18 @@ export default function RoomsPage() {
         {!isLoading && !error && rooms.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
             {rooms.map((room: RoomInfo) => (
-              <Card key={room.roomId} className="flex flex-col justify-between shadow-sm hover:shadow-lg dark:shadow-primary/10 transition-shadow duration-300 border border-border/60">
-                <CardHeader className="flex-grow">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="truncate font-semibold tracking-tight">{room.roomName}</CardTitle>
-                      <CardDescription className="mt-1">
-                        Your role: <span className="font-medium capitalize text-foreground">{room.role}</span>
-                      </CardDescription>
-                    </div>
-                  </div>
+              <Card key={room.roomId} className="room-card flex flex-col justify-between shadow-sm hover:shadow-lg dark:shadow-primary/10">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold tracking-tight truncate">{room.roomName}</CardTitle>
+                  <CardDescription className="pt-1">
+                    Your role: <span className="font-medium capitalize text-foreground">{room.role}</span>
+                  </CardDescription>
                 </CardHeader>
-                <CardFooter className="bg-muted/30 dark:bg-muted/20 px-4 py-3 border-t">
+                <CardFooter className="room-card-footer px-6 py-4 border-t">
                   <Link to={`/companies/${room.roomId}`} className="w-full" onClick={() => handleOpenCompanyClick(room.roomId, room.roomName)}>
-                    <Button variant="ghost" className="w-full justify-between cursor-pointer">
+                    <Button variant="outline" className="w-full justify-between cursor-pointer btn-hover-effect">
                       Open Company
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-5 w-5" />
                     </Button>
                   </Link>
                 </CardFooter>
@@ -269,4 +189,4 @@ export default function RoomsPage() {
       </div>
     </RequireLogin>
   );
-} 
+}

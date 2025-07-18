@@ -113,6 +113,10 @@ export function useSignerManagement({
         // Add signer to state instead of full reload
         if (addSignerDocDetails) {
           stateUpdater.addSignerToDocument(addSignerDocDetails.documentId, newSignerEmail, currentUserRole || "member");
+          // If the new signer is not already a member, add them to the room members list
+          if (!roomDetails.members.some((m: any) => m.userEmail === newSignerEmail)) {
+            stateUpdater.addMember({ userEmail: newSignerEmail, role: "member" });
+          }
           // Refresh logs to show the activity
           stateUpdater.refreshLogs();
           // Invalidate cache since document signer list has changed

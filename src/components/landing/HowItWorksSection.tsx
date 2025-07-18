@@ -1,68 +1,61 @@
 import { AnimateOnScroll } from "../ui/animate-on-scroll"
+import { UploadCloud, Users, PenSquare, ShieldCheck } from 'lucide-react';
 
 const steps = [
   {
-    number: 1,
-    title: "Upload Your Document",
-    description: "Upload any document format to the PermaSign platform.",
+    icon: <UploadCloud className="h-8 w-8 text-primary" />,
+    title: "1. Create a Secure Room",
+    description: "Establish a private, end-to-end encrypted space for your company. This room acts as a secure vault for all your high-value agreements.",
   },
   {
-    number: 2,
-    title: "Add Signatories",
-    description: "Invite signers for the document.",
+    icon: <Users className="h-8 w-8 text-primary" />,
+    title: "2. Invite Members & Set Roles",
+    description: "Invite team members, investors, or legal counsel to the room. Assign roles with specific permissions to control who can view or sign documents.",
   },
   {
-    number: 3,
-    title: "Secure Signing",
-    description: "Parties sign securely and permanently.",
+    icon: <PenSquare className="h-8 w-8 text-primary" />,
+    title: "3. Upload & Sign Documents",
+    description: "Upload documents for signing. All parties sign using their cryptographic keys, creating a permanent, verifiable record on the blockchain.",
   },
   {
-    number: 4,
-    title: "Permanent Storage",
-    description: "Document is permanently stored on Arweave with blockchain verification.",
+    icon: <ShieldCheck className="h-8 w-8 text-primary" />,
+    title: "4. Permanent, Auditable Storage",
+    description: "Once signed, the document is permanently stored on Arweave. A complete, unchangeable audit trail is available for compliance and verification.",
   },
 ]
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+    <section id="how-it-works" className="w-full py-20 md:py-28 lg:py-32 bg-background">
       <div className="container mx-auto px-4 md:px-6">
-        <AnimateOnScroll className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-          <div className="space-y-2 max-w-3xl">
-            <div className="inline-block rounded-full bg-primary-50 px-3 py-1 text-sm text-primary mb-4">
-              Our Method
-            </div>
-            <h2 className="text-3xl font-heading font-medium sm:text-4xl md:text-5xl">Understanding the PermaSign Journey</h2>
-            <p className="text-muted-foreground md:text-xl/relaxed font-light">
-              Discover the straightforward steps to achieve lasting security and verifiability for all your important digital documents.
+        <AnimateOnScroll className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
+          <div className="space-y-3 max-w-3xl">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">A Simple, Secure Process</h2>
+            <p className="text-muted-foreground md:text-xl/relaxed">
+              Follow these four simple steps to secure your agreements on the blockchain, ensuring they are permanent, verifiable, and tamper-proof.
             </p>
           </div>
         </AnimateOnScroll>
-        <div className="mx-auto grid max-w-5xl items-center gap-12 py-8 md:grid-cols-2">
-          <AnimateOnScroll>
-            <img
-              src="./second_image.png"
-              width={600}
-              height={600}
-              alt="PermaSign Workflow"
-              className="mx-auto overflow-hidden rounded-md object-cover object-center sm:w-full shadow-sm"
-            />
-          </AnimateOnScroll>
-          <AnimateOnScroll className="flex flex-col justify-center space-y-6">
-            <ul className="grid gap-6">
-              {steps.map((step) => (
-                <li className="flex items-start gap-4" key={step.number}>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    {step.number}
+        <div className="relative mx-auto max-w-5xl">
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2"></div>
+          {steps.map((step, index) => (
+            <AnimateOnScroll key={index} className={`relative flex items-center my-12 ${index % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+              <div className={`w-1/2 ${index % 2 === 0 ? 'pr-8' : 'pl-8'}`}>
+                <div className={`p-6 rounded-xl bg-card border shadow-sm feature-card text-left ${index % 2 === 0 ? '' : 'text-right'}`}>
+                  <div className={`inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-4 ${index % 2 === 0 ? '' : 'ml-auto'}`}>
+                    {step.icon}
                   </div>
-                  <div>
-                    <h3 className="text-xl font-heading">{step.title}</h3>
-                    <p className="text-muted-foreground font-light">{step.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </AnimateOnScroll>
+                  <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                  <p className="text-muted-foreground">{step.description}</p>
+                </div>
+              </div>
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground font-bold text-lg shadow-lg animate-vault-glow">
+                  {index + 1}
+                </div>
+              </div>
+            </AnimateOnScroll>
+          ))}
         </div>
       </div>
     </section>

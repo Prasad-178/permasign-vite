@@ -287,44 +287,6 @@ export default function RoomDetailsPage() {
     }
   }, [uploadState, fetchRoomDetails]);
 
-  useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
-      if (state) {
-        if (state.success) {
-          toast.success(`${actionType} Successful`, { description: state.message });
-          if (actionType === "Add Member") {
-            setIsAddMemberModalOpen(false);
-            if (addMemberFormRef.current) addMemberFormRef.current.reset();
-          }
-          fetchRoomDetails();
-        } else {
-          toast.error(`Failed to ${actionType.toLowerCase()}`, {
-            description: state.error || state.message || "An unknown error occurred.",
-            duration: 7000
-          });
-        }
-      }
-    };
-    handleMemberActionResult(addMemberState, "Add Member");
-  }, [addMemberState, fetchRoomDetails]);
-
-  useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
-      if (state) {
-        if (state.success) {
-          toast.success(`${actionType} Successful`, { description: state.message });
-          fetchRoomDetails();
-        } else {
-          toast.error(`Failed to ${actionType.toLowerCase()}`, {
-            description: state.error || state.message || "An unknown error occurred.",
-            duration: 7000
-          });
-        }
-      }
-    };
-    handleMemberActionResult(removeMemberState, "Remove Member");
-  }, [removeMemberState, fetchRoomDetails]);
-
   async function handleViewDocument(documentId: string) {
     if (isViewingDoc || isDownloadingDoc) return;
 
@@ -673,7 +635,6 @@ export default function RoomDetailsPage() {
                 <MemberManager
                   roomDetails={roomDetails}
                   currentUserEmail={currentUserEmail}
-                  // fetchRoomDetails={fetchRoomDetails}
                   stateUpdater={stateUpdater}
                 />
               </TabsContent>
