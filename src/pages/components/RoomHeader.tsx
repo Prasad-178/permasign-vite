@@ -1,23 +1,18 @@
 import { CalendarDays, UserCircle } from "lucide-react";
 import { format } from 'date-fns';
 import { type RoomDetails } from "../../types/types";
-import DocumentTemplatesSidebar from "./DocumentTemplatesSidebar";
 import UserPlanBadge from "./UserPlanBadge";
 
 interface RoomHeaderProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
   currentUserRole?: string | null;
-  isTemplatesSidebarOpen: boolean;
-  onTemplatesSidebarChange: (open: boolean) => void;
 }
 
 export default function RoomHeader({ 
   roomDetails, 
   currentUserEmail, 
-  currentUserRole,
-  isTemplatesSidebarOpen,
-  onTemplatesSidebarChange
+  currentUserRole
 }: RoomHeaderProps) {
   return (
     <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 sticky top-0 z-10">
@@ -40,10 +35,6 @@ export default function RoomHeader({
             userPlan="Pro"
             currentUserEmail={currentUserEmail}
             currentUserRole={currentUserRole}
-          />
-          <DocumentTemplatesSidebar 
-            isOpen={isTemplatesSidebarOpen}
-            onOpenChange={onTemplatesSidebarChange}
           />
         </div>
       </div>

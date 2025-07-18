@@ -91,8 +91,6 @@ export default function RoomDetailsPage() {
 
   }
 
-  const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
-
   useEffect(() => {
     if (roomDetails) {
       document.title = `PermaSign | ${roomDetails.roomName}`;
@@ -551,8 +549,6 @@ export default function RoomDetailsPage() {
           roomDetails={roomDetails}
           currentUserEmail={currentUserEmail}
           currentUserRole={currentUserRole}
-          isTemplatesSidebarOpen={isTemplatesSidebarOpen}
-          onTemplatesSidebarChange={setIsTemplatesSidebarOpen}
         />
 
         <div className="flex-1 overflow-hidden">
@@ -643,6 +639,7 @@ export default function RoomDetailsPage() {
                   newSignerEmail={newSignerEmail}
                   isSubmittingSigner={isSubmittingSigner}
                   isRemovingSigner={isRemovingSigner}
+                  stateUpdater={stateUpdater}
                   onFetchRoomDetails={fetchRoomDetails}
                   onViewDocument={handleViewDocument}
                   onDownloadDocument={handleDownloadDocument}

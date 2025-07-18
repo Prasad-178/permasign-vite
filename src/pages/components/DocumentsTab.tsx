@@ -51,6 +51,9 @@ interface DocumentsTabProps {
   isSubmittingSigner: boolean;
   isRemovingSigner: string | null;
   
+  // State management
+  stateUpdater: any;
+  
   // Actions
   onFetchRoomDetails: () => void;
   onViewDocument: (documentId: string) => void;
@@ -111,6 +114,7 @@ export default function DocumentsTab({
   isSigningDoc,
   isSigningModalOpen,
   isRemovingSigner,
+  stateUpdater,
   onFetchRoomDetails,
   onViewDocument,
   onDownloadDocument,
@@ -352,6 +356,9 @@ export default function DocumentsTab({
             allowedUploadCategories={allowedUploadCategories}
             isViewingDoc={isViewingDoc}
             isDownloadingDoc={isDownloadingDoc}
+            currentUserEmail={currentUserEmail}
+            currentUserRole={currentUserRole}
+            stateUpdater={stateUpdater}
             onViewDocument={onViewDocument}
             onDownloadDocument={onDownloadDocument}
             onOpenUploadModal={onOpenUploadModal}

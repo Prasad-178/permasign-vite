@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2 } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
@@ -73,6 +73,14 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
   const handleAddDocType = async () => {
     if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
 
+    // Check for duplicate permissions
+    if (selectedRole.documentTypes.includes(newDocType.trim())) {
+      toast.error("Duplicate Permission", { 
+        description: `The "${newDocType.trim()}" permission already exists for the ${selectedRole.roleName} role.` 
+      });
+      return;
+    }
+
     setIsPermissionActionLoading(true);
     const result = await addRolePermissionClientAction({
       roomId: roomDetails.roomId,
@@ -99,6 +107,15 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
 
   const handleRemoveDocType = async (docType: string) => {
     if (!selectedRole || !currentUserEmail) return;
+
+    // Check if there are any documents of this type
+    const documentsOfType = roomDetails.documentDetails?.filter(doc => doc.category === docType) || [];
+    if (documentsOfType.length > 0) {
+      toast.error("Cannot Delete Permission", { 
+        description: `Cannot remove "${docType}" permission because ${documentsOfType.length} document(s) of this type exist. Please delete the documents first.` 
+      });
+      return;
+    }
 
     setIsPermissionActionLoading(true);
     const result = await removeRolePermissionClientAction({
@@ -307,7 +324,16 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
                                 <div className="space-y-4">
                                     <Label>Add a new document type this role can upload:</Label>
                                     <div className="flex space-x-2">
-                                        <Input placeholder="e.g. Pitch Deck, NDA..." value={newDocType} onChange={(e) => setNewDocType(e.target.value)} />
+                                        <Input 
+                                          placeholder="e.g. Pitch Deck, NDA..." 
+                                          value={newDocType} 
+                                          onChange={(e) => setNewDocType(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleAddDocType();
+                                            }
+                                          }}
+                                        />
                                         <Button onClick={handleAddDocType} disabled={isPermissionActionLoading || !newDocType.trim()}>
                                             {isPermissionActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
                                         </Button>
@@ -316,14 +342,29 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
                                         <h4 className="text-sm font-medium mb-3">Allowed Document Types:</h4>
                                         {selectedRole.documentTypes.length > 0 ? (
                                             <div className="flex flex-wrap gap-2">
-                                                {selectedRole.documentTypes.map(docType => (
-                                                    <UiBadge key={docType} variant="secondary" className="text-base">
+                                                {selectedRole.documentTypes.map(docType => {
+                                                  const documentsOfType = roomDetails.documentDetails?.filter(doc => doc.category === docType) || [];
+                                                  const canDelete = documentsOfType.length === 0;
+                                                  
+                                                  return (
+                                                    <UiBadge key={docType} variant="secondary" className="text-base flex items-center gap-1">
                                                         {docType}
-                                                        <button onClick={() => handleRemoveDocType(docType)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5" disabled={isPermissionActionLoading}>
+                                                        {documentsOfType.length > 0 && (
+                                                          <span title={`Protected - ${documentsOfType.length} document(s) exist`}>
+                                                            <Lock className="h-3 w-3 text-muted-foreground/60" />
+                                                          </span>
+                                                        )}
+                                                        <button 
+                                                          onClick={() => handleRemoveDocType(docType)} 
+                                                          className={`ml-1 rounded-full p-0.5 ${canDelete ? 'hover:bg-destructive/20' : 'opacity-50 cursor-not-allowed'}`}
+                                                          disabled={isPermissionActionLoading || !canDelete}
+                                                          title={canDelete ? `Remove ${docType} permission` : `Cannot remove - ${documentsOfType.length} document(s) exist`}
+                                                        >
                                                             <X className="h-3 w-3" />
                                                         </button>
                                                     </UiBadge>
-                                                ))}
+                                                  );
+                                                })}
                                             </div>
                                         ) : (<p className="text-sm text-muted-foreground text-center py-8">No document types assigned.</p>)}
                                     </div>
