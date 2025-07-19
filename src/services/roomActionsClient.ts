@@ -954,45 +954,7 @@ export async function removeSignerFromDocumentClientAction(
   }
 }
 
-/**
- * Fetches the list of available room templates.
- */
-export async function listTemplatesAction(): Promise<ActionResult<Template[]>> {
-    console.log(`Client Service: Fetching templates from ${effectiveApiRoot}${API_BASE_PATH}/list-templates`);
 
-    try {
-        const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/list-templates`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-        });
-
-        const responseData: ActionResult<Template[]> = await response.json();
-
-        if (!response.ok) {
-            console.error("API error response fetching templates:", response.status, responseData);
-            return {
-                success: false,
-                error: responseData?.error || `API request failed with status ${response.status}`,
-                message: responseData?.message || `Failed to fetch templates. Server responded with ${response.status}.`,
-                data: responseData?.data || [],
-            };
-        }
-
-        console.log("Client Service: Templates fetched successfully:", responseData);
-        return responseData;
-
-    } catch (error: any) {
-        console.error("Client Service: Error in listTemplatesAction fetch call:", error);
-        return {
-            success: false,
-            message: "Failed to list templates due to a network or client-side error.",
-            error: error.message || "An unexpected error occurred while trying to contact the server.",
-            data: [],
-        };
-    }
-}
 
 /**
  * Creates a new room from a template by calling the external API.

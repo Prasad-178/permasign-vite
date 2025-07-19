@@ -378,6 +378,8 @@ export interface CreateRoomFromTemplateInput {
   roomName: string;
   ownerEmail: string;
   templateName: string;
+  roles: string[];
+  permissions: { [role: string]: string[] };
   roomPublicKeyPem: string;
   roomPrivateKeyPem: string;
 }
