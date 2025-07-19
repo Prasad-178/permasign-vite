@@ -1,4 +1,4 @@
-import { BadgeInfo, BadgeDollarSign } from "lucide-react";
+import { BadgeInfo } from "lucide-react";
 
 interface UserPlanBadgeProps {
   userPlan: string | null;
@@ -7,6 +7,7 @@ interface UserPlanBadgeProps {
 }
 
 export default function UserPlanBadge({ userPlan, currentUserEmail, currentUserRole }: UserPlanBadgeProps) {
+  if (userPlan) {}
   return (
     <div className="flex flex-col items-end space-y-1">
       {currentUserEmail && (

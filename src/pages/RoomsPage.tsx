@@ -101,7 +101,7 @@ export default function RoomsPage() {
             <DialogHeader>
               <DialogTitle className="text-2xl">Create a New Secure Company</DialogTitle>
               <DialogDescription className="text-base">
-                Choose a starting point for your new company space. Using a template is recommended for a faster setup.
+                Choose a starting point for your new company space. You can use a pre-defined template, generate one with AI, or start from scratch.
               </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">

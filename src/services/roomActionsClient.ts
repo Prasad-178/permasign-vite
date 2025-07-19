@@ -1046,3 +1046,47 @@ export async function getRoomActivityLogsClientAction(
   }
 }
 
+/**
+ * Client-side function to generate an AI-powered template.
+ * @param prompt The user's prompt for template generation.
+ * @returns A Promise resolving to an ActionResult containing the generated Template.
+ */
+export async function generateAITemplateAction(
+  prompt: string
+): Promise<ActionResult<Template>> {
+  console.log(`Client Service: Generating AI template with prompt: "${prompt}"`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/generate-ai-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
+    const responseData: ActionResult<Template> = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during AI template generation:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to generate AI template.",
+      };
+    }
+
+    console.log("Client Service: AI template generation successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in generateAITemplateAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to generate AI template due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+

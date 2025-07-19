@@ -25,6 +25,7 @@ const footerSections: FooterSection[] = [
         title: 'Company',
         links: [
             { label: 'Our Team', href: '/team' },
+            { label: 'Changelog', href: '/changelog' },
         ],
     },
     {

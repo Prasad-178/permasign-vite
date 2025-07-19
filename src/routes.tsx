@@ -7,11 +7,16 @@ import TemplatesPage from "./pages/TemplatesPage";
 import EncryptionExplainedPage from "./pages/EncryptionExplainedPage";
 import TeamPage from "./pages/TeamPage";
 import AdminPage from "./pages/AdminPage.tsx";
+import ChangelogPage from "./pages/ChangelogPage";
 
 const routes: RouteObject[] = [
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/changelog",
+    element: <ChangelogPage />,
   },
   {
     path: "/companies",

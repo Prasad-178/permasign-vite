@@ -62,5 +62,27 @@ export const templates: { [name: string]: Template } = {
           "Patent Attorney": ["Prior Art Search Report", "Office Action Response"],
           "Licensee": ["Licensing Agreement", "Royalty Statement"]
       }
+  },
+  "DAO Governance": {
+    name: "DAO Governance",
+    description: "A template for DAOs to manage proposals, voting, and treasury operations.",
+    roles: ["Core Contributor", "Token Holder", "Treasury Council"],
+    permissions: {
+        "founder": ["DAO Charter", "Governance Framework", "Initial Treasury Allocation"],
+        "Core Contributor": ["Improvement Proposals", "Project Milestones", "Contributor Agreements"],
+        "Token Holder": ["Voting Records", "Snapshot Proposals"],
+        "Treasury Council": ["Treasury-related Financial Statements", "Approved Budgets", "Grant Agreements"]
+    }
+  },
+  "Web3 Grants Program": {
+      name: "Web3 Grants Program",
+      description: "Manage grant applications, reviews, and milestone approvals for a Web3 ecosystem.",
+      roles: ["Grantee", "Review Committee", "Finance Team"],
+      permissions: {
+          "founder": ["Grants Program Policy", "Budget Allocation", "Committee Mandate"],
+          "Grantee": ["Grant Application", "Milestone Reports", "Proof of Completion"],
+          "Review Committee": ["Application Reviews", "Voting on Grants", "Feedback Forms"],
+          "Finance Team": ["Payment Confirmations", "Fund-related Financial Statements"]
+      }
   }
 };
