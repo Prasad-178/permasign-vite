@@ -1,5 +1,5 @@
 import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles, type RoomLog } from '../types/types';
-import { getRoomActivityLogsClientAction } from '../services/roomActionsClient';
+import { useMemo } from 'react';
 
 // Type for state update functions
 export type RoomStateUpdater = {
@@ -14,7 +14,7 @@ export type RoomStateUpdater = {
   updateRolePermissions: (roleName: string, newDocumentTypes: string[]) => void;
   addSignerToDocument: (documentId: string, signerEmail: string, roleToSign: string) => void;
   removeSignerFromDocument: (documentId: string, signerEmail: string) => void;
-  refreshLogs: () => Promise<void>;
+  addLog: (actor: string, message: string) => void;
 };
 
 // Create state updater functions
@@ -192,39 +192,16 @@ export function createRoomStateUpdater(
     );
   };
 
-  const refreshLogs = async (): Promise<void> => {
-    if (!roomDetails?.roomId || !currentUserEmail) {
-      console.warn('Cannot refresh logs: missing roomId or currentUserEmail');
-      return;
-    }
+  const addLog = (actor: string, message: string) => {
+    if (!roomDetails) return;
 
-    try {
-      console.log('Refreshing room activity logs...');
-      const result = await getRoomActivityLogsClientAction(roomDetails.roomId, currentUserEmail, 1);
-      
-      if (result.success && result.data) {
-        // Convert backend log format to frontend format
-        const formattedLogs: RoomLog[] = result.data.logs.map(log => ({
-          timestamp: log.timestamp,
-          actor: log.actor,
-          message: log.message
-        }));
-
-        setRoomDetails(prevRoom => {
-          if (!prevRoom) return prevRoom;
-          return {
-            ...prevRoom,
-            activityLogs: formattedLogs
-          };
-        });
-        
-        console.log(`Successfully refreshed ${formattedLogs.length} activity logs`);
-      } else {
-        console.error('Failed to refresh logs:', result.error || result.message);
-      }
-    } catch (error) {
-      console.error('Error refreshing logs:', error);
-    }
+    setRoomDetails(prevRoom => {
+      if (!prevRoom) return prevRoom;
+      return {
+        ...prevRoom,
+        activityLogs: [{ timestamp: Date.now().toString(), actor, message }, ...prevRoom.activityLogs]
+      };
+    });
   };
 
   return {
@@ -239,7 +216,7 @@ export function createRoomStateUpdater(
     updateRolePermissions,
     addSignerToDocument,
     removeSignerFromDocument,
-    refreshLogs
+    addLog
   };
 }
 
@@ -251,5 +228,5 @@ export function useRoomStateUpdater(
   setDocuments: React.Dispatch<React.SetStateAction<DocumentInfo[]>>,
   currentUserEmail: string | null
 ): RoomStateUpdater {
-  return createRoomStateUpdater(roomDetails, setRoomDetails, documents, setDocuments, currentUserEmail);
+  return useMemo(() => createRoomStateUpdater(roomDetails, setRoomDetails, documents, setDocuments, currentUserEmail), [roomDetails, setRoomDetails, documents, setDocuments, currentUserEmail]);
 } 

@@ -87,7 +87,7 @@ export default function DocumentDetailsPane({
                 const hasSigned = signerRecord.signed === "true";
 
                 return (
-                  <div key={`${signerRecord.emailToSign}-${index}`} className="border rounded-lg p-3 bg-muted/20">
+                  <div key={`${selectedDocument.documentId}-${signerRecord.emailToSign}-${signerRecord.roleToSign}`} className="border rounded-lg p-3 bg-muted/20">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

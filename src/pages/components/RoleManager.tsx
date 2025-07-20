@@ -60,15 +60,14 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
             isDeletable: true
           };
           stateUpdater.addRole(newRole);
+          stateUpdater.addLog(currentUserEmail!, `Created the custom role '${newRoleName.trim()}'.`);
           setNewRoleName("");
-          // Refresh logs to show the activity
-          stateUpdater.refreshLogs();
         }
       } else {
         toast.error("Failed to Add Role", { description: addRoleState.error || addRoleState.message });
       }
     }
-  }, [addRoleState, newRoleName, stateUpdater]);
+  }, [addRoleState, newRoleName, currentUserEmail]);
 
   const handleAddDocType = async () => {
     if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
@@ -97,8 +96,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
       stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
       // Update the selected role for the modal
       setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
-      // Refresh logs to show the activity
-      stateUpdater.refreshLogs();
+      // Add log entry for the activity
+      stateUpdater.addLog(currentUserEmail!, `Gave the '${selectedRole.roleName}' role permission to upload '${newDocType.trim()}' documents.`);
     } else {
       toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -131,8 +130,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
       stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
       // Update the selected role for the modal
       setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
-      // Refresh logs to show the activity
-      stateUpdater.refreshLogs();
+      // Add log entry for the activity
+      stateUpdater.addLog(currentUserEmail!, `Removed the '${selectedRole.roleName}' role permission to upload '${docType}' documents.`);
     } else {
       toast.error("Failed to Remove Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -158,8 +157,8 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
         toast.success("Role Deleted", { description: result.message || `Role "${roleToDelete}" has been deleted.` });
         // Update local state instead of full refresh
         stateUpdater.removeRole(roleToDelete);
-        // Refresh logs to show the activity
-        stateUpdater.refreshLogs();
+        // Add log entry for the activity
+        stateUpdater.addLog(currentUserEmail!, `Deleted the role '${roleToDelete}'.`);
       } else {
         toast.error("Failed to Delete Role", { description: result.error || result.message || "An unknown error occurred." });
       }

@@ -76,13 +76,6 @@ export default function RoomDetailsPage() {
     null
   );
 
-  if (addMemberState || removeMemberState) {}
-  if (typeof setIsAddMemberModalOpen === 'function') {}
-
-  useEffect(() => {
-
-  }, [isUploadPending, isAddMemberPending, isRemoveMemberPending, addMemberFormAction, removeMemberFormAction, isAddMemberModalOpen])
-
   const [selectedDocument, setSelectedDocument] = useState<RoomDocument | null>(null);
   const [viewerDocuments, setViewerDocuments] = useState<any[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -274,12 +267,13 @@ export default function RoomDetailsPage() {
           description: uploadState.message,
           action: uploadState.arweaveTx?.contentTxId ? { label: "View Content Tx", onClick: () => window.open(`https://viewblock.io/arweave/tx/${uploadState.arweaveTx!.contentTxId}`, '_blank') } : undefined,
         });
+        // Add log entry for the upload activity
+        const filename = selectedFile?.name || 'a document';
+        stateUpdater.addLog(currentUserEmail!, `Document '${filename}' was uploaded.`);
         setIsUploadModalOpen(false);
         setSelectedFile(null);
         setFileError(null);
         if (uploadFormRef.current) uploadFormRef.current.reset();
-        // Refresh logs to show the upload activity
-        stateUpdater.refreshLogs();
         fetchRoomDetails();
       } else {
         toast.error("Upload Failed", {
@@ -551,7 +545,7 @@ export default function RoomDetailsPage() {
                         {roomDetails.activityLogs && roomDetails.activityLogs.length > 0 ? (
                           <div className="font-mono text-xs text-muted-foreground space-y-2">
                             {roomDetails.activityLogs.map((log, index) => (
-                              <div key={index} className="flex items-start gap-x-4 p-2 hover:bg-muted/50 rounded-md">
+                              <div key={`${log.timestamp}-${log.actor}-${index}`} className="flex items-start gap-x-4 p-2 hover:bg-muted/50 rounded-md">
                                 <span className="w-40 flex-shrink-0">{new Date(parseInt(log.timestamp)).toLocaleString()}</span>
                                 <span className="font-medium w-48 flex-shrink-0 text-foreground">{log.actor}</span>
                                 <span className="whitespace-pre-wrap">{log.message}</span>

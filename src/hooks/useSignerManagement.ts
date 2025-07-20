@@ -119,8 +119,10 @@ export function useSignerManagement({
           if (!existingMember) {
             stateUpdater.addMember({ userEmail: newSignerEmail, role: "member" });
           }
-          // Refresh logs to show the activity
-          stateUpdater.refreshLogs();
+          // Add log entry for the activity
+          const document = documents.find(doc => doc.documentId === addSignerDocDetails.documentId);
+          const documentName = document?.originalFilename || 'a document';
+          stateUpdater.addLog(currentUserEmail!, `Added ${newSignerEmail} as a signer for document '${documentName}'.`);
           // Invalidate cache since document signer list has changed
           documentCache.invalidate(addSignerDocDetails.documentId);
           console.log(`[DocumentCache] Invalidated cache for document ${addSignerDocDetails.documentId} after adding signer`);
@@ -134,7 +136,7 @@ export function useSignerManagement({
     } finally {
       setIsSubmittingSigner(false);
     }
-  }, [addSignerDocDetails, newSignerEmail, currentUserEmail, roomId, currentUserRole, stateUpdater, documentCache]);
+  }, [addSignerDocDetails, newSignerEmail, currentUserEmail, roomId, currentUserRole, documentCache, documents]);
 
   const handleRemoveSignerFromDocument = useCallback(async (documentId: string, signerRecord: { emailToSign: string, signed: string }) => {
     if (!currentUserEmail) {
@@ -169,8 +171,10 @@ export function useSignerManagement({
         toast.success("Signer Removed", { id: toastId, description: result.message });
         // Remove signer from state instead of full reload
         stateUpdater.removeSignerFromDocument(documentId, signerRecord.emailToSign);
-        // Refresh logs to show the activity
-        stateUpdater.refreshLogs();
+        // Add log entry for the activity
+        const document = documents.find(doc => doc.documentId === documentId);
+        const documentName = document?.originalFilename || 'a document';
+        stateUpdater.addLog(currentUserEmail!, `Removed ${signerRecord.emailToSign} as a signer for document '${documentName}'.`);
         // Invalidate cache since document signer list has changed
         documentCache.invalidate(documentId);
         console.log(`[DocumentCache] Invalidated cache for document ${documentId} after removing signer`);
@@ -182,7 +186,7 @@ export function useSignerManagement({
     } finally {
       setIsRemovingSigner(null);
     }
-  }, [currentUserEmail, roomId, roomDetails?.ownerEmail, stateUpdater, documentCache]);
+  }, [currentUserEmail, roomId, roomDetails?.ownerEmail, documentCache, documents]);
 
   // Initialize signers with room owner when upload modal opens
   const initializeSigners = useCallback(() => {

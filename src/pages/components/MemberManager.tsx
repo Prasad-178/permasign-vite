@@ -65,16 +65,23 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
         if (state.success) {
           toast.success(`${actionType} Successful`, { description: state.message });
           if (actionType === "Add Member") {
+            // Capture values before clearing them to prevent race condition
+            const emailToAdd = newMemberEmail;
+            const roleToAdd = newMemberRole;
+            
             setIsAddMemberModalOpen(false);
             if (addMemberFormRef.current) addMemberFormRef.current.reset();
-            // Add member to state directly
-            stateUpdater.addMember({ userEmail: newMemberEmail, role: newMemberRole });
-            stateUpdater.refreshLogs();
             setNewMemberEmail("");
             setNewMemberRole("");
+            
+            // Add member to state using captured values
+            if (emailToAdd && roleToAdd) {
+              stateUpdater.addMember({ userEmail: emailToAdd, role: roleToAdd });
+              stateUpdater.addLog(currentUserEmail!, `Added ${emailToAdd} to the company as a ${roleToAdd}.`);
+            }
           } else if (actionType === "Remove Member" && email) {
             stateUpdater.removeMember(email);
-            stateUpdater.refreshLogs();
+            stateUpdater.addLog(currentUserEmail!, `Removed ${email} from the company.`);
             setMemberToRemove(null); // Clear the member being removed
           }
         } else {
@@ -94,7 +101,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
     if (memberToRemove) {
       handleMemberActionResult(removeMemberState, "Remove Member", memberToRemove);
     }
-  }, [addMemberState, removeMemberState, stateUpdater, memberToRemove]);
+  }, [addMemberState, removeMemberState, memberToRemove, currentUserEmail]);
 
   useEffect(() => {
     if (updateRoleState) {
@@ -102,10 +109,10 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
         toast.success("Role Updated", { description: updateRoleState.message });
         if (memberToUpdate) {
           stateUpdater.updateMemberRole(memberToUpdate.email, newRole);
+          stateUpdater.addLog(currentUserEmail!, `Updated ${memberToUpdate.email}'s role to ${newRole}.`);
         }
         setMemberToUpdate(null);
         if (updateRoleFormRef.current) updateRoleFormRef.current.reset();
-        stateUpdater.refreshLogs();
       } else {
         toast.error("Failed to update role", {
           description: updateRoleState.error || updateRoleState.message || "An unknown error occurred.",
@@ -113,7 +120,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
         });
       }
     }
-  }, [updateRoleState, memberToUpdate, newRole, stateUpdater]);
+  }, [updateRoleState, memberToUpdate, newRole, currentUserEmail]);
 
   const currentUserRole = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role;
   const isFounder = currentUserRole === 'founder';

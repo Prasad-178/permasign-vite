@@ -102,8 +102,8 @@ export default function AllDocumentsPane({
           stateUpdater.updateRolePermissions(roleName, updatedDocTypes);
         }
         
-        // Refresh logs to show the activity
-        stateUpdater.refreshLogs();
+        // Add log entry for the activity
+        stateUpdater.addLog(currentUserEmail!, `Gave the '${roleName}' role permission to upload '${newPermissionInput.trim()}' documents.`);
       } else {
         toast.error("Failed to Add Permission", { 
           description: result.error || result.message || "Could not add permission to role." 
@@ -143,8 +143,8 @@ export default function AllDocumentsPane({
         });
         
         // Update state using stateUpdater
-        await stateUpdater.refreshRoomDetails();
-        await stateUpdater.refreshLogs();
+        stateUpdater.removeRole(roleToDelete);
+        stateUpdater.addLog(currentUserEmail!, `Deleted the role '${roleToDelete}'.`);
       } else {
         toast.error("Failed to Delete Role", { 
           description: result.error || result.message || "Could not delete role." 

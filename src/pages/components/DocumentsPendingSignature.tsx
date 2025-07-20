@@ -228,7 +228,7 @@ export default function DocumentsPendingSignature({
                         const removalKey = `${doc.documentId}-${signer.email}`;
 
                         return (
-                          <tr key={`${signer.email}-${index}`} className="hover:bg-muted/10">
+                          <tr key={`${doc.documentId}-${signer.email}-${signer.role}`} className="hover:bg-muted/10">
                             <td className="p-2 text-sm">
                               {signer.email}
                               {isCurrentUserSigner && <span className="ml-1 text-xs text-muted-foreground">(You)</span>}

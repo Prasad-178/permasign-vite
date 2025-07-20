@@ -269,8 +269,10 @@ export function useDocumentOperations({
         console.log("Signing successful for:", documentId);
         // Update signature status in state instead of full reload
         stateUpdater.updateDocumentSignature(documentId, currentUserEmail, hexSignature, Date.now());
-        // Refresh logs to show the signing activity
-        stateUpdater.refreshLogs();
+        // Add log entry for the signing activity
+        const document = documents.find(doc => doc.documentId === documentId);
+        const documentName = document?.originalFilename || 'a document';
+        stateUpdater.addLog(currentUserEmail, `Signed the document '${documentName}'.`);
         // Invalidate cache since document now has a new signature
         documentCache.invalidate(documentId);
         console.log(`[DocumentCache] Invalidated cache for document ${documentId} after signing`);
@@ -286,7 +288,7 @@ export function useDocumentOperations({
       console.log(`Clearing isSigningDoc state (was: ${documentId})`);
       setIsSigningDoc(null);
     }
-  }, [isSigningDoc, currentUserEmail, currentUserRole, roomDetails?.roomId, api, stateUpdater, documentCache]);
+  }, [isSigningDoc, currentUserEmail, currentUserRole, roomDetails?.roomId, api, documentCache, documents]);
 
   return {
     isViewingDoc,
