@@ -6,6 +6,7 @@ import { PricingSection } from "../components/landing/PricingSection";
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AppFooter from "../components/AppFooter";
+import { StatisticsTab } from "../components/landing/StatisticsTab";
 
 export default function Home() {
     const location = useLocation();
@@ -37,6 +38,7 @@ export default function Home() {
             <main className="flex-1 w-full">
                 <HeroSection />
                 <FeaturesSection />
+                <StatisticsTab />
                 <HowItWorksSection />
                 <SecuritySection />
                 <PricingSection />
