@@ -275,6 +275,8 @@ export async function addMemberFormAdapter(
     callerEmail: formData.get("callerEmail") as string,
     newUserEmail: formData.get("newUserEmail") as string,
     newUserRole: formData.get("newUserRole") as RoomRole,
+    roomName: formData.get("roomName") as string,
+    companyName: formData.get("companyName") as string,
   };
 
   // Basic client-side validation matching the original server action (optional here, as API will validate)

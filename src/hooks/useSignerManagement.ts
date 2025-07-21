@@ -9,7 +9,8 @@ import {
   type AddSignerToDocumentInput,
   type RemoveSignerFromDocumentInput,
   type ModifySignerResult,
-  type DocumentInfo
+  type DocumentInfo,
+  companyName
 } from '../types/types';
 
 interface UseSignerManagementProps {
@@ -96,12 +97,16 @@ export function useSignerManagement({
 
     setIsSubmittingSigner(true);
     const toastId = toast.loading("Adding signer...");
+    const document = documents.find(doc => doc.documentId === addSignerDocDetails.documentId);
 
     const input: AddSignerToDocumentInput = {
       roomId,
       documentId: addSignerDocDetails.documentId,
       callerEmail: currentUserEmail,
       signerEmail: newSignerEmail,
+      roomName: roomDetails.roomName,
+      companyName,
+      documentName: document?.originalFilename || 'a document',
     };
 
     try {
@@ -120,7 +125,6 @@ export function useSignerManagement({
             stateUpdater.addMember({ userEmail: newSignerEmail, role: "member" });
           }
           // Add log entry for the activity
-          const document = documents.find(doc => doc.documentId === addSignerDocDetails.documentId);
           const documentName = document?.originalFilename || 'a document';
           stateUpdater.addLog(currentUserEmail!, `Added ${newSignerEmail} as a signer for document '${documentName}'.`);
           // Invalidate cache since document signer list has changed
@@ -157,12 +161,16 @@ export function useSignerManagement({
     const removalKey = `${documentId}-${signerRecord.emailToSign}`;
     setIsRemovingSigner(removalKey);
     const toastId = toast.loading(`Removing ${signerRecord.emailToSign}...`);
+    const document = documents.find(doc => doc.documentId === documentId);
 
     const input: RemoveSignerFromDocumentInput = {
       roomId,
       documentId,
       callerEmail: currentUserEmail,
       signerEmailToRemove: signerRecord.emailToSign,
+      roomName: roomDetails.roomName,
+      companyName,
+      documentName: document?.originalFilename || 'a document',
     };
 
     try {
@@ -172,7 +180,6 @@ export function useSignerManagement({
         // Remove signer from state instead of full reload
         stateUpdater.removeSignerFromDocument(documentId, signerRecord.emailToSign);
         // Add log entry for the activity
-        const document = documents.find(doc => doc.documentId === documentId);
         const documentName = document?.originalFilename || 'a document';
         stateUpdater.addLog(currentUserEmail!, `Removed ${signerRecord.emailToSign} as a signer for document '${documentName}'.`);
         // Invalidate cache since document signer list has changed

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useActionState } from "react";
-import { type RoomDetails, type ModifyMemberResult, type UpdateMemberRoleResult } from "../../types/types";
+import { type RoomDetails, type ModifyMemberResult, type UpdateMemberRoleResult, companyName } from "../../types/types";
 import { type RoomStateUpdater } from "../../utils/roomStateUpdater";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -177,6 +177,8 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
               <form ref={addMemberFormRef} action={addMemberFormAction}>
                 <input type="hidden" name="roomId" value={roomDetails.roomId} />
                 <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
+                <input type="hidden" name="roomName" value={roomDetails.roomName} />
+                <input type="hidden" name="companyName" value={companyName} />
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="newUserEmail" className="text-right">Email</Label>

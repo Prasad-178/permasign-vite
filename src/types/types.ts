@@ -17,6 +17,9 @@ export type AddSignerToDocumentInput = {
   documentId: string;
   callerEmail: string;
   signerEmail: string;
+  roomName: string;
+  companyName: string;
+  documentName: string;
 };
 
 export type RemoveSignerFromDocumentInput = {
@@ -24,6 +27,9 @@ export type RemoveSignerFromDocumentInput = {
   documentId: string;
   callerEmail: string;
   signerEmailToRemove: string;
+  roomName: string;
+  companyName: string;
+  documentName: string;
 };
 
 export type ModifySignerResult = {
@@ -261,6 +267,8 @@ export interface AddMemberInput {
   callerEmail: string;
   newUserEmail: string;
   newUserRole: RoomRole;
+  roomName: string;
+  companyName: string;
 }
 
 // Input for the remove member action
@@ -522,3 +530,44 @@ export interface GetAdminLogsResult {
   page: number;
   limit: number;
 }
+
+
+export interface AdminLogsResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: GetAdminLogsResult;
+  messageId?: string;
+}
+
+export interface ChangelogEntry {
+  version: string;
+  date: string;
+  changes: {
+    type: 'feature' | 'fix' | 'improvement' | 'refactor' | 'chore';
+    description: string;
+  }[];
+}
+
+export const changelogData: ChangelogEntry[] = [
+  {
+    version: "1.0.0",
+    date: "2024-07-12",
+    changes: [
+      { type: 'feature', description: "Initial release of PermaSign with core document signing and room management." },
+      { type: 'feature', description: "Secure, end-to-end encrypted document storage on Arweave." },
+      { type: 'feature', description: "Role-based access control for room members." },
+    ],
+  },
+  {
+    version: "1.1.0",
+    date: "2024-07-19",
+    changes: [
+      { type: 'feature', description: "Introduced AI-powered document analysis and chat." },
+      { type: 'improvement', description: "Enhanced UI for a more intuitive user experience." },
+      { type: 'fix', description: "Addressed various bugs related to document uploads and signing." },
+    ],
+  },
+];
+
+export const companyName = "PermaSign";
