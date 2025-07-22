@@ -4,9 +4,9 @@ import { Button } from "../ui/button"
 import { Link } from "react-router-dom"
 
 const securityFeatures = [
-  "End-to-end document encryption (AES-256-GCM)",
-  "Master key protection via Google Cloud KMS",
-  "Immutable, permanent storage on the Arweave blockchain",
+  "End-to-end document encryption",
+  "Master key protection",
+  "Immutable, permanent storage on the blockchain",
   "On-chain, verifiable audit trails for all actions",
   "Secure, role-based access control for team members",
   "Cryptographically secure signatures via Arweave wallets",

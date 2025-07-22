@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import ChangelogTimeline from '../components/ChangelogTimeline';
+import ScrollToTop from '../components/ScrollToTop';
 
 const changelogEntries = [
     {
-        version: "0.8.0",
-        date: "July 19, 2025",
+        version: "0.9.0",
+        date: "July 23, 2025",
         title: "Major UI/UX and Functionality Rehaul",
         features: [
             "Create templates with AI: Generate a complete set of roles and document types for your company by simply describing your use case.",
@@ -15,7 +16,8 @@ const changelogEntries = [
             "Complete redesign of the user interface for a more intuitive and modern experience.",
             "Fixed numerous bugs related to modals and document previews.",
             "Refactored the navigation bar and home page for better clarity.",
-            "Overhauled state management to eliminate page reloads on user operations."
+            "Overhauled state management to eliminate page reloads on user operations.",
+            "Ability to customize templates before creating a room."
         ]
     },
     {
@@ -118,6 +120,7 @@ export default function ChangelogPage() {
 
     return (
         <div className="container mx-auto max-w-4xl py-12 px-4">
+            <ScrollToTop />
             <h1 className="text-4xl font-bold tracking-tighter text-center mb-10">PermaSign Changelog</h1>
             <ChangelogTimeline entries={changelogEntries} />
         </div>

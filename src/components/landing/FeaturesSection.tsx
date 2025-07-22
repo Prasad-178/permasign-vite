@@ -5,17 +5,17 @@ const features = [
   {
     icon: <Lock className="h-8 w-8 text-primary" />,
     title: "Immutable Records",
-    description: "Documents stored on Arweave are permanent and tamper-proof, providing a verifiable, single source of truth.",
+    description: "Documents stored on PermaSign are untouchable and tamper-proof.",
   },
   {
     icon: <Shield className="h-8 w-8 text-primary" />,
     title: "Enterprise-Grade Security",
-    description: "End-to-end encryption combined with Google Cloud KMS ensures your sensitive documents are always protected.",
+    description: "End-to-end encryption ensures your sensitive documents are always protected.",
   },
   {
     icon: <Users className="h-8 w-8 text-primary" />,
     title: "Secure Collaboration",
-    description: "Invite members, define roles, and manage permissions in a secure, auditable environment.",
+    description: "Invite members and define roles in a secure, auditable environment.",
   },
   {
     icon: <Zap className="h-8 w-8 text-primary" />,
@@ -25,7 +25,7 @@ const features = [
   {
     icon: <Clock className="h-8 w-8 text-primary" />,
     title: "Permanent Audit Trail",
-    description: "Every action is recorded on-chain, creating a permanent and transparent audit trail for compliance.",
+    description: "Every action is recorded permanently, creating a transparent audit trail for compliance.",
   },
   {
     icon: <Globe className="h-8 w-8 text-primary" />,

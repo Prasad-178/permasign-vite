@@ -9,8 +9,8 @@ const steps = [
   },
   {
     icon: <Users className="h-8 w-8 text-primary" />,
-    title: "2. Invite Members & Set Roles",
-    description: "Invite team members, investors, or legal counsel to the room. Assign roles with specific permissions to control who can view or sign documents.",
+    title: "2. Invite Signers & Set Roles",
+    description: "Invite team members, investors, or legal counsel to the room. Assign roles with specific permissions to control who can upload or sign documents.",
   },
   {
     icon: <PenSquare className="h-8 w-8 text-primary" />,
@@ -20,7 +20,7 @@ const steps = [
   {
     icon: <ShieldCheck className="h-8 w-8 text-primary" />,
     title: "4. Permanent, Auditable Storage",
-    description: "Once signed, the document is permanently stored on Arweave. A complete, unchangeable audit trail is available for compliance and verification.",
+    description: "Once signed, the document and the signature are permanently stored. A complete, unchangeable audit trail is available for compliance and verification.",
   },
 ]
 
