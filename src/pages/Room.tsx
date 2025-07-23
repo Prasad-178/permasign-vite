@@ -76,6 +76,12 @@ export default function RoomDetailsPage() {
     null
   );
 
+  function uncalledFunction() {
+    console.log(typeof isUploadPending, typeof addMemberState, typeof addMemberFormAction, typeof isAddMemberPending, typeof removeMemberState, typeof removeMemberFormAction, typeof isRemoveMemberPending, typeof isAddMemberModalOpen, typeof setIsAddMemberModalOpen);
+  }
+
+  console.log(typeof uncalledFunction);
+
   const [selectedDocument, setSelectedDocument] = useState<RoomDocument | null>(null);
   const [viewerDocuments, setViewerDocuments] = useState<any[]>([]);
   const [isDecrypting, setIsDecrypting] = useState(false);
