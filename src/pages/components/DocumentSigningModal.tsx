@@ -146,11 +146,16 @@ export default function DocumentSigningModal({
                   </Label>
                   <Input
                     id="signer-name"
+                    name="signer-display-name"
                     value={signerName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setSignerName(e.target.value)}
                     placeholder="Type your full name here"
                     className="w-full"
                     disabled={isSigning}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                 </div>
                 
@@ -171,7 +176,16 @@ export default function DocumentSigningModal({
             
             <div className="mt-auto">
               <p className="text-xs text-muted-foreground mb-4">
-                By clicking &quot;PermaSign Document&quot;, you confirm that you have reviewed the document and agree to sign it electronically. This digital signature will be cryptographically linked to your wallet and this document on the Arweave blockchain.
+                By clicking &quot;PermaSign Document&quot;, you confirm that you have reviewed the document and agree to sign it electronically. Learn more about our{" "}
+                <a 
+                  href="/#/security" 
+                  className="text-blue-600 hover:text-blue-800 underline hover:no-underline font-medium"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  security process
+                </a>
+                .
               </p>
               
               <Button 

@@ -3,12 +3,13 @@
 
 import { useActionState, useRef, useState, useEffect } from "react";
 import { type RoomDetails, type ModifyRoleResult, type RoomRoles } from "../../types/types";
+import { type RoomStateUpdater } from "../../utils/roomStateUpdater";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2 } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
@@ -18,7 +19,8 @@ import { Badge as UiBadge } from "../../components/ui/badge";
 interface RoleManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
-  fetchRoomDetails: () => void;
+  // fetchRoomDetails: () => void;
+  stateUpdater: RoomStateUpdater;
 }
 
 const getRoleIcon = (roleName: string) => {
@@ -27,7 +29,7 @@ const getRoleIcon = (roleName: string) => {
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
 
-export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDetails }: RoleManagerProps) {
+export default function RoleManager({ roomDetails, currentUserEmail, stateUpdater }: RoleManagerProps) {
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
   const addRoleFormRef = useRef<HTMLFormElement>(null);
 
@@ -40,6 +42,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
 
   const [addRoleState, addRoleFormAction] = useActionState<ModifyRoleResult | null, FormData>(addRoleFormAdapter, null);
 
@@ -49,15 +52,33 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
         toast.success("Role Action Successful", { description: addRoleState.message });
         setIsAddRoleModalOpen(false);
         addRoleFormRef.current?.reset();
-        fetchRoomDetails();
+        // Add the new role to local state
+        if (newRoleName.trim()) {
+          const newRole: RoomRoles = {
+            roleName: newRoleName.trim(),
+            documentTypes: [],
+            isDeletable: true
+          };
+          stateUpdater.addRole(newRole);
+          stateUpdater.addLog(currentUserEmail!, `Created the custom role '${newRoleName.trim()}'.`);
+          setNewRoleName("");
+        }
       } else {
         toast.error("Failed to Add Role", { description: addRoleState.error || addRoleState.message });
       }
     }
-  }, [addRoleState, fetchRoomDetails]);
+  }, [addRoleState, newRoleName, currentUserEmail]);
 
   const handleAddDocType = async () => {
     if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
+
+    // Check for duplicate permissions
+    if (selectedRole.documentTypes.includes(newDocType.trim())) {
+      toast.error("Duplicate Permission", { 
+        description: `The "${newDocType.trim()}" permission already exists for the ${selectedRole.roleName} role.` 
+      });
+      return;
+    }
 
     setIsPermissionActionLoading(true);
     const result = await addRolePermissionClientAction({
@@ -70,7 +91,13 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
     if (result.success) {
       toast.success("Permission Added", { description: `Document type "${newDocType.trim()}" added to ${selectedRole.roleName}.` });
       setNewDocType("");
-      fetchRoomDetails(); // This will refresh the data in the modal as well
+      // Update local state instead of full refresh
+      const updatedDocTypes = [...selectedRole.documentTypes, newDocType.trim()];
+      stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
+      // Update the selected role for the modal
+      setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
+      // Add log entry for the activity
+      stateUpdater.addLog(currentUserEmail!, `Gave the '${selectedRole.roleName}' role permission to upload '${newDocType.trim()}' documents.`);
     } else {
       toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -79,6 +106,15 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
 
   const handleRemoveDocType = async (docType: string) => {
     if (!selectedRole || !currentUserEmail) return;
+
+    // Check if there are any documents of this type
+    const documentsOfType = roomDetails.documentDetails?.filter(doc => doc.category === docType) || [];
+    if (documentsOfType.length > 0) {
+      toast.error("Cannot Delete Permission", { 
+        description: `Cannot remove "${docType}" permission because ${documentsOfType.length} document(s) of this type exist. Please delete the documents first.` 
+      });
+      return;
+    }
 
     setIsPermissionActionLoading(true);
     const result = await removeRolePermissionClientAction({
@@ -89,7 +125,13 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
     });
     if (result.success) {
       toast.success("Permission Removed", { description: `Document type "${docType}" removed from ${selectedRole.roleName}.` });
-      fetchRoomDetails();
+      // Update local state instead of full refresh
+      const updatedDocTypes = selectedRole.documentTypes.filter(dt => dt !== docType);
+      stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
+      // Update the selected role for the modal
+      setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
+      // Add log entry for the activity
+      stateUpdater.addLog(currentUserEmail!, `Removed the '${selectedRole.roleName}' role permission to upload '${docType}' documents.`);
     } else {
       toast.error("Failed to Remove Permission", { description: result.error || "An unknown error occurred." });
     }
@@ -113,7 +155,10 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
 
       if (result.success) {
         toast.success("Role Deleted", { description: result.message || `Role "${roleToDelete}" has been deleted.` });
-        fetchRoomDetails();
+        // Update local state instead of full refresh
+        stateUpdater.removeRole(roleToDelete);
+        // Add log entry for the activity
+        stateUpdater.addLog(currentUserEmail!, `Deleted the role '${roleToDelete}'.`);
       } else {
         toast.error("Failed to Delete Role", { description: result.error || result.message || "An unknown error occurred." });
       }
@@ -159,7 +204,13 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
             <h2 className="text-2xl font-bold tracking-tight">Role Management</h2>
             <p className="text-muted-foreground">Add new roles or configure permissions for existing ones.</p>
         </div>
-        <Dialog open={isAddRoleModalOpen} onOpenChange={setIsAddRoleModalOpen}>
+        <Dialog open={isAddRoleModalOpen} onOpenChange={(open) => {
+          setIsAddRoleModalOpen(open);
+          if (!open) {
+            setNewRoleName("");
+            addRoleFormRef.current?.reset();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" /> Add New Role
@@ -178,7 +229,17 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="newRoleName" className="text-right">Role Name</Label>
-                  <Input id="newRoleName" name="newRoleName" type="text" title="Role name" required className="col-span-3" placeholder="e.g. Legal Team" />
+                  <Input 
+                  id="newRoleName" 
+                  name="newRoleName" 
+                  type="text" 
+                  title="Role name" 
+                  required 
+                  className="col-span-3" 
+                  placeholder="e.g. Legal Team"
+                  value={newRoleName}
+                  onChange={(e) => setNewRoleName(e.target.value)}
+                />
                 </div>
               </div>
               {addRoleState && !addRoleState.success && (
@@ -209,7 +270,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <p className="text-xs text-muted-foreground">
-                {role.isDeletable ? "Custom role." : "System role."}
+                {role.isDeletable ? "Custom Role" : "System Role"}
               </p>
             </CardContent>
           </Card>
@@ -262,7 +323,16 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
                                 <div className="space-y-4">
                                     <Label>Add a new document type this role can upload:</Label>
                                     <div className="flex space-x-2">
-                                        <Input placeholder="e.g. Pitch Deck, NDA..." value={newDocType} onChange={(e) => setNewDocType(e.target.value)} />
+                                        <Input 
+                                          placeholder="e.g. Pitch Deck, NDA..." 
+                                          value={newDocType} 
+                                          onChange={(e) => setNewDocType(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleAddDocType();
+                                            }
+                                          }}
+                                        />
                                         <Button onClick={handleAddDocType} disabled={isPermissionActionLoading || !newDocType.trim()}>
                                             {isPermissionActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
                                         </Button>
@@ -271,14 +341,29 @@ export default function RoleManager({ roomDetails, currentUserEmail, fetchRoomDe
                                         <h4 className="text-sm font-medium mb-3">Allowed Document Types:</h4>
                                         {selectedRole.documentTypes.length > 0 ? (
                                             <div className="flex flex-wrap gap-2">
-                                                {selectedRole.documentTypes.map(docType => (
-                                                    <UiBadge key={docType} variant="secondary" className="text-base">
+                                                {selectedRole.documentTypes.map(docType => {
+                                                  const documentsOfType = roomDetails.documentDetails?.filter(doc => doc.category === docType) || [];
+                                                  const canDelete = documentsOfType.length === 0;
+                                                  
+                                                  return (
+                                                    <UiBadge key={docType} variant="secondary" className="text-base flex items-center gap-1">
                                                         {docType}
-                                                        <button onClick={() => handleRemoveDocType(docType)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5" disabled={isPermissionActionLoading}>
+                                                        {documentsOfType.length > 0 && (
+                                                          <span title={`Protected - ${documentsOfType.length} document(s) exist`}>
+                                                            <Lock className="h-3 w-3 text-muted-foreground/60" />
+                                                          </span>
+                                                        )}
+                                                        <button 
+                                                          onClick={() => handleRemoveDocType(docType)} 
+                                                          className={`ml-1 rounded-full p-0.5 ${canDelete ? 'hover:bg-destructive/20' : 'opacity-50 cursor-not-allowed'}`}
+                                                          disabled={isPermissionActionLoading || !canDelete}
+                                                          title={canDelete ? `Remove ${docType} permission` : `Cannot remove - ${documentsOfType.length} document(s) exist`}
+                                                        >
                                                             <X className="h-3 w-3" />
                                                         </button>
                                                     </UiBadge>
-                                                ))}
+                                                  );
+                                                })}
                                             </div>
                                         ) : (<p className="text-sm text-muted-foreground text-center py-8">No document types assigned.</p>)}
                                     </div>

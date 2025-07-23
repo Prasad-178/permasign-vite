@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useActionState } from "react";
-import { type RoomDetails, type ModifyMemberResult, type UpdateMemberRoleResult } from "../../types/types";
+import { type RoomDetails, type ModifyMemberResult, type UpdateMemberRoleResult, companyName } from "../../types/types";
+import { type RoomStateUpdater } from "../../utils/roomStateUpdater";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -19,7 +18,7 @@ import RemoveMemberSubmitButton from "./RemoveMemberSubmitButton";
 interface MemberManagerProps {
   roomDetails: RoomDetails;
   currentUserEmail: string | null;
-  fetchRoomDetails: () => void;
+  stateUpdater: RoomStateUpdater;
 }
 
 const getRoleIcon = (roleName: string, className: string) => {
@@ -32,12 +31,16 @@ const getRoleIcon = (roleName: string, className: string) => {
     return <Shield className={className} />;
 };
 
-export default function MemberManager({ roomDetails, currentUserEmail, fetchRoomDetails }: MemberManagerProps) {
+export default function MemberManager({ roomDetails, currentUserEmail, stateUpdater }: MemberManagerProps) {
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [memberToUpdate, setMemberToUpdate] = useState<{ email: string; role: string } | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
   const [newRole, setNewRole] = useState("");
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState("");
   const addMemberFormRef = useRef<HTMLFormElement>(null);
   const updateRoleFormRef = useRef<HTMLFormElement>(null);
+  const removeMemberFormRef = useRef<HTMLFormElement>(null);
 
   const [addMemberState, addMemberFormAction, isAddMemberPending] = useActionState<ModifyMemberResult | null, FormData>(
     addMemberFormAdapter,
@@ -54,55 +57,62 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
     null
   );
 
-  useEffect(() => {
-
-  }, [isAddMemberPending, isRemoveMemberPending])
+  if (isAddMemberPending) {}
 
   useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
+    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string, email?: string) => {
       if (state) {
         if (state.success) {
           toast.success(`${actionType} Successful`, { description: state.message });
           if (actionType === "Add Member") {
+            // Capture values before clearing them to prevent race condition
+            const emailToAdd = newMemberEmail;
+            const roleToAdd = newMemberRole;
+            
             setIsAddMemberModalOpen(false);
             if (addMemberFormRef.current) addMemberFormRef.current.reset();
+            setNewMemberEmail("");
+            setNewMemberRole("");
+            
+            // Add member to state using captured values
+            if (emailToAdd && roleToAdd) {
+              stateUpdater.addMember({ userEmail: emailToAdd, role: roleToAdd });
+              stateUpdater.addLog(currentUserEmail!, `Added ${emailToAdd} to the company as a ${roleToAdd}.`);
+            }
+          } else if (actionType === "Remove Member" && email) {
+            stateUpdater.removeMember(email);
+            stateUpdater.addLog(currentUserEmail!, `Removed ${email} from the company.`);
+            setMemberToRemove(null); // Clear the member being removed
           }
-          fetchRoomDetails();
         } else {
           toast.error(`Failed to ${actionType.toLowerCase()}`, {
             description: state.error || state.message || "An unknown error occurred.",
             duration: 7000
           });
         }
+        // Reset pending state for the specific action
+        if (actionType === "Remove Member") {
+          setMemberToRemove(null);
+        }
       }
     };
-    handleMemberActionResult(addMemberState, "Add Member");
-  }, [addMemberState, fetchRoomDetails]);
 
-  useEffect(() => {
-    const handleMemberActionResult = (state: ModifyMemberResult | null, actionType: string) => {
-      if (state) {
-        if (state.success) {
-          toast.success(`${actionType} Successful`, { description: state.message });
-          fetchRoomDetails();
-        } else {
-          toast.error(`Failed to ${actionType.toLowerCase()}`, {
-            description: state.error || state.message || "An unknown error occurred.",
-            duration: 7000
-          });
-        }
-      }
-    };
-    handleMemberActionResult(removeMemberState, "Remove Member");
-  }, [removeMemberState, fetchRoomDetails]);
+    handleMemberActionResult(addMemberState, "Add Member");
+    if (memberToRemove) {
+      handleMemberActionResult(removeMemberState, "Remove Member", memberToRemove);
+    }
+  }, [addMemberState, removeMemberState, memberToRemove, currentUserEmail]);
 
   useEffect(() => {
     if (updateRoleState) {
       if (updateRoleState.success) {
         toast.success("Role Updated", { description: updateRoleState.message });
+        if (memberToUpdate) {
+          stateUpdater.updateMemberRole(memberToUpdate.email, newRole);
+          stateUpdater.addLog(currentUserEmail!, `Updated ${memberToUpdate.email}'s role to ${newRole}.`);
+        }
         setMemberToUpdate(null);
         if (updateRoleFormRef.current) updateRoleFormRef.current.reset();
-        fetchRoomDetails();
       } else {
         toast.error("Failed to update role", {
           description: updateRoleState.error || updateRoleState.message || "An unknown error occurred.",
@@ -110,19 +120,29 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
         });
       }
     }
-  }, [updateRoleState, fetchRoomDetails]);
+  }, [updateRoleState, memberToUpdate, newRole, currentUserEmail]);
 
   const currentUserRole = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role;
   const isFounder = currentUserRole === 'founder';
   const isCFO = currentUserRole === 'cfo';
 
   const canManageMembers = isFounder || isCFO;
-  // Users should be able to assign any role except 'founder'.
   const availableRolesToAdd = roomDetails.roomRoles.filter(role => role.roleName !== 'founder');
 
   const handleOpenUpdateModal = (member: { userEmail: string; role: string }) => {
     setMemberToUpdate({ email: member.userEmail, role: member.role });
     setNewRole(member.role);
+  };
+
+  const handleRemoveMember = (email: string) => {
+    setMemberToRemove(email);
+    // Programmatically submit the form
+    setTimeout(() => {
+        const form = document.getElementById(`remove-member-form-${email}`) as HTMLFormElement;
+        if (form) {
+            form.requestSubmit();
+        }
+    }, 0);
   };
 
   return (
@@ -133,7 +153,14 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
           <p className="text-sm text-muted-foreground">Manage who has access to this room.</p>
         </div>
         {canManageMembers && (
-          <Dialog open={isAddMemberModalOpen} onOpenChange={setIsAddMemberModalOpen}>
+          <Dialog open={isAddMemberModalOpen} onOpenChange={(open) => {
+            setIsAddMemberModalOpen(open);
+            if (!open) {
+              setNewMemberEmail("");
+              setNewMemberRole("");
+              addMemberFormRef.current?.reset();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <UserPlus className="mr-2 h-4 w-4" /> Add Member
@@ -150,14 +177,29 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
               <form ref={addMemberFormRef} action={addMemberFormAction}>
                 <input type="hidden" name="roomId" value={roomDetails.roomId} />
                 <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
+                <input type="hidden" name="roomName" value={roomDetails.roomName} />
+                <input type="hidden" name="companyName" value={companyName} />
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="newUserEmail" className="text-right">Email</Label>
-                    <Input id="newUserEmail" name="newUserEmail" type="email" required className="col-span-3" />
+                    <Input 
+                      id="newUserEmail" 
+                      name="newUserEmail" 
+                      type="email" 
+                      required 
+                      className="col-span-3"
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="newUserRole" className="text-right">Role</Label>
-                    <Select name="newUserRole" required>
+                    <Select 
+                      name="newUserRole" 
+                      required
+                      value={newMemberRole}
+                      onValueChange={setNewMemberRole}
+                    >
                       <SelectTrigger className="col-span-3 capitalize">
                         <SelectValue placeholder="Select a role to add" />
                       </SelectTrigger>
@@ -191,15 +233,15 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       <div className="flex-1 overflow-auto border rounded-md bg-card p-4">
         <ul className="space-y-2">
           {roomDetails.members.map((member) => (
-            <li key={member.userEmail} className="flex items-center justify-between p-2 hover:bg-muted/30 transition-colors border rounded-md">
-              <div className="flex items-center gap-3">
+            <li key={member.userEmail} className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors border rounded-md">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 {getRoleIcon(member.role, "h-5 w-5 text-muted-foreground")}
-                <div>
-                  <p className="font-medium">{member.userEmail} {member.userEmail === currentUserEmail ? <span className="text-xs font-normal text-muted-foreground">(You)</span> : ''}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{member.userEmail} {member.userEmail === currentUserEmail ? <span className="text-xs font-normal text-muted-foreground">(You)</span> : ''}</p>
                   <p className="text-sm capitalize text-muted-foreground">{member.role.replace(/_/g, ' ')}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                 {isFounder && member.role !== 'founder' && (
                   <Button
                     variant="ghost"
@@ -212,22 +254,26 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
                   </Button>
                 )}
                 {canManageMembers && member.role !== 'founder' && (
-                  <form action={removeMemberFormAction}>
+                  <form
+                    id={`remove-member-form-${member.userEmail}`}
+                    action={removeMemberFormAction}
+                    ref={removeMemberFormRef}
+                    style={{ display: 'inline' }}
+                  >
                     <input type="hidden" name="roomId" value={roomDetails.roomId} />
                     <input type="hidden" name="callerEmail" value={currentUserEmail || ""} />
                     <input type="hidden" name="userToRemoveEmail" value={member.userEmail} />
-                    <RemoveMemberSubmitButton email={member.userEmail} />
+                    <RemoveMemberSubmitButton
+                      email={member.userEmail}
+                      isPending={isRemoveMemberPending && memberToRemove === member.userEmail}
+                      onClick={() => handleRemoveMember(member.userEmail)}
+                    />
                   </form>
                 )}
               </div>
             </li>
           ))}
         </ul>
-        {removeMemberState && !removeMemberState.success && (
-          <p className="text-sm text-destructive text-center pt-4">
-            Error removing member: {removeMemberState.message} {removeMemberState.error ? `(${removeMemberState.error})` : ''}
-          </p>
-        )}
       </div>
 
       {/* Update Member Role Dialog */}
@@ -282,4 +328,5 @@ export default function MemberManager({ roomDetails, currentUserEmail, fetchRoom
       </Dialog>
     </>
   );
-} 
+}
+ 

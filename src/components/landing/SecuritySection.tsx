@@ -1,44 +1,51 @@
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, ArrowRight } from "lucide-react"
 import { AnimateOnScroll } from "../ui/animate-on-scroll"
+import { Button } from "../ui/button"
+import { Link } from "react-router-dom"
 
 const securityFeatures = [
-  "Robust End-to-End Encryption for all documents", // Emphasizes your strong encryption
-  "Advanced Key Management powered by Google Cloud KMS", // Highlights Google KMS usage
-  "Strong Cryptographic Protections (e.g., RSA, Symmetric Encryption)", // Specifies the types of encryption
-  "Immutable Storage on the Arweave Blockchain", // This remains a key security feature
-  "Multi-Factor Authentication for Enhanced Account Security", // Important for user accounts
-  "Detailed Audit Trails for Transparency and Accountability", // If you implement this
+  "End-to-end document encryption",
+  "Master key protection",
+  "Immutable, permanent storage on the blockchain",
+  "On-chain, verifiable audit trails for all actions",
+  "Secure, role-based access control for team members",
+  "Cryptographically secure signatures via Arweave wallets",
 ]
 
 export function SecuritySection() {
   return (
-    <section id="security" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+    <section id="security" className="w-full py-20 md:py-28 lg:py-32 bg-muted/50">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid gap-10 md:grid-cols-2 md:gap-16">
+        <div className="grid gap-12 md:grid-cols-2 md:gap-16 items-center">
           <AnimateOnScroll className="relative">
-            <h2 className="text-3xl font-heading font-medium md:text-4xl/tight mb-8">
-              Enterprise-Grade Security with Blockchain Permanence
-            </h2>
-            <ul className="grid gap-4">
-              {securityFeatures.map((feature, i) => (
-                <li className="flex items-center gap-2" key={i}>
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                  <span className="font-light">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </AnimateOnScroll>
-          <AnimateOnScroll className="flex items-center justify-center">
             <img
               src="./third_image.png"
               width={600}
               height={600}
               alt="Security Visualization"
-              className="rounded-md object-cover shadow-sm"
+              className="rounded-xl object-cover shadow-2xl shadow-primary/10"
             />
+          </AnimateOnScroll>
+          <AnimateOnScroll>
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mt-4 mb-6">
+              A New Standard for Document Security
+            </h2>
+            <ul className="grid gap-4 mb-8">
+              {securityFeatures.map((feature, i) => (
+                <li className="flex items-start gap-3" key={i}>
+                  <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                  <span className="text-muted-foreground text-lg">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <Button asChild size="lg" variant="outline" className="btn-hover-effect">
+              <Link to="/security">
+                Learn More About Our Encryption <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
           </AnimateOnScroll>
         </div>
       </div>
     </section>
   )
-} 
+}

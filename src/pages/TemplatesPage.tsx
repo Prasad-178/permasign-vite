@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { useApi, useActiveAddress, useConnection } from '@arweave-wallet-kit/react';
 import { usePostHog } from 'posthog-js/react';
 
-import { listTemplatesAction, createRoomFromTemplateAction } from '../services/roomActionsClient';
+import { createRoomFromTemplateAction, generateAITemplateAction } from '../services/roomActionsClient';
 import { generateRoomKeyPairPem } from "../actions/cryptoClient";
 import { type Template, type CreateRoomFromTemplateInput, type CreateRoomResult } from '../types/types';
+import { templates as hardcodedTemplates } from '../lib/templates'; // Import local templates
 
 import RequireLogin from "../components/RequireLogin";
 import { Button } from "../components/ui/button";
@@ -15,9 +16,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
-import { Loader2, AlertCircle, FileText, CheckCircle, Info, Users, ScrollText } from "lucide-react";
+import { Loader2, FileText, CheckCircle, Users, ScrollText, PlusCircle, Trash2, ArrowRight, X, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
+import { Badge } from "../components/ui/badge";
 
 interface OwnerOthentDetails {
     email: string;
@@ -33,44 +35,81 @@ export default function TemplatesPage() {
 
     const [templates, setTemplates] = useState<Template[]>([]);
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
-    const [templatesError, setTemplatesError] = useState<string | null>(null);
 
     const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+    const [editedTemplate, setEditedTemplate] = useState<Template | null>(null);
     const [roomName, setRoomName] = useState("");
     const [isRoomNameTouched, setIsRoomNameTouched] = useState(false);
+    const [modalStep, setModalStep] = useState(0);
+    const [newRoleName, setNewRoleName] = useState("");
+    const [newPermissionNames, setNewPermissionNames] = useState<{ [key: string]: string }>({});
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [isGeneratingAiTemplate, startAiGenerationTransition] = useTransition();
 
     const [ownerOthentDetails, setOwnerOthentDetails] = useState<OwnerOthentDetails | null>(null);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
-    const [isProcessing, startProcessingTransition] = useTransition();
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [editingRole, setEditingRole] = useState<string | null>(null);
+    const [editingPermission, setEditingPermission] = useState<{ role: string; permission: string } | null>(null);
 
-    const [viewedTemplate, setViewedTemplate] = useState<Template | null>(null);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const formatName = (name: string) => {
+        return name.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+    };
+
+    if (selectedTemplate) {}
+
+    const handleUpdateRoleName = (oldName: string, newName: string) => {
+        if (!newName.trim() || newName.trim() === oldName) {
+            setEditingRole(null);
+            return;
+        }
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            const formattedNewName = formatName(newName.trim());
+            if (prev.roles.includes(formattedNewName)) {
+                toast.error("Role already exists.");
+                return prev;
+            }
+            const updatedRoles = prev.roles.map(r => (r === oldName ? formattedNewName : r));
+            const updatedPermissions = { ...prev.permissions };
+            if (oldName in updatedPermissions) {
+                updatedPermissions[formattedNewName] = updatedPermissions[oldName];
+                delete updatedPermissions[oldName];
+            }
+            return { ...prev, roles: updatedRoles, permissions: updatedPermissions };
+        });
+        setEditingRole(null);
+    };
+
+    const handleUpdatePermissionName = (role: string, oldPermission: string, newPermission: string) => {
+        if (!newPermission.trim() || newPermission.trim() === oldPermission) {
+            setEditingPermission(null);
+            return;
+        }
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            const formattedNewPermission = formatName(newPermission.trim());
+            if (prev.permissions[role].includes(formattedNewPermission)) {
+                toast.error("Permission already exists for this role.");
+                return prev;
+            }
+            const updatedPermissions = { ...prev.permissions };
+            updatedPermissions[role] = updatedPermissions[role].map(p =>
+                p === oldPermission ? formattedNewPermission : p
+            );
+            return { ...prev, permissions: updatedPermissions };
+        });
+        setEditingPermission(null);
+    };
 
     useEffect(() => {
-        const fetchTemplates = async () => {
-            setIsLoadingTemplates(true);
-            setTemplatesError(null);
-            try {
-                const result = await listTemplatesAction();
-                console.log("result is: ", result);
-                if (result.success && result.data) {
-                    setTemplates(result.data);
-                } else {
-                    throw new Error(result.message || "Failed to load templates.");
-                }
-            } catch (error: any) {
-                setTemplatesError(error.message);
-                toast.error("Failed to load templates", { description: error.message });
-            } finally {
-                setIsLoadingTemplates(false);
-            }
-        };
-        fetchTemplates();
+        setTemplates(Object.values(hardcodedTemplates));
+        setIsLoadingTemplates(false);
     }, []);
 
     useEffect(() => {
         const getOthentEmail = async () => {
-          console.log("things: ", connected, api?.othent, activeAddress, ownerOthentDetails, isFetchingDetails);
             if (connected && api?.othent && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
                 setIsFetchingDetails(true);
                 try {
@@ -87,46 +126,164 @@ export default function TemplatesPage() {
                 } finally {
                     setIsFetchingDetails(false);
                 }
-            } else if (!connected || !activeAddress) {
-                if (ownerOthentDetails) setOwnerOthentDetails(null);
             }
         };
         getOthentEmail();
-    }, [api?.othent, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
+    }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
 
-    const handleSelectTemplate = (template: Template) => {
-        setSelectedTemplate(template);
+    const handleUseTemplateClick = (template: Template) => {
+        const formattedTemplate = {
+            ...template,
+            roles: template.roles.map(formatName),
+            permissions: Object.entries(template.permissions).reduce((acc, [role, perms]) => {
+                acc[formatName(role)] = perms.map(formatName);
+                return acc;
+            }, {} as { [key: string]: string[] }),
+        };
+
+        setSelectedTemplate(formattedTemplate);
+        const newEditedTemplate = JSON.parse(JSON.stringify(formattedTemplate));
+        if (!newEditedTemplate.roles.includes('Member')) {
+            newEditedTemplate.roles.push('Member');
+            newEditedTemplate.permissions['Member'] = [];
+        }
+        if (!newEditedTemplate.roles.includes('Founder')) {
+            newEditedTemplate.roles.unshift('Founder');
+            newEditedTemplate.permissions['Founder'] = newEditedTemplate.permissions['Founder'] || [];
+        }
+        setEditedTemplate(newEditedTemplate);
         setRoomName("");
         setIsRoomNameTouched(false);
+        setModalStep(0);
+        setIsCreateModalOpen(true);
     };
 
-    const handleViewDetails = (template: Template) => {
-        setViewedTemplate(template);
-        setIsViewModalOpen(true);
+    const handleRemoveRole = (roleToRemove: string) => {
+        if (roleToRemove === 'Founder' || roleToRemove === 'Member') return;
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            const newRoles = prev.roles.filter(r => r !== roleToRemove);
+            const newPermissions = { ...prev.permissions };
+            delete newPermissions[roleToRemove];
+            return { ...prev, roles: newRoles, permissions: newPermissions };
+        });
     };
-    
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setIsRoomNameTouched(true);
 
+    const handleRemovePermission = (role: string, permissionToRemove: string) => {
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            const newPermissions = { ...prev.permissions };
+            newPermissions[role] = newPermissions[role].filter(p => p !== permissionToRemove);
+            return { ...prev, permissions: newPermissions };
+        });
+    };
+
+    const handleAddRole = () => {
+        const formattedRoleName = formatName(newRoleName.trim());
+        if (!formattedRoleName || editedTemplate?.roles.includes(formattedRoleName)) {
+            if (formattedRoleName) toast.error("Role already exists.");
+            return;
+        }
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                roles: [...prev.roles, formattedRoleName],
+                permissions: { ...prev.permissions, [formattedRoleName]: [] }
+            };
+        });
+        setNewRoleName("");
+    };
+
+    const handleAddPermission = (role: string) => {
+        const newPermissionName = newPermissionNames[role] || "";
+        const formattedPermissionName = formatName(newPermissionName.trim());
+        if (!formattedPermissionName) return;
+        if (editedTemplate?.permissions[role]?.includes(formattedPermissionName)) {
+            toast.error("Permission already exists for this role.");
+            return;
+        }
+        setEditedTemplate(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                permissions: {
+                    ...prev.permissions,
+                    [role]: [...prev.permissions[role], formattedPermissionName]
+                }
+            };
+        });
+        setNewPermissionNames(prev => ({ ...prev, [role]: '' }));
+    };
+
+    const handleGenerateAiTemplate = async () => {
+        if (!aiPrompt.trim()) {
+            toast.error("Input Required", { description: "Please enter a prompt for AI template generation." });
+            return;
+        }
+        startAiGenerationTransition(async () => {
+            const toastId = toast.loading("Generating AI template...", { description: "This may take a moment." });
+            try {
+                const result = await generateAITemplateAction(aiPrompt);
+                if (result.success && result.data) {
+                    const generatedTemplate = result.data;
+                    const formattedTemplate = {
+                        ...generatedTemplate,
+                        roles: generatedTemplate.roles.map(formatName),
+                        permissions: Object.entries(generatedTemplate.permissions).reduce((acc, [role, perms]) => {
+                            acc[formatName(role)] = (perms as string[]).map(formatName);
+                            return acc;
+                        }, {} as { [key: string]: string[] }),
+                    };
+
+                    if (!formattedTemplate.roles.includes('Founder')) {
+                        formattedTemplate.roles.unshift('Founder');
+                        formattedTemplate.permissions['Founder'] = formattedTemplate.permissions['Founder'] || [];
+                    }
+                    if (!formattedTemplate.roles.includes('Member')) {
+                        formattedTemplate.roles.push('Member');
+                        formattedTemplate.permissions['Member'] = formattedTemplate.permissions['Member'] || [];
+                    }
+                    setSelectedTemplate(formattedTemplate);
+                    setEditedTemplate(JSON.parse(JSON.stringify(formattedTemplate)));
+                    setRoomName("");
+                    setIsRoomNameTouched(false);
+                    setModalStep(0);
+                    setIsAiModalOpen(false);
+                    setIsCreateModalOpen(true);
+                    toast.success("AI Template Generated!", { id: toastId });
+                } else {
+                    throw new Error(result.message || result.error || "Failed to generate AI template.");
+                }
+            } catch (err: any) {
+                toast.error("AI Generation Failed", { id: toastId, description: err.message });
+            }
+        });
+    };
+
+    const handleSubmit = async () => {
         if (!connected || !activeAddress || !ownerOthentDetails?.email) {
             toast.error("Not Ready", { description: "Please connect your wallet and wait for email to load." });
             return;
         }
-        if (!roomName.trim() || !selectedTemplate) {
+        if (!roomName.trim() || !editedTemplate) {
             toast.error("Input Required", { description: "Company name and a template are required." });
             return;
         }
 
-        startProcessingTransition(async () => {
-            const toastId = toast.loading("Generating keys and creating company...", { description: `Using '${selectedTemplate.name}' template.` });
+        startAiGenerationTransition(async () => {
+            const toastId = toast.loading("Generating keys and creating company...", { description: `Using customized '${editedTemplate.name}' template.` });
             try {
                 const { publicKeyPem, privateKeyPem } = await generateRoomKeyPairPem();
                 
+                const finalRoles = [...new Set(['Founder', 'Member', ...editedTemplate.roles])];
+
                 const input: CreateRoomFromTemplateInput = {
                     roomName: roomName.trim(),
                     ownerEmail: ownerOthentDetails.email,
-                    templateName: selectedTemplate.name,
+                    templateName: editedTemplate.name,
+                    roles: finalRoles,
+                    permissions: editedTemplate.permissions,
                     roomPublicKeyPem: publicKeyPem,
                     roomPrivateKeyPem: privateKeyPem,
                 };
@@ -137,12 +294,14 @@ export default function TemplatesPage() {
                     posthog?.capture('company_created_from_template', {
                         companyId: result.roomId,
                         companyName: roomName.trim(),
-                        templateName: selectedTemplate.name,
+                        templateName: editedTemplate.name,
+                        customized: true,
                     });
                     toast.success("Success!", {
                         id: toastId,
                         description: `Company '${roomName.trim()}' created! Redirecting...`,
                     });
+                    setIsCreateModalOpen(false);
                     navigate(`/companies/${result.roomId}`);
                 } else {
                     throw new Error(result.message || result.error || "Failed to create company.");
@@ -154,164 +313,195 @@ export default function TemplatesPage() {
     };
 
     if (isLoadingTemplates) {
-        return <CustomLoader text="Loading templates..." />;
+        return <div className="flex h-screen items-center justify-center"><CustomLoader text="Loading templates..." /></div>;
     }
 
-    if (templatesError) {
-        return (
-            <div className="container mx-auto max-w-4xl py-12 px-4 text-center">
-                <Card className="border-destructive">
-                    <CardHeader>
-                        <CardTitle className="text-destructive flex items-center justify-center gap-2">
-                            <AlertCircle /> Error Loading Templates
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>{templatesError}</p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
-    const isLoading = isFetchingDetails || isProcessing;
-    const isFormDisabled = isLoading || !connected || !ownerOthentDetails?.email || !selectedTemplate;
-    const showRoomNameError = isRoomNameTouched && !roomName.trim();
+    const isLoading = isFetchingDetails || isGeneratingAiTemplate;
 
     return (
         <RequireLogin>
-            <div className="container mx-auto max-w-5xl py-12 px-4 animate-fade-in">
-                <div className="text-center mb-10">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground/80" strokeWidth={1.5} />
-                    <h1 className="text-3xl font-bold tracking-tight mt-4">Create a Company from a Template</h1>
-                    <p className="mt-2 text-lg text-muted-foreground">
-                        Select a template to quickly set up your company with predefined roles and document categories.
+            <div className="container mx-auto max-w-6xl py-12 px-4 animate-fade-in">
+                <div className="text-center mb-12">
+                    <FileText className="mx-auto h-14 w-14 text-muted-foreground/80" strokeWidth={1.5} />
+                    <h1 className="text-4xl font-bold tracking-tighter mt-4">Create a Company from a Template</h1>
+                    <p className="mt-3 text-lg text-muted-foreground max-w-3xl mx-auto">
+                        Select a template to rapidly set up your company. You can customize roles and permissions before creation.
                     </p>
+                    <Button onClick={() => setIsAiModalOpen(true)} className="mt-6 text-lg px-8 py-3"><Sparkles className="w-5 h-5 mr-2"/> Generate with AI</Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-                    {templates.map(template => {
-                        const uniqueDocTypesCount = new Set(Object.values(template.permissions).flat()).size;
-                        
-                        return (
-                            <Card 
-                                key={template.name} 
-                                className={`flex flex-col h-full transition-all duration-300 group rounded-lg ${selectedTemplate?.name === template.name ? 'border-primary ring-2 ring-primary ring-offset-background' : 'hover:shadow-xl hover:-translate-y-2'}`}
-                            >
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-3">
-                                        {selectedTemplate?.name === template.name 
-                                            ? <CheckCircle className="w-6 h-6 text-primary flex-shrink-0" />
-                                            : <FileText className="w-6 h-6 text-muted-foreground/80 flex-shrink-0" />
-                                        }
-                                        <span className="text-lg">{template.name}</span>
-                                    </CardTitle>
-                                    <CardDescription className="pt-1">{template.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-grow pt-2">
-                                    <div className="space-y-3 text-sm">
-                                        <div className="flex items-center text-muted-foreground">
-                                            <Users className="h-4 w-4 mr-3 flex-shrink-0" />
-                                            <span className="font-medium">
-                                                {template.roles.length > 0
-                                                    ? `${template.roles.length} Custom Role${template.roles.length > 1 ? 's' : ''}`
-                                                    : 'Standard Founder Role'
-                                                }
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center text-muted-foreground">
-                                            <ScrollText className="h-4 w-4 mr-3 flex-shrink-0" />
-                                            <span className="font-medium">
-                                                {uniqueDocTypesCount} Pre-defined Document Types
-                                            </span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="grid grid-cols-2 gap-3 mt-auto pt-5">
-                                    <Button variant="outline" className="w-full" onClick={() => handleViewDetails(template)}>
-                                        <Info className="w-4 h-4 mr-2"/> View Details
-                                    </Button>
-                                    <Button className="w-full" onClick={() => handleSelectTemplate(template)}>
-                                        <CheckCircle className="w-4 h-4 mr-2"/> Use Template
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        );
-                    })}
-                </div>
-
-                {selectedTemplate && (
-                    <Card className="w-full max-w-2xl mx-auto shadow-md border-border/60 animate-fade-in rounded-lg">
-                        <form onSubmit={handleSubmit}>
+                <div className="template-card-grid mb-12">
+                    {templates.map(template => (
+                        <Card key={template.name} className="template-card flex flex-col h-full">
                             <CardHeader>
-                                <CardTitle>Finalize Company Setup</CardTitle>
-                                <CardDescription>
-                                    You have selected the <span className="font-semibold text-primary">{selectedTemplate.name}</span> template. Please provide a name for your new company.
-                                </CardDescription>
+                                <CardTitle className="flex items-center gap-3 text-xl">
+                                    <FileText className="w-7 h-7 text-muted-foreground/80 flex-shrink-0" />
+                                    <span>{template.name}</span>
+                                </CardTitle>
+                                <CardDescription className="pt-1 text-base">{template.description}</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div>
-                                    <Label htmlFor="roomName" className="font-semibold">Company Name</Label>
-                                    <Input
-                                        id="roomName"
-                                        value={roomName}
-                                        onChange={(e) => setRoomName(e.target.value)}
-                                        onBlur={() => setIsRoomNameTouched(true)}
-                                        placeholder="e.g., QuantumLeap AI"
-                                        required
-                                        disabled={isFormDisabled}
-                                        className="mt-2 text-base py-6"
-                                    />
-                                    {showRoomNameError && <p className="text-sm text-destructive pt-2">Company name is required.</p>}
+                            <CardContent className="flex-grow pt-2">
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex items-center text-muted-foreground">
+                                        <Users className="h-4 w-4 mr-3 flex-shrink-0" />
+                                        <span className="font-medium">{template.roles.length} Custom Roles</span>
+                                    </div>
+                                    <div className="flex items-center text-muted-foreground">
+                                        <ScrollText className="h-4 w-4 mr-3 flex-shrink-0" />
+                                        <span className="font-medium">{new Set(Object.values(template.permissions).flat()).size} Document Types</span>
+                                    </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="flex-col items-stretch">
-                                {!isFetchingDetails && connected && !ownerOthentDetails?.email && (
-                                    <div className="flex items-center gap-2 text-sm text-destructive mb-4 p-3 bg-destructive/10 rounded-md border border-destructive/20">
-                                        <AlertCircle className="w-4 h-4 flex-shrink-0"/>
-                                        <span>Could not load your email. Please try reconnecting your wallet.</span>
-                                    </div>
-                                )}
-                                <Button type="submit" disabled={isFormDisabled || !roomName.trim()} className="w-full" size="lg">
-                                    {isProcessing ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Company...</>)
-                                    : isFetchingDetails ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading Account...</>)
-                                    : ("Create Company")
-                                    }
+                            <CardFooter className="mt-auto pt-5">
+                                <Button className="w-full btn-hover-effect" onClick={() => handleUseTemplateClick(template)}>
+                                    <CheckCircle className="w-4 h-4 mr-2"/> Customize & Use Template
                                 </Button>
                             </CardFooter>
-                        </form>
-                    </Card>
-                )}
+                        </Card>
+                    ))}
+                </div>
 
-                {viewedTemplate && (
-                    <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-                        <DialogContent className="sm:max-w-[625px]">
+                <Dialog open={isAiModalOpen} onOpenChange={setIsAiModalOpen}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl">Generate Template with AI</DialogTitle>
+                            <DialogDescription>
+                                Describe your use case or workflow, and AI will suggest roles and document permissions.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Label htmlFor="ai-prompt" className="font-semibold">Your Use Case Description</Label>
+                            <Input
+                                id="ai-prompt"
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                placeholder="e.g., 'A legal firm managing client contracts and case files.'"
+                                className="mt-2"
+                                disabled={isGeneratingAiTemplate}
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">Example: 'A startup raising a seed round, needing roles for investors, auditors, and legal counsel.'</p>
+                        </div>
+                        <Button onClick={handleGenerateAiTemplate} disabled={isGeneratingAiTemplate || !aiPrompt.trim()}>
+                            {isGeneratingAiTemplate ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>) : (<><Sparkles className="w-4 h-4 mr-2"/> Generate Template</>)}
+                        </Button>
+                    </DialogContent>
+                </Dialog>
+
+                {editedTemplate && (
+                    <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                        <DialogContent className="sm:max-w-2xl">
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2"><FileText /> Template: {viewedTemplate.name}</DialogTitle>
-                                <DialogDescription>{viewedTemplate.description}</DialogDescription>
+                                <DialogTitle className="text-2xl">Customize '{editedTemplate.name}' Template</DialogTitle>
+                                <DialogDescription>
+                                    {modalStep === 0 ? "Select roles and permissions, or add new ones."
+                                     : "Review your configuration and name your company."
+                                    }
+                                </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-                                <h3 className="font-semibold mb-3 text-lg">Roles & Document Permissions</h3>
-                                <div className="space-y-4">
-                                    {Object.entries(viewedTemplate.permissions).map(([role, docs]) => (
-                                        <div key={role} className="border p-4 rounded-lg bg-muted/30">
-                                            <h4 className="font-semibold capitalize flex items-center mb-2"><Users className="w-4 h-4 mr-2" />{role}</h4>
-                                            <ul className="list-inside list-disc space-y-1 pl-2">
-                                                {docs.map(doc => (
-                                                    <li key={doc} className="text-sm flex items-start">
-                                                        <ScrollText className="w-3.5 h-3.5 mr-2 mt-0.5 text-primary/70 flex-shrink-0" />
-                                                        {doc}
-                                                    </li>
+                            
+                            {modalStep === 0 && (
+                                <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
+                                    {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
+                                        <div key={role} className="p-4 rounded-lg bg-muted/50 mb-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    {editingRole === role ? (
+                                                        <Input
+                                                            defaultValue={role}
+                                                            onBlur={(e) => handleUpdateRoleName(role, e.target.value)}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateRoleName(role, e.currentTarget.value)}
+                                                            autoFocus
+                                                            className="h-8"
+                                                        />
+                                                    ) : (
+                                                        <h4 className="font-semibold capitalize flex items-center text-base cursor-pointer" onClick={() => role !== 'Founder' && role !== 'Member' && setEditingRole(role)}>
+                                                            <Users className="w-4 h-4 mr-2 text-primary" />
+                                                            {role}
+                                                        </h4>
+                                                    )}
+                                                    {(role === 'Founder' || role === 'Member') && (
+                                                        <Badge variant="outline" className="flex items-center gap-1 text-xs"><ShieldCheck className="w-3 h-3"/>System Role</Badge>
+                                                    )}
+                                                </div>
+                                                {(role !== 'Founder' && role !== 'Member') && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveRole(role)}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {editedTemplate.permissions[role]?.map(doc => (
+                                                    <Badge key={doc} variant="secondary" className="flex items-center gap-1">
+                                                        {editingPermission?.role === role && editingPermission?.permission === doc ? (
+                                                            <Input
+                                                                defaultValue={doc}
+                                                                onBlur={(e) => handleUpdatePermissionName(role, doc, e.target.value)}
+                                                                onKeyDown={(e) => e.key === 'Enter' && handleUpdatePermissionName(role, doc, e.currentTarget.value)}
+                                                                autoFocus
+                                                                className="h-6 text-xs"
+                                                            />
+                                                        ) : (
+                                                            <span className="cursor-pointer" onClick={() => setEditingPermission({ role, permission: doc })}>{doc}</span>
+                                                        )}
+                                                        <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => handleRemovePermission(role, doc)}>
+                                                            <X className="w-3 h-3" />
+                                                        </Button>
+                                                    </Badge>
                                                 ))}
-                                            </ul>
+                                            </div>
+                                            <div className="flex items-center mt-2">
+                                                <Input value={newPermissionNames[role] || ''} onChange={(e) => setNewPermissionNames(prev => ({ ...prev, [role]: e.target.value }))} placeholder="New permission" className="h-8" />
+                                                <Button onClick={() => handleAddPermission(role)} size="sm" className="ml-2"><PlusCircle className="w-4 h-4" /></Button>
+                                            </div>
                                         </div>
                                     ))}
+                                    <div className="flex items-center mt-4">
+                                        <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="New role name" />
+                                        <Button onClick={handleAddRole} className="ml-2"><PlusCircle className="w-4 h-4 mr-2" />Add Role</Button>
+                                    </div>
+                                    <Button onClick={() => setModalStep(1)} className="mt-4 w-full">Next <ArrowRight className="w-4 h-4 ml-2" /></Button>
                                 </div>
-                            </div>
+                            )}
+
+                            {modalStep === 1 && (
+                                <div className="py-4">
+                                    <div className="mb-6">
+                                        <h3 className="font-semibold text-lg mb-2">Configuration Summary</h3>
+                                        <div className="p-4 rounded-lg bg-muted/50 max-h-48 overflow-y-auto">
+                                            {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
+                                                <div key={role} className="mb-2">
+                                                    <h4 className="font-semibold capitalize">{role}</h4>
+                                                    <p className="text-sm text-muted-foreground">{editedTemplate.permissions[role]?.join(', ') || "No permissions"}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="roomName" className="font-semibold">Company Name</Label>
+                                        <Input
+                                            id="roomName"
+                                            value={roomName}
+                                            onChange={(e) => setRoomName(e.target.value)}
+                                            onBlur={() => setIsRoomNameTouched(true)}
+                                            placeholder="e.g., QuantumLeap AI, Inc."
+                                            required
+                                            disabled={isLoading}
+                                            className="mt-2"
+                                        />
+                                        {isRoomNameTouched && !roomName.trim() && <p className="text-sm text-destructive pt-2">Company name is required.</p>}
+                                    </div>
+                                    <div className="flex justify-between mt-6">
+                                        <Button variant="outline" onClick={() => setModalStep(0)}>Back</Button>
+                                        <Button onClick={handleSubmit} disabled={isLoading || !roomName.trim()}>
+                                            {isGeneratingAiTemplate ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "Create Company"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </DialogContent>
                     </Dialog>
                 )}
             </div>
         </RequireLogin>
     );
-} 
+}

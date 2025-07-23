@@ -1,4 +1,4 @@
-import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput, backendURL as API_ROOT } from '../types/types';
+import { type ActionResult, type RoomInfo, type CreateRoomInput, type CreateRoomResult, type AddMemberInput, type RemoveMemberInput, type ModifyMemberResult, type RoomRole, type GetRoomDetailsResult, type RetrieveDocumentApiInput, type RetrieveDocumentResult, type SignDocumentApiInput, type SignDocumentResult, type UploadDocumentApiInput, type UploadDocumentResult, type AddRoleInput, type DeleteRoleInput, type ModifyRoleResult, type AddRolePermissionInput, type RemoveRolePermissionInput, type AddSignerToDocumentInput, type RemoveSignerFromDocumentInput, type ModifySignerResult, type UpdateMemberRoleInput, type UpdateMemberRoleResult, type Template, type CreateRoomFromTemplateInput, backendURL as API_ROOT, type RoomLog } from '../types/types';
 
 const API_BASE_PATH = "/api/actions";
 
@@ -275,6 +275,8 @@ export async function addMemberFormAdapter(
     callerEmail: formData.get("callerEmail") as string,
     newUserEmail: formData.get("newUserEmail") as string,
     newUserRole: formData.get("newUserRole") as RoomRole,
+    roomName: formData.get("roomName") as string,
+    companyName: formData.get("companyName") as string,
   };
 
   // Basic client-side validation matching the original server action (optional here, as API will validate)
@@ -549,22 +551,110 @@ export async function uploadDocumentFormAdapter(
   const signersString = formData.get("signers") as string;
   const signers = signersString ? signersString.split(',').map(s => s.trim()).filter(s => s) : [];
 
+  // Handle drag & drop scenario where file data is in hidden fields
+  const fileName = formData.get("fileName") as string;
+  const fileSize = formData.get("fileSize") as string;
+  const fileType = formData.get("fileType") as string;
+  const fileDataB64 = formData.get("fileDataB64") as string;
+  const hasBase64Data = formData.get("hasBase64Data") === "true";
 
   // === [MODIFIED] Client-side Validation ===
-  // The check for a valid category against a hardcoded list has been removed.
-  // The backend now handles the validation against the dynamic role permissions.
-  if (!roomId || !uploaderEmail || !documentFile || documentFile.size === 0 || !category || !roomPubKey || !role || !signers || signers.length === 0) {
-      console.error("Client Adapter Validation failed. Missing fields:", { roomId: !!roomId, uploaderEmail: !!uploaderEmail, documentFile: !!documentFile, category: !!category, roomPubKey: !!roomPubKey, role: !!role, signers: !!signers && signers.length > 0 });
-      return { success: false, message: "Client validation: Missing required fields (roomId, uploaderEmail, file, category, role, room public key, or signers)." , data: null};
+  // Check if we have either a file object OR the hidden field data (for drag & drop)
+  const hasFileFromInput = documentFile && documentFile.size > 0;
+  const hasFileFromHiddenFields = fileName && fileSize;
+  
+  console.log("Upload validation debug:", {
+    documentFile: !!documentFile,
+    documentFileSize: documentFile?.size,
+    hasFileFromInput,
+    fileName,
+    fileSize,
+    hasFileFromHiddenFields
+  });
+  
+  // Detailed validation with specific error messages
+  if (!roomId) {
+    return { success: false, message: "Client validation: Room ID is missing." , data: null};
   }
-  if (documentFile.size > 100 * 1024 * 1024) { // Example: 100MB limit
+  if (!uploaderEmail) {
+    return { success: false, message: "Client validation: Uploader email is missing." , data: null};
+  }
+     if (!hasFileFromInput && !hasFileFromHiddenFields) {
+     console.error("No file found in either input or hidden fields");
+     return { success: false, message: "Client validation: No file selected for upload." , data: null};
+   }
+  if (!category || category.trim() === "") {
+    return { success: false, message: "Client validation: Please enter a document category." , data: null};
+  }
+  if (!roomPubKey) {
+    return { success: false, message: "Client validation: Room public key is missing." , data: null};
+  }
+  if (!role) {
+    return { success: false, message: "Client validation: User role is missing." , data: null};
+  }
+  if (!signers || signers.length === 0) {
+    return { success: false, message: "Client validation: Please add at least one signer to the document." , data: null};
+  }
+
+  console.log("Client Adapter Validation passed:", { 
+    roomId: !!roomId, 
+    uploaderEmail: !!uploaderEmail, 
+    hasFileFromInput: !!hasFileFromInput,
+    hasFileFromHiddenFields: !!hasFileFromHiddenFields,
+    category: !!category, 
+    categoryValue: category,
+    roomPubKey: !!roomPubKey, 
+    role: !!role, 
+    roleValue: role,
+    signers: !!signers && signers.length > 0,
+    signersValue: signers
+  });
+
+  // File size validation for both scenarios
+  const fileSizeNumber = hasFileFromInput ? documentFile!.size : parseInt(fileSize || "0");
+  if (fileSizeNumber > 100 * 1024 * 1024) { // Example: 100MB limit
       return { success: false, message: "Client validation: File is too large (max 100MB).", data: null };
   }
 
   try {
-    console.log("Client Adapter: Converting file to base64...");
-    const fileDataB64 = await fileToBase64(documentFile);
-    console.log(`Client Adapter: File converted. Base64 string length (approx): ${fileDataB64.length}`);
+    let fileDataB64Final: string;
+    let fileNameFinal: string;
+    let fileTypeFinal: string;
+    let fileSizeFinal: number;
+
+    if (hasFileFromInput) {
+      // Use file from input field (works for both normal upload and drag & drop)
+      console.log("Client Adapter: Converting file from input to base64...");
+      fileDataB64Final = await fileToBase64(documentFile!);
+      fileNameFinal = documentFile!.name;
+      fileTypeFinal = documentFile!.type || "application/octet-stream";
+      fileSizeFinal = documentFile!.size;
+      console.log(`Client Adapter: File converted. Base64 string length (approx): ${fileDataB64Final.length}`);
+    } else if (hasFileFromHiddenFields) {
+      // Fallback to hidden fields if available
+      console.log("Client Adapter: Using file data from hidden fields...");
+      
+      if (hasBase64Data && fileDataB64) {
+        fileDataB64Final = fileDataB64;
+        console.log(`Client Adapter: Using existing base64 data. Length (approx): ${fileDataB64Final.length}`);
+      } else {
+        // Try to get the file from the file input and convert it
+        console.log("Client Adapter: Base64 data not available, looking for file input...");
+        const fileInput = document.querySelector('input[name="documentFile"]') as HTMLInputElement;
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          console.log("Client Adapter: Converting file to base64...");
+          fileDataB64Final = await fileToBase64(fileInput.files[0]);
+        } else {
+          throw new Error("File data not available for processing");
+        }
+      }
+      
+      fileNameFinal = fileName;
+      fileTypeFinal = fileType || "application/octet-stream";
+      fileSizeFinal = parseInt(fileSize);
+    } else {
+      throw new Error("No valid file source found");
+    }
 
     const input: UploadDocumentApiInput = {
       roomId,
@@ -572,10 +662,10 @@ export async function uploadDocumentFormAdapter(
       category,
       role,
       roomPubKey,
-      fileName: documentFile.name,
-      fileType: documentFile.type || "application/octet-stream",
-      fileDataB64,
-      fileSize: documentFile.size,
+      fileName: fileNameFinal,
+      fileType: fileTypeFinal,
+      fileDataB64: fileDataB64Final,
+      fileSize: fileSizeFinal,
       signers,
     };
 
@@ -866,45 +956,7 @@ export async function removeSignerFromDocumentClientAction(
   }
 }
 
-/**
- * Fetches the list of available room templates.
- */
-export async function listTemplatesAction(): Promise<ActionResult<Template[]>> {
-    console.log(`Client Service: Fetching templates from ${effectiveApiRoot}${API_BASE_PATH}/list-templates`);
 
-    try {
-        const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/list-templates`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-            },
-        });
-
-        const responseData: ActionResult<Template[]> = await response.json();
-
-        if (!response.ok) {
-            console.error("API error response fetching templates:", response.status, responseData);
-            return {
-                success: false,
-                error: responseData?.error || `API request failed with status ${response.status}`,
-                message: responseData?.message || `Failed to fetch templates. Server responded with ${response.status}.`,
-                data: responseData?.data || [],
-            };
-        }
-
-        console.log("Client Service: Templates fetched successfully:", responseData);
-        return responseData;
-
-    } catch (error: any) {
-        console.error("Client Service: Error in listTemplatesAction fetch call:", error);
-        return {
-            success: false,
-            message: "Failed to list templates due to a network or client-side error.",
-            error: error.message || "An unexpected error occurred while trying to contact the server.",
-            data: [],
-        };
-    }
-}
 
 /**
  * Creates a new room from a template by calling the external API.
@@ -947,6 +999,94 @@ export async function createRoomFromTemplateAction(
     return {
       success: false,
       message: "Failed to create room from template due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Client-side function to fetch room activity logs separately
+ */
+export async function getRoomActivityLogsClientAction(
+  roomId: string,
+  callerEmail: string,
+  page: number = 1
+): Promise<{ success: boolean; data?: { logs: RoomLog[]; total: number; page: number; limit: number }; message?: string; error?: string }> {
+  console.log(`Client Service: Fetching activity logs for room ${roomId} page ${page} via API`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/get-room-activity-logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ roomId, callerEmail, page }),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during get room activity logs:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to fetch room activity logs.",
+      };
+    }
+
+    console.log("Client Service: Get room activity logs API call successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in getRoomActivityLogsClientAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to fetch room activity logs due to a network or client-side error.",
+      error: error.message || "An unexpected error occurred while trying to contact the server.",
+    };
+  }
+}
+
+/**
+ * Client-side function to generate an AI-powered template.
+ * @param prompt The user's prompt for template generation.
+ * @returns A Promise resolving to an ActionResult containing the generated Template.
+ */
+export async function generateAITemplateAction(
+  prompt: string
+): Promise<ActionResult<Template>> {
+  console.log(`Client Service: Generating AI template with prompt: "${prompt}"`);
+
+  try {
+    const response = await fetch(`${effectiveApiRoot}${API_BASE_PATH}/generate-ai-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
+    const responseData: ActionResult<Template> = await response.json();
+
+    if (!response.ok) {
+      console.error("API error response during AI template generation:", response.status, responseData);
+      return {
+        success: false,
+        message: responseData?.message || `API request failed with status ${response.status}`,
+        error: responseData?.error || "Failed to generate AI template.",
+      };
+    }
+
+    console.log("Client Service: AI template generation successful:", responseData);
+    return responseData;
+
+  } catch (error: any) {
+    console.error("Client Service: Error in generateAITemplateAction fetch call:", error);
+    return {
+      success: false,
+      message: "Failed to generate AI template due to a network or client-side error.",
       error: error.message || "An unexpected error occurred while trying to contact the server.",
     };
   }

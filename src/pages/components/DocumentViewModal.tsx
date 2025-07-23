@@ -2,11 +2,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "../../components/ui/dialog";
-import { Loader2, FileText, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../components/ui/dialog";
+import { Loader2, FileText } from "lucide-react";
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import '@react-pdf-viewer/core/lib/styles/index.css';
-import { Button } from "../../components/ui/button";
 
 interface DocumentViewModalProps {
   isOpen: boolean;
@@ -60,18 +59,11 @@ export default function DocumentViewModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="max-w-[95vw] lg:max-w-[90vw] xl:max-w-[1400px] h-[95vh] p-0 flex flex-col">
-        <DialogHeader className="p-4 border-b flex-row items-center justify-between">
-            <div>
-                <DialogTitle>{documentName}</DialogTitle>
-                <DialogDescription>
-                    Expanded document view.
-                </DialogDescription>
-            </div>
-            <DialogClose asChild>
-                <Button variant="ghost" size="icon">
-                    <X className="h-4 w-4" />
-                </Button>
-            </DialogClose>
+        <DialogHeader className="p-4 border-b">
+            <DialogTitle>{documentName}</DialogTitle>
+            <DialogDescription>
+                Expanded document view.
+            </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 min-h-0 bg-muted/20 flex items-center justify-center">
@@ -101,7 +93,7 @@ export default function DocumentViewModal({
                 <p className="text-muted-foreground">No document data available for preview.</p>
               </div>
             )}
-          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

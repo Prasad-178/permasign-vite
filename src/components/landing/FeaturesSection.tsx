@@ -3,63 +3,60 @@ import { AnimateOnScroll } from "../ui/animate-on-scroll"
 
 const features = [
   {
-    icon: <Lock className="h-6 w-6 text-primary" />,
+    icon: <Lock className="h-8 w-8 text-primary" />,
     title: "Immutable Records",
-    description: "Documents stored on Arweave are permanent and tamper-proof, providing unmatched security.",
+    description: "Documents stored on PermaSign are untouchable and tamper-proof.",
   },
   {
-    icon: <Zap className="h-6 w-6 text-primary" />,
-    title: "Rapid Processing",
-    description: "Sign and process documents quickly with our streamlined workflow.",
+    icon: <Shield className="h-8 w-8 text-primary" />,
+    title: "Enterprise-Grade Security",
+    description: "End-to-end encryption ensures your sensitive documents are always protected.",
   },
   {
-    icon: <Shield className="h-6 w-6 text-primary" />,
-    title: "Enterprise Security",
-    description: "Bank-level encryption combined with blockchain verification for maximum security.",
+    icon: <Users className="h-8 w-8 text-primary" />,
+    title: "Secure Collaboration",
+    description: "Invite members and define roles in a secure, auditable environment.",
   },
   {
-    icon: <Globe className="h-6 w-6 text-primary" />,
-    title: "Global Compliance",
-    description: "Meet regulatory requirements worldwide with our compliant signature solution.",
+    icon: <Zap className="h-8 w-8 text-primary" />,
+    title: "Streamlined Workflow",
+    description: "An intuitive interface for uploading, signing, and managing high-value agreements efficiently.",
   },
   {
-    icon: <Clock className="h-6 w-6 text-primary" />,
-    title: "Permanent Storage",
-    description: "Never worry about lost documents again with permanent blockchain storage.",
+    icon: <Clock className="h-8 w-8 text-primary" />,
+    title: "Permanent Audit Trail",
+    description: "Every action is recorded permanently, creating a transparent audit trail for compliance.",
   },
   {
-    icon: <Users className="h-6 w-6 text-primary" />,
-    title: "Team Collaboration",
-    description: "Seamless collaboration tools for teams of any size to manage documents.",
+    icon: <Globe className="h-8 w-8 text-primary" />,
+    title: "Decentralized & Global",
+    description: "Built on a decentralized network, ensuring your documents are accessible and secure globally, forever.",
   },
 ]
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+    <section id="features" className="w-full py-20 md:py-28 lg:py-32 bg-muted/50">
       <div className="container mx-auto px-4 md:px-6">
-        <AnimateOnScroll className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-          <div className="space-y-2 max-w-3xl">
-            <div className="inline-block rounded-full bg-primary-50 px-3 py-1 text-sm text-primary mb-4">
-              Features
-            </div>
-            <h2 className="text-3xl font-heading font-medium sm:text-4xl md:text-5xl">Enterprise-Grade Features</h2>
-            <p className="text-muted-foreground md:text-xl/relaxed font-light">
-              PermaSign combines the reliability of traditional e-signature solutions with the permanence and security of blockchain technology.
+        <AnimateOnScroll className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
+          <div className="space-y-3 max-w-3xl">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Why Choose PermaSign?</h2>
+            <p className="text-muted-foreground md:text-xl/relaxed">
+              PermaSign combines the unchangeable nature of blockchain with the security of enterprise-grade encryption to protect your most valuable documents.
             </p>
           </div>
         </AnimateOnScroll>
-        <div className="mx-auto grid max-w-5xl items-stretch gap-8 py-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-12">
+        <div className="mx-auto grid max-w-6xl items-start gap-8 sm:grid-cols-2 md:grid-cols-3">
           {features.map((feature, i) => (
-            <div key={i} className="flex flex-col gap-4 p-6 rounded-md bg-card border border-border/20 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50">
+            <AnimateOnScroll key={i} className="feature-card flex flex-col gap-4 p-6 rounded-xl bg-background border shadow-sm hover:shadow-primary/10">
+              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 mb-2">
                 {feature.icon}
               </div>
               <div>
-                <h3 className="text-xl font-heading">{feature.title}</h3>
-                <p className="text-muted-foreground font-light mt-2">{feature.description}</p>
+                <h3 className="text-xl font-semibold">{feature.title}</h3>
+                <p className="text-muted-foreground mt-2 text-base">{feature.description}</p>
               </div>
-            </div>
+            </AnimateOnScroll>
           ))}
         </div>
       </div>

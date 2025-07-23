@@ -2,9 +2,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ConnectButton, useConnection, useActiveAddress } from "@arweave-wallet-kit/react";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useState } from "react";
-// import { ThemeToggle } from "./ThemeToggle";
-
-// A simple placeholder SVG logo. Replace with your actual logo component or SVG.
 
 export default function Navbar() {
   const location = useLocation();
@@ -15,13 +12,11 @@ export default function Navbar() {
   const [isUserIdentified, setIsUserIdentified] = useState(false);
 
   useEffect(() => {
-    // When the user connects their wallet, identify them and capture the login event.
     if (connected && activeAddress && !isUserIdentified) {
       posthog?.identify(activeAddress);
       posthog?.capture("user_logged_in", { wallet_address: activeAddress });
       setIsUserIdentified(true);
     } else if (!connected && isUserIdentified) {
-      // When the user disconnects, reset the PostHog user identity.
       posthog?.reset();
       setIsUserIdentified(false);
     }
@@ -32,19 +27,13 @@ export default function Navbar() {
     { type: "anchor", href: "/#how-it-works", label: "How It Works", id: "how-it-works" },
     { type: "anchor", href: "/#security", label: "Security", id: "security" },
     { type: "anchor", href: "/#pricing", label: "Pricing", id: "pricing" },
-    { type: "route", href: "/companies", label: "My Companies", customClass: "font-semibold text-primary hover:text-primary/90" },
+    { type: "route", href: "/companies", label: "My Companies" },
   ];
 
-  const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string, _: string) => {
+  const handleAnchorLinkClick = (event: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     event.preventDefault();
-    
     if (location.pathname === "/") {
-      const targetElement = document.getElementById(targetId);
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        console.warn(`Element with ID '${targetId}' not found on homepage.`);
-      }
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
       navigate('/', { state: { scrollToId: targetId } });
     }
@@ -52,17 +41,19 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 md:px-6">
-        <Link to="/" className="mr-6 flex items-center space-x-2">
-          <img src="./permasign_logo.png" alt="PermaSign Logo" className="h-15 w-auto" />
-          <span className="text-xl font-bold text-foreground hover:text-primary transition-colors">
+      <div className="container mx-auto flex h-20 max-w-screen-2xl items-center justify-between px-4 md:px-6">
+        <Link to="/" className="flex items-center space-x-3">
+          <img src="/permasign_logo.png" alt="PermaSign Logo" className="h-10 w-auto" />
+          <span className="text-2xl font-bold text-foreground hover:text-primary transition-colors">
             PermaSign
           </span>
         </Link>
         
-        <nav className="hidden md:flex gap-6 items-center">
+        <nav className="hidden md:flex gap-8 items-center">
           {navLinks.map((link) => {
-            const commonClasses = "text-sm font-medium transition-colors";
+            const isActive = link.type === 'route' && location.pathname.startsWith(link.href);
+            const isHomePage = location.pathname === '/';
+
             if (link.type === "route") {
               const handleClick = () => {
                 if (link.href === "/companies") {
@@ -73,7 +64,7 @@ export default function Navbar() {
                 <Link
                   key={link.label}
                   to={link.href}
-                  className={`${commonClasses} ${link.customClass || 'text-muted-foreground hover:text-primary'}`}
+                  className={`navbar-link text-lg ${isActive ? 'active' : ''}`}
                   onClick={handleClick}
                 >
                   {link.label}
@@ -84,8 +75,8 @@ export default function Navbar() {
                 <a
                   key={link.label}
                   href={link.href}
-                  onClick={(e) => handleAnchorLinkClick(e, link.id!, link.href)}
-                  className={`${commonClasses} text-muted-foreground hover:text-primary`}
+                  onClick={(e) => handleAnchorLinkClick(e, link.id!)}
+                  className={`navbar-link text-lg ${isHomePage && '/' + location.hash === link.href ? 'active' : ''}`}
                 >
                   {link.label}
                 </a>
@@ -94,16 +85,15 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <ConnectButton
             profileModal={true}
             showBalance={false}
             showProfilePicture={true}
           />
-          {/* <ThemeToggle /> */}
-          {/* <MobileNav /> */}
         </div>
       </div>
     </header>
   );
-} 
+}
+ 
