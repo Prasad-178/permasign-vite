@@ -1,9 +1,12 @@
 import posthog from 'posthog-js';
 
+export const POSTHOG_KEY = "phc_73VuHm4KblEXeCQ2Sam9fxmCm9KMvL67mMP1vr5iryy";
+export const POSTHOG_HOST = "https://us.i.posthog.com";
+
 export const initAnalytics = () => {
-    if (typeof window !== 'undefined' && import.meta.env.VITE_PUBLIC_POSTHOG_KEY) {
-        posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
-            api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    if (typeof window !== 'undefined') {
+        posthog.init(POSTHOG_KEY, {
+            api_host: POSTHOG_HOST,
             person_profiles: 'identified_only', // or 'always' to create profiles for anonymous users as well
             capture_pageview: true, // Enable automatic page view tracking
             autocapture: {
@@ -16,15 +19,10 @@ export const initAnalytics = () => {
                 maskAllInputs: true // Mask all input fields for privacy
             },
             loaded: (posthog) => {
-                if (import.meta.env.MODE === 'development') {
-                    console.log('PostHog initialized in development mode');
-                    posthog.debug(); // Enable debug mode in development
-                }
-                
                 // Identify the environment
                 posthog.register({
-                    environment: import.meta.env.MODE,
-                    app_version: import.meta.env.VITE_APP_VERSION || '1.0.0'
+                    environment: 'production',
+                    app_version: '1.0.0'
                 });
                 
                 console.log('PostHog analytics initialized successfully');
