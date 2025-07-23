@@ -143,11 +143,11 @@ export default function TemplatesPage() {
 
         setSelectedTemplate(formattedTemplate);
         const newEditedTemplate = JSON.parse(JSON.stringify(formattedTemplate));
-        if (!newEditedTemplate.roles.includes('Member')) {
+        if (!newEditedTemplate.roles.some((role: string) => role.toLowerCase() === 'member')) {
             newEditedTemplate.roles.push('Member');
             newEditedTemplate.permissions['Member'] = [];
         }
-        if (!newEditedTemplate.roles.includes('Founder')) {
+        if (!newEditedTemplate.roles.some((role: string) => role.toLowerCase() === 'founder')) {
             newEditedTemplate.roles.unshift('Founder');
             newEditedTemplate.permissions['Founder'] = newEditedTemplate.permissions['Founder'] || [];
         }
@@ -236,11 +236,12 @@ export default function TemplatesPage() {
                         }, {} as { [key: string]: string[] }),
                     };
 
-                    if (!formattedTemplate.roles.includes('Founder')) {
+                    // Ensure default roles are present but use proper casing
+                    if (!formattedTemplate.roles.some(role => role.toLowerCase() === 'founder')) {
                         formattedTemplate.roles.unshift('Founder');
                         formattedTemplate.permissions['Founder'] = formattedTemplate.permissions['Founder'] || [];
                     }
-                    if (!formattedTemplate.roles.includes('Member')) {
+                    if (!formattedTemplate.roles.some(role => role.toLowerCase() === 'member')) {
                         formattedTemplate.roles.push('Member');
                         formattedTemplate.permissions['Member'] = formattedTemplate.permissions['Member'] || [];
                     }
@@ -276,14 +277,29 @@ export default function TemplatesPage() {
             try {
                 const { publicKeyPem, privateKeyPem } = await generateRoomKeyPairPem();
                 
-                const finalRoles = [...new Set(['Founder', 'Member', ...editedTemplate.roles])];
+                // Filter out default roles ('Founder', 'Member') from templateRoles to avoid duplicates
+                // The Lua script always creates 'founder' and 'member' as default non-deletable roles
+                const customRoles = editedTemplate.roles.filter(role => 
+                    role.toLowerCase() !== 'founder' && role.toLowerCase() !== 'member'
+                );
+                
+                // Map permissions to use lowercase for default roles to match Lua script
+                const normalizedPermissions = { ...editedTemplate.permissions };
+                if (normalizedPermissions['Founder']) {
+                    normalizedPermissions['founder'] = normalizedPermissions['Founder'];
+                    delete normalizedPermissions['Founder'];
+                }
+                if (normalizedPermissions['Member']) {
+                    normalizedPermissions['member'] = normalizedPermissions['Member']; 
+                    delete normalizedPermissions['Member'];
+                }
 
                 const input: CreateRoomFromTemplateInput = {
                     roomName: roomName.trim(),
                     ownerEmail: ownerOthentDetails.email,
                     templateName: editedTemplate.name,
-                    roles: finalRoles,
-                    permissions: editedTemplate.permissions,
+                    roles: customRoles, // Only send custom roles, not default ones
+                    permissions: normalizedPermissions, // Use lowercase for default roles
                     roomPublicKeyPem: publicKeyPem,
                     roomPrivateKeyPem: privateKeyPem,
                 };

@@ -17,7 +17,7 @@ export const templates: { [name: string]: Template } = {
     permissions: {
       "founder": [
         "Cap Table", "Founders Agreement",
-        "Board Resolutions", "Registration Certificates", "Licenses & Certifications", "Team Bios"
+        "Board Resolutions", "Registration Certificates", "Licenses & Certifications"
       ],
       "Investor": ["Term Sheet", "Shareholders Agreement", "SAFE / Convertible Notes"],
       "Auditor": ["Audit Report"],
@@ -32,8 +32,7 @@ export const templates: { [name: string]: Template } = {
      permissions: {
       "founder": [
         "Pitch Deck", "Financial Statements", "Cap Table", "Founders Agreement",
-        "Board Resolution", "Registration Certificates", "Licenses & Certifications",
-        "Team Bios", "Intellectual Property", "Material Contracts"
+        "Board Resolution", "Registration Certificates", "Licenses & Certifications", "Intellectual Property", "Material Contracts"
       ],
       "Acquirer": ["Pitch Deck", "Financial Statements", "Cap Table", "Material Contracts", "Intellectual Property"],
       "Legal Team": ["Founders Agreement", "Registration Certificates", "Board Resolution", "Intellectual Property", "Material Contracts"],
