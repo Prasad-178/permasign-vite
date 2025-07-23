@@ -218,7 +218,7 @@ export default function DocumentsPendingSignature({
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {signers.map((signer, index) => {
+                      {signers.map((signer, _) => {
                         const isSigned = signer.signed === "true";
                         const statusColor = isSigned ? "bg-green-500" : "bg-yellow-500";
                         const statusText = isSigned ? "Signed" : "Pending";

@@ -9,7 +9,7 @@ import { PlusCircle, ArrowRight, AlertCircle, FolderLock, FilePlus, Users, Star 
 import { listMyDataRooms } from '../services/roomActionsClient';
 import { CustomLoader } from '../components/ui/CustomLoader';
 import { type RoomInfo } from '../types/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
 import { Badge } from '../components/ui/badge';
 
 export default function RoomsPage() {

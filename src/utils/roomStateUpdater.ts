@@ -1,4 +1,4 @@
-import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles, type RoomLog } from '../types/types';
+import { type RoomDetails, type DocumentInfo, type Member, type RoomRoles } from '../types/types';
 import { useMemo } from 'react';
 
 // Type for state update functions
@@ -35,6 +35,7 @@ export function createRoomStateUpdater(
   };
 
   const addDocument = (newDocument: DocumentInfo) => {
+    if (currentUserEmail) {}
     setDocuments(prevDocs => [...prevDocs, newDocument]);
   };
 

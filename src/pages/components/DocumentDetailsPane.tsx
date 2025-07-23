@@ -82,7 +82,7 @@ export default function DocumentDetailsPane({
             </h5>
             
             <div className="space-y-2">
-              {signatureRecords.map((signerRecord, index) => {
+              {signatureRecords.map((signerRecord, _) => {
                 const isCurrentUserSigner = currentUserEmail === signerRecord.emailToSign;
                 const hasSigned = signerRecord.signed === "true";
 
