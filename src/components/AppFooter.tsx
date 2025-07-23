@@ -55,7 +55,7 @@ export default function AppFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-12">
           <div className="col-span-2 space-y-4">
             <Link to="/" className="flex items-center space-x-3">
-              <img src="/permasign_logo.png" alt="PermaSign Logo" className="h-10 w-auto" />
+              <img src="./permasign_logo.png" alt="PermaSign Logo" className="h-10 w-auto" />
               <span className="text-2xl font-bold text-foreground">
                 PermaSign
               </span>
