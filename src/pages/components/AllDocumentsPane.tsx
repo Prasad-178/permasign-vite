@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "../../components/ui/dialog";
-import { UploadCloud, Eye, Download, Loader2, Plus, X, Check, Trash2, FileText } from "lucide-react";
+import { UploadCloud, Eye, Download, Loader2, Plus, X, Check, Trash2, FileText, ChevronRight, ChevronUp } from "lucide-react";
 import { type DocumentInfo, type RoomDetails } from "../../types/types";
 import { useState } from "react";
 import { addRolePermissionClientAction, deleteRoleClientAction } from "../../services/roomActionsClient";
@@ -169,39 +169,44 @@ export default function AllDocumentsPane({
         <Accordion type="multiple" defaultValue={defaultOpenRoles} className="w-full">
           {sortedRoles.map(role => (
             <AccordionItem value={role.roleName} key={role.roleName} className="border-b-0">
-              <AccordionTrigger className="text-sm font-medium capitalize hover:no-underline px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors group">
+              <AccordionTrigger className="text-sm font-medium capitalize hover:no-underline px-2 py-1.5 rounded-md bg-muted/80 hover:bg-muted transition-colors group [&[data-state=open]>div>div>svg]:rotate-90 [&>svg]:hidden">
                 <div className="flex items-center justify-between w-full mr-2">
-                  <span>{role.roleName.replace(/_/g, ' ')}</span>
-                  {isFounder && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddPermission(role.roleName);
-                        }}
-                        title={`Add document type to ${role.roleName}`}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      {role.roleName !== 'founder' && role.isDeletable && (
+                  <div className="flex items-center">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground mr-2 transition-transform duration-200" />
+                    <span>{role.roleName.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div>
+                    {isFounder && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 text-red-500 hover:text-red-600"
+                          className="h-5 w-5"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteRoleClick(role.roleName);
+                            handleAddPermission(role.roleName);
                           }}
-                          title={`Delete ${role.roleName} role`}
+                          title={`Add document type to ${role.roleName}`}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Plus className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  )}
+                        {role.roleName !== 'founder' && role.isDeletable && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-red-500 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRoleClick(role.roleName);
+                            }}
+                            title={`Delete ${role.roleName} role`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pt-1 pb-0 pl-3">
@@ -224,11 +229,13 @@ export default function AllDocumentsPane({
                       return (
                         <AccordionItem value={docType} key={docType} className="border-b-0 mb-2">
                           {hasDocuments ? (
-                            <AccordionTrigger className="flex items-center justify-between pl-2 pr-1 py-1.1 rounded-md transition-colors duration-150 hover:bg-accent text-sm font-normal capitalize hover:no-underline w-full">
+                            <AccordionTrigger className="flex items-center justify-between pl-2 pr-1 py-1.1 rounded-md transition-colors duration-150 hover:bg-accent text-sm font-normal capitalize hover:no-underline w-full group [&>svg]:hidden">
                               <div className="flex items-center justify-between w-full">
-                                <span className="text-foreground">
-                                  {docType.replace(/_/g, ' ')}
-                                </span>
+                                <div className="flex items-center">
+                                  <span className="text-foreground">
+                                    {docType.replace(/_/g, ' ')}
+                                  </span>
+                                </div>
                                 <div className="ml-2 flex items-center">
                                   {/* Show overall status for the category */}
                                   {(() => {
@@ -244,6 +251,9 @@ export default function AllDocumentsPane({
                                       <div className="w-2 h-2 rounded-full bg-yellow-500 mr-1.5" title="Some documents pending verification" />
                                     );
                                   })()}
+                                  <div className="pr-1">
+                                    <ChevronUp className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform duration-200" />
+                                  </div>
                                 </div>
                               </div>
                             </AccordionTrigger>
