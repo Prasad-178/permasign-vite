@@ -109,26 +109,46 @@ export default function TemplatesPage() {
     }, []);
 
     useEffect(() => {
-        const getOthentEmail = async () => {
-            if (connected && api?.othent && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
+        const getUserEmail = async () => {
+            if (connected && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
+                // Check if we have either wauth or othent available
+                if (!api || (!api.authData && !api.othent)) return;
+
                 setIsFetchingDetails(true);
                 try {
-                    const othentData: any = await api.othent.getUserDetails();
-                    if (othentData?.email) {
-                        setOwnerOthentDetails({ email: othentData.email, name: othentData.name });
+                    let email: string;
+                    let name: string | undefined;
+
+                    // Check if using wauth authentication
+                    if (api.id === "wauth-google") {
+                        if (!api.authData?.email) {
+                            throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+                        }
+                        email = api.authData.email;
+                        name = api.authData.name;
                     } else {
-                        toast.error("Email Not Found", { description: "Could not retrieve your email from Othent." });
-                        setOwnerOthentDetails(null);
+                        // Fall back to othent authentication
+                        if (!api.othent) {
+                            throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
+                        }
+                        const othentData: any = await api.othent.getUserDetails();
+                        if (!othentData?.email) {
+                            throw new Error("Could not retrieve your email. Please ensure your wallet is linked with an email.");
+                        }
+                        email = othentData.email;
+                        name = othentData.name;
                     }
+
+                    setOwnerOthentDetails({ email, name });
                 } catch (err: any) {
-                    toast.error("Othent Error", { description: `Could not retrieve your details: ${err.message}.` });
+                    toast.error("Authentication Error", { description: `Could not retrieve your details: ${err.message}.` });
                     setOwnerOthentDetails(null);
                 } finally {
                     setIsFetchingDetails(false);
                 }
             }
         };
-        getOthentEmail();
+        getUserEmail();
     }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
 
     const handleUseTemplateClick = (template: Template) => {

@@ -239,13 +239,29 @@ export function useDocumentOperations({
 
     try {
       const dataToSign = documentId;
-      const signatureArrayBuffer = await api?.signature(
-        dataToSign,
-        { name: 'RSA-PSS', saltLength: 32 }
-      );
+      let signatureResult: any;
+      if (api?.id === "wauth-google") {
+        signatureResult = await api.signature(dataToSign);
+      } else {
+        signatureResult = await api?.signature(
+          dataToSign,
+          { name: 'RSA-PSS', saltLength: 32 }
+        );
+      }
 
-      if (!signatureArrayBuffer || !(signatureArrayBuffer instanceof Uint8Array)) {
-        throw new Error("Signature generation failed or returned an invalid type.");
+      if (!signatureResult) {
+        throw new Error("Signature generation failed - no result returned.");
+      }
+
+      // Convert to Uint8Array if needed
+      let signatureArrayBuffer: Uint8Array;
+      if (signatureResult instanceof Uint8Array) {
+        signatureArrayBuffer = signatureResult;
+      } else if (Array.isArray(signatureResult) || (signatureResult.length !== undefined && typeof signatureResult.length === 'number')) {
+        // Convert array-like object to Uint8Array (wauth returns regular arrays)
+        signatureArrayBuffer = new Uint8Array(signatureResult);
+      } else {
+        throw new Error(`Signature generation returned unexpected type: ${typeof signatureResult}`);
       }
 
       const hexSignature = "0x" + Array.from(signatureArrayBuffer)

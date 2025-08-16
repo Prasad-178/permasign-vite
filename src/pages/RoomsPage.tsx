@@ -18,6 +18,7 @@ export default function RoomsPage() {
   }, []);
 
   const api = useApi();
+  console.log(api);
   const activeAddress = useActiveAddress();
   const { connected } = useConnection();
   const posthog = usePostHog();
@@ -57,15 +58,32 @@ export default function RoomsPage() {
         setError(null);
         return;
       }
-      if (!api?.othent) return;
+
+      // Check if we have either wauth or othent available
+      if (!api || (!api.authData && !api.othent)) return;
 
       setError(null);
       try {
-        const details = await api.othent.getUserDetails();
-        if (!details?.email) {
-          throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
+        let email: string;
+
+        // Check if using wauth authentication
+        if (api.id === "wauth-google") {
+          if (!api.authData?.email) {
+            throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+          }
+          email = api.authData.email;
+        } else {
+          // Fall back to othent authentication
+          if (!api.othent) {
+            throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
+          }
+          const details = await api.othent.getUserDetails();
+          if (!details?.email) {
+            throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
+          }
+          email = details.email;
         }
-        const email = details.email;
+
         const result = await listMyDataRooms(email);
         if (result.success && result.data) {
           setRooms(result.data);
@@ -144,7 +162,7 @@ export default function RoomsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-base">{error}</p>
-              {error?.includes("Othent") && <p className="mt-2 text-sm text-muted-foreground">Please ensure your wallet is correctly linked with an email via Othent and try again.</p>}
+              {(error?.includes("Othent") || error?.includes("wauth") || error?.includes("email")) && <p className="mt-2 text-sm text-muted-foreground">Please ensure your wallet is correctly linked with an email and try again.</p>}
             </CardContent>
           </Card>
         )}

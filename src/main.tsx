@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./styles/globals.css";
 import { ArweaveWalletKit } from "@arweave-wallet-kit/react";
 import OthentStrategy from "@arweave-wallet-kit/othent-strategy";
+import WAuthStrategy, { WAuthProviders } from "@wauth/strategy";
 import { initAnalytics } from "./lib/analytics";
 import { PostHogProvider } from "posthog-js/react";
 import posthog from 'posthog-js';
@@ -17,13 +18,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       config={{
         permissions: [
           "ACCESS_ADDRESS",
-          "ACCESS_PUBLIC_KEY",
           "SIGN_TRANSACTION",
-          "DISPATCH",
         ],
         ensurePermissions: true,
         strategies: [
           new OthentStrategy(),
+          new WAuthStrategy({
+            provider: WAuthProviders.Google,
+          })
         ],
       }}
     >
