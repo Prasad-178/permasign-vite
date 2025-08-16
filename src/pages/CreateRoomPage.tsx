@@ -41,23 +41,42 @@ export default function CreateRoomPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getOthentEmail = async () => {
-      if (connected && api?.othent && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
+    const getUserEmail = async () => {
+      if (connected && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
+        // Check if we have either wauth or othent available
+        if (!api || (!api.authData && !api.othent)) return;
+
         setIsFetchingDetails(true);
-        console.log("Fetching Othent email...");
+        console.log("Fetching user email...");
         try {
-          const othentData: any = await api.othent.getUserDetails();
-          if (othentData?.email) {
-            console.log("Othent details fetched:", othentData);
-            setOwnerOthentDetails({ email: othentData.email, name: othentData.name });
+          let email: string;
+          let name: string | undefined;
+
+          // Check if using wauth authentication
+          if (api.id === "wauth-google") {
+            if (!api.authData?.email) {
+              throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+            }
+            email = api.authData.email;
+            name = api.authData.name;
           } else {
-            console.warn("Othent email not found in fetched data.");
-            toast.error("Email Not Found", { description: "Could not retrieve your email from Othent. Ensure you are logged in." });
-            setOwnerOthentDetails(null);
+            // Fall back to othent authentication
+            if (!api.othent) {
+              throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
+            }
+            const othentData: any = await api.othent.getUserDetails();
+            if (!othentData?.email) {
+              throw new Error("Could not retrieve your email from Othent. Ensure you are logged in.");
+            }
+            email = othentData.email;
+            name = othentData.name;
           }
+
+          console.log("User details fetched:", { email, name });
+          setOwnerOthentDetails({ email, name });
         } catch (err: any) {
-          console.error("Error Fetching Othent User Details:", err);
-          toast.error("Othent Error", { description: `Could not retrieve your details: ${err.message}. Please try reconnecting wallet.` });
+          console.error("Error Fetching User Details:", err);
+          toast.error("Authentication Error", { description: `Could not retrieve your details: ${err.message}. Please try reconnecting wallet.` });
           setOwnerOthentDetails(null);
         } finally {
           setIsFetchingDetails(false);
@@ -67,7 +86,7 @@ export default function CreateRoomPage() {
         if (isFetchingDetails) setIsFetchingDetails(false);
       }
     };
-    getOthentEmail();
+    getUserEmail();
   }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -163,7 +182,7 @@ export default function CreateRoomPage() {
               {!isFetchingDetails && connected && !ownerOthentDetails?.email && (
                  <div className="flex items-center gap-2 text-sm text-destructive p-3 bg-destructive/10 rounded-md border border-destructive/20">
                     <AlertCircle className="w-4 h-4 flex-shrink-0"/>
-                    <span>Could not load your email from Othent. Please try reconnecting your wallet to continue.</span>
+                    <span>Could not load your email. Please try reconnecting your wallet to continue.</span>
                  </div>
                )}
               
