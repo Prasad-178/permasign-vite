@@ -4,6 +4,14 @@ import ScrollToTop from '../components/ScrollToTop';
 
 const changelogEntries = [
     {
+        version: "0.9.1",
+        date: "August 17, 2025",
+        title: "WAuth Integration",
+        features: [
+            "Added support for WAuth-Google authentication alongside existing Othent authentication.",
+        ]
+    },
+    {
         version: "0.9.0",
         date: "July 23, 2025",
         title: "Major UI/UX and Functionality Rehaul",
