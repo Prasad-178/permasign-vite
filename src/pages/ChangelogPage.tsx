@@ -13,8 +13,7 @@ const changelogEntries = [
             "Added buttons to view and download documents in the document timeline.",
         ],
         improvements: [
-            "Enhanced document verification status with green checkmarks instead of dots for better visual clarity.",
-            "Added custom accordion arrows with distinct visual hierarchy (right arrows for roles, up/down arrows for categories).",
+            "Enhanced UI for document verification status with green checkmarks instead of dots for better visual clarity.",
         ]
     },
     {

@@ -117,58 +117,13 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({
                   {/* Timeline Node on the central line */}
                   <div className="absolute left-1/2 w-4 h-4 bg-gray-400 rounded-full transform -translate-x-1/2 border-2 border-background z-10" />
                   
-                  {/* Content Card: Positioned with proper spacing from timeline */}
-                  <div
-                    className={`
-                      w-72  /* Reduced width */
-                      p-4   /* Padding */
-                      border rounded-lg shadow-md bg-card /* Card styling */
-                      ${isRightSide ? 'ml-16' : 'mr-16'} /* Increased margin for spacing from timeline */
-                      relative /* Make relative for absolute button positioning */
-                    `}
-                  >
-                    {/* Action buttons positioned relative to the card */}
-                    {onViewDocument && onDownloadDocument && (
-                      <div className={`absolute top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-20 ${
-                        isRightSide 
-                          ? '-right-20' // Right side cards: buttons on the right side of the card
-                          : '-left-20' // Left side cards: buttons on the left side of the card
-                      }`}>
-                        {isRightSide ? (
-                          // Right side: Eye button closer to card, Download button farther away
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 bg-background shadow-md border"
-                              onClick={() => onViewDocument(doc.documentId)}
-                              disabled={!!isViewingDoc || !!isDownloadingDoc}
-                              title="View Document"
-                            >
-                              {isViewingDoc === doc.documentId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 bg-background shadow-md border"
-                              onClick={() => onDownloadDocument(doc.documentId)}
-                              disabled={!!isViewingDoc || !!isDownloadingDoc}
-                              title="Download Document"
-                            >
-                              {isDownloadingDoc === doc.documentId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </>
-                        ) : (
-                          // Left side: Download button farther left, Eye button closer to card
-                          <>
+                  {/* Wrapper that holds card and buttons together on one side of the line */}
+                  <div className={`${isRightSide ? 'mr-0' : 'ml-0'} flex items-center gap-3`}>
+                    {isRightSide ? (
+                      <>
+                        {/* LEFT SIDE: Buttons then Card (card near the line); Eye closest to card */}
+                        {onViewDocument && onDownloadDocument && (
+                          <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -197,32 +152,98 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({
                                 <Eye className="h-4 w-4" />
                               )}
                             </Button>
-                          </>
+                          </div>
                         )}
-                      </div>
+
+                        {/* Card sits closer to the line on the left side */}
+                        <div
+                          className={`
+                            w-72
+                            p-4
+                            border rounded-lg shadow-md bg-card
+                            relative
+                          `}
+                        >
+                          {/* Content inside the card */}
+                          <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
+                            <div className={isRightSide ? '' : 'text-right'}>
+                              <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                                {doc.originalFilename}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
+                              {formattedDate}
+                            </Badge>
+                          </div>
+                          <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
+                            <span>{formatFileSize(doc.fileSize)}</span>
+                            <span>By: {doc.uploaderEmail}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* RIGHT SIDE: Card then Buttons (card near the line); Eye closest to card */}
+                        <div
+                          className={`
+                            w-72
+                            p-4
+                            border rounded-lg shadow-md bg-card
+                            relative
+                          `}
+                        >
+                          <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
+                            <div className={isRightSide ? '' : 'text-right'}>
+                              <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                                {doc.originalFilename}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
+                              {formattedDate}
+                            </Badge>
+                          </div>
+                          <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
+                            <span>{formatFileSize(doc.fileSize)}</span>
+                            <span>By: {doc.uploaderEmail}</span>
+                          </div>
+                        </div>
+
+                        {onViewDocument && onDownloadDocument && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onViewDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="View Document"
+                            >
+                              {isViewingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onDownloadDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="Download Document"
+                            >
+                              {isDownloadingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </>
                     )}
-
-                    {/* Content inside the card */}
-                    <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
-                       {/* Align content based on side */}
-                      <div className={isRightSide ? '' : 'text-right'}>
-                        <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
-                        <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
-                          {doc.originalFilename}
-                        </p>
-                      </div>
-                       {/* Badge positioned below the document name */}
-                      <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
-                        {formattedDate}
-                      </Badge>
-                    </div>
-
-                    <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
-                      {/* Align details based on side */}
-                      <span>{formatFileSize(doc.fileSize)}</span>
-                       {/* Keep uploader email */}
-                      <span>By: {doc.uploaderEmail}</span>
-                    </div>
                   </div>
                 </div>
               );

@@ -6,6 +6,7 @@ import { usePostHog } from 'posthog-js/react';
 import { X } from "lucide-react";
 import { fixConnection } from "@wauth/strategy";
 import { useActiveAddress, useConnection } from "@arweave-wallet-kit/react";
+import { useApi } from "@arweave-wallet-kit/react";
 
 function AppRoutes() {
   return useRoutes(routes);
@@ -28,6 +29,9 @@ export default function App() {
   const [showBetaBanner, setShowBetaBanner] = useState(false);
   const { connected, disconnect } = useConnection();
   const address = useActiveAddress();
+  const api = useApi();
+
+  console.log(api);
 
   useEffect(() => {
     const hasDismissedBetaBanner = localStorage.getItem('dismissedBetaBanner');
@@ -41,6 +45,8 @@ export default function App() {
       fixConnection(address, connected, disconnect);
     }
   }, [address, connected, disconnect]);
+
+  useEffect(() => fixConnection(address, connected, disconnect), [address, connected, disconnect])
 
   const handleDismissBetaBanner = () => {
       setShowBetaBanner(false);
