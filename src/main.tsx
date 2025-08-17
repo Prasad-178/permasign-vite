@@ -22,7 +22,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         ],
         ensurePermissions: true,
         strategies: [
-          new OthentStrategy(),
           new WAuthStrategy({
             provider: WAuthProviders.Google,
           })

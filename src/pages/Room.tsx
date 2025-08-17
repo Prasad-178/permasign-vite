@@ -101,24 +101,41 @@ export default function RoomDetailsPage() {
     }
   }, [roomDetails]);
 
+  // If not logged in, automatically open wallet connect dialog
+  useEffect(() => {
+    if (!connected || !activeAddress) {
+      const t = setTimeout(() => {
+        const connectBtn = document.querySelector('#wallet-connect-button button') as HTMLButtonElement | null;
+        connectBtn?.click();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [connected, activeAddress]);
+
 
 
   useEffect(() => {
     const getUserEmail = async () => {
       if (connected && activeAddress && !currentUserEmail) {
-        // Check if we have either wauth or othent available
-        if (!api || (!api.authData && !api.othent)) return;
+        // Ensure API is available; specific auth strategies handled below
+        if (!api) return;
 
         console.log("Fetching user email for current user...");
         try {
           let email: string;
 
-          // Check if using wauth authentication
+          // Check if using WAuth authentication
           if (api.id === "wauth-google") {
-            if (!api.authData?.email) {
-              throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+            // Prefer authData.email; otherwise, fall back to api.getEmail()
+            let wauthEmail: string | undefined = api.authData?.email;
+            if (!wauthEmail && typeof (api as any).getEmail === 'function') {
+              const emailData = await (api as any).getEmail();
+              wauthEmail = emailData?.email;
             }
-            email = api.authData.email;
+            if (!wauthEmail) {
+              throw new Error("Could not retrieve your email from WAuth. Please ensure your Google account is properly linked.");
+            }
+            email = wauthEmail;
           } else {
             // Fall back to othent authentication
             if (!api.othent) {
