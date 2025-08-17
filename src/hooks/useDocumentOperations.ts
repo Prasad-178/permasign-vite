@@ -35,6 +35,70 @@ export function useDocumentOperations({
   const [isDownloadingDoc, setIsDownloadingDoc] = useState<string | null>(null);
   const [isSigningDoc, setIsSigningDoc] = useState<string | null>(null);
 
+  // Helper function to get document signatures
+  const getDocumentSignatures = useCallback((documentId: string) => {
+    return documents.filter(d => d.documentId === documentId && d.emailToSign && d.roleToSign);
+  }, [documents]);
+
+  // Helper function to stitch PDF with signatures
+  const stitchDocumentWithSignatures = useCallback(async (
+    originalBase64: string,
+    documentId: string,
+    filename: string,
+    contentType: string
+  ): Promise<string> => {
+    const documentSignatures = getDocumentSignatures(documentId);
+    const isPdf = contentType === "application/pdf";
+    const hasSignatures = documentSignatures.some(d => d.signed === "true" && d.signature);
+
+    if (!isPdf || !hasSignatures) {
+      return originalBase64; // Return original if not PDF or no signatures
+    }
+
+    try {
+      // Convert base64 to Uint8Array for PDF processing
+      const pdfBytes = Uint8Array.from(atob(originalBase64), c => c.charCodeAt(0));
+
+      // Map document signatures to SignatureInfo format
+      const signatures: SignatureInfo[] = documentSignatures
+        .filter(d => d.signed === "true" && d.signature && d.emailToSign)
+        .map(d => ({
+          signerName: d.emailToSign!,
+          signerEmail: d.emailToSign!,
+          signature: d.signature!,
+          signatureHash: d.signature!, // Use full signature as hash for professional display
+          role: d.roleToSign || "member",
+          timestamp: d.signedAt || Date.now() // Use actual timestamp or fallback for legacy signatures
+        }));
+
+      if (signatures.length === 0) {
+        return originalBase64; // Return original if no valid signatures
+      }
+
+      // Stitch PDF with signatures
+      const stitchedPdfBytes = await stitchPdfWithSignatures({
+        originalPdfBytes: pdfBytes,
+        signatures,
+        documentName: filename
+      });
+
+      // Convert back to base64 - use chunked approach to prevent call stack overflow
+      let binaryString = '';
+      const chunkSize = 8192; // Process in chunks to avoid call stack issues
+      for (let i = 0; i < stitchedPdfBytes.length; i += chunkSize) {
+        const chunk = stitchedPdfBytes.slice(i, i + chunkSize);
+        binaryString += String.fromCharCode(...chunk);
+      }
+      const stitchedBase64 = btoa(binaryString);
+      
+      console.log(`[DocumentStitching] Successfully stitched ${signatures.length} signatures into document ${documentId}`);
+      return stitchedBase64;
+    } catch (error: any) {
+      console.error("PDF stitching failed for viewing:", error);
+      return originalBase64; // Return original on error
+    }
+  }, [getDocumentSignatures]);
+
   const getDecryptedRoomKey = useCallback(async (): Promise<string | null> => {
     if (!roomDetails?.encryptedRoomPvtKey) {
       toast.error("Cannot Decrypt Document", { description: "Encrypted room private key is missing from room details." });
@@ -92,6 +156,80 @@ export function useDocumentOperations({
 
     return result;
   }, [currentUserEmail, documentCache]);
+
+  // Enhanced retrieve and decrypt that includes stitching for viewing
+  const retrieveAndDecryptWithStitching = useCallback(async (
+    document: DocumentInfo,
+    decryptedRoomPrivateKeyPem: string
+  ): Promise<RetrieveDocumentResult> => {
+    if (!currentUserEmail) {
+      toast.error("User details not loaded", { description: "Cannot retrieve document without user email." });
+      return { success: false, message: "User email missing." };
+    }
+    if (!decryptedRoomPrivateKeyPem) {
+      toast.error("Decryption Key Error", { description: "Cannot retrieve document without the decrypted room key." });
+      return { success: false, message: "Decrypted room private key is missing." };
+    }
+
+    // Create a cache key that includes signature state to ensure we get stitched versions when appropriate
+    const documentSignatures = getDocumentSignatures(document.documentId);
+    const signatureStateHash = documentSignatures
+      .map(d => `${d.emailToSign}:${d.signed}:${d.signedAt || 0}`)
+      .sort()
+      .join('|');
+    const cacheKey = `${document.documentId}_stitched_${signatureStateHash}`;
+
+    // Check cache first with stitching-aware key
+    const cachedResult = documentCache.get(cacheKey);
+    if (cachedResult) {
+      console.log(`[DocumentCache] Cache hit for stitched document ${document.documentId}`);
+      return cachedResult;
+    }
+
+    console.log(`[DocumentCache] Cache miss for stitched document ${document.documentId}, fetching and stitching from server`);
+    
+    // Get the original document first
+    const input: RetrieveDocumentApiInput = {
+      ...document,
+      userEmail: currentUserEmail,
+      decryptedRoomPrivateKeyPem
+    };
+    const result = await retrieveDocumentClientAction(input);
+
+    if (!result.success || !result.data) {
+      return result;
+    }
+
+    try {
+      // Apply stitching if applicable
+      const stitchedData = await stitchDocumentWithSignatures(
+        result.data.decryptedData,
+        document.documentId,
+        result.data.filename,
+        result.data.contentType
+      );
+
+      // Create stitched result
+      const stitchedResult: RetrieveDocumentResult = {
+        ...result,
+        data: {
+          ...result.data,
+          decryptedData: stitchedData
+        }
+      };
+
+      // Cache the stitched result with the signature-aware key
+      documentCache.set(cacheKey, stitchedResult);
+      console.log(`[DocumentCache] Cached stitched document ${document.documentId}`);
+
+      return stitchedResult;
+    } catch (error: any) {
+      console.error("Error during document stitching:", error);
+      // Return original result if stitching fails
+      documentCache.set(document.documentId, result);
+      return result;
+    }
+  }, [currentUserEmail, documentCache, getDocumentSignatures, stitchDocumentWithSignatures]);
 
   const downloadFileFromBase64 = useCallback((base64Data: string, fileName: string, contentType: string) => {
     try {
@@ -315,6 +453,7 @@ export function useDocumentOperations({
     setIsSigningDoc,
     getDecryptedRoomKey,
     retrieveAndDecrypt,
+    retrieveAndDecryptWithStitching,
     handleDownloadDocument,
     handleSignDocument,
     downloadFileFromBase64

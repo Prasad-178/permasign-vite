@@ -198,6 +198,7 @@ export default function RoomDetailsPage() {
     setIsViewingDoc,
     getDecryptedRoomKey,
     retrieveAndDecrypt,
+    retrieveAndDecryptWithStitching,
     handleDownloadDocument,
     handleSignDocument
   } = useDocumentOperations({
@@ -228,7 +229,7 @@ export default function RoomDetailsPage() {
         setSelectedDocument(firstDocument);
         setViewerDocuments([]);
 
-        const result = await retrieveAndDecrypt(firstDocument, decryptedKey);
+        const result = await retrieveAndDecryptWithStitching(firstDocument, decryptedKey);
         
         if (result.success && result.data) {
           const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
@@ -330,6 +331,50 @@ export default function RoomDetailsPage() {
     }
   }
 
+  // Handle document selection for preview pane (not modal)
+  async function handleSelectDocumentForPreview(documentId: string) {
+    if (isViewingDoc || isDownloadingDoc) return;
+
+    const docToView = documents.find(doc => doc.documentId === documentId);
+    if (!docToView) {
+      toast.error("Document not found");
+      return;
+    }
+
+    // If this document is already selected, don't reload
+    if (selectedDocument?.documentId === documentId) {
+      return;
+    }
+
+    setSelectedDocument(docToView);
+    setIsDecrypting(true);
+    setViewerDocuments([]);
+    
+    try {
+      const decryptedKey = await getDecryptedRoomKey();
+      if (!decryptedKey) return;
+
+      const result = await retrieveAndDecryptWithStitching(docToView, decryptedKey);
+      
+      if (result.success && result.data) {
+        const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
+        setViewerDocuments([{
+          uri: dataUri,
+          fileName: result.data.filename,
+          fileType: result.data.contentType
+        }]);
+        console.log("Document loaded for preview:", documentId);
+      } else {
+        toast.error("Failed to load document", { description: result.error || result.message });
+      }
+    } catch (error: any) {
+      console.error('Error loading document for preview:', error);
+      toast.error("Error loading document", { description: error.message || "An unknown error occurred." });
+    } finally {
+      setIsDecrypting(false);
+    }
+  }
+
   // Use signer management hook
   const {
     signers,
@@ -378,6 +423,7 @@ export default function RoomDetailsPage() {
     signingDocumentType,
     isViewModalOpen,
     viewModalDocData,
+    viewModalDocument,
     isPreparingView,
     handleOpenUploadModal,
     handleFileChange,
@@ -388,7 +434,8 @@ export default function RoomDetailsPage() {
   } = useModalManagement({
     documents,
     getDecryptedRoomKey,
-    retrieveAndDecrypt
+    retrieveAndDecrypt,
+    retrieveAndDecryptWithStitching
   });
 
   // const isFounder = currentUserRole === 'founder';
@@ -602,6 +649,7 @@ export default function RoomDetailsPage() {
                   stateUpdater={stateUpdater}
                   onFetchRoomDetails={fetchRoomDetails}
                   onViewDocument={handleViewDocument}
+                  onSelectDocumentForPreview={handleSelectDocumentForPreview}
                   onDownloadDocument={handleDownloadDocument}
                   onOpenUploadModal={handleOpenUploadModal}
                   onOpenSigningModal={openSigningModal}
@@ -680,9 +728,9 @@ export default function RoomDetailsPage() {
         <DocumentViewModal
             isOpen={isViewModalOpen}
             onClose={closeViewModal}
-            documentName={selectedDocument?.originalFilename || ""}
+            documentName={viewModalDocument?.originalFilename || ""}
             documentData={viewModalDocData || undefined}
-            contentType={selectedDocument?.contentType || ""}
+            contentType={viewModalDocument?.contentType || ""}
             isLoading={isPreparingView}
         />
 

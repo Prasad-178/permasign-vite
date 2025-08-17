@@ -117,90 +117,91 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({
                   {/* Timeline Node on the central line */}
                   <div className="absolute left-1/2 w-4 h-4 bg-gray-400 rounded-full transform -translate-x-1/2 border-2 border-background z-10" />
                   
-                  {/* Action buttons positioned next to the card */}
-                  {onViewDocument && onDownloadDocument && (
-                    <div className={`absolute flex items-center gap-2 z-20 ${
-                      isRightSide 
-                        ? 'right-4' // Right side cards: buttons on the right side of the card
-                        : 'left-4' // Left side cards: buttons on the left side of the card
-                    }`}>
-                      {isRightSide ? (
-                        // Right side: Download button farther from card, View button closer to card
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 bg-background shadow-md border"
-                            onClick={() => onDownloadDocument(doc.documentId)}
-                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                            title="Download Document"
-                          >
-                            {isDownloadingDoc === doc.documentId ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 bg-background shadow-md border"
-                            onClick={() => onViewDocument(doc.documentId)}
-                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                            title="View Document"
-                          >
-                            {isViewingDoc === doc.documentId ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </>
-                      ) : (
-                        // Left side: Download button farther left, View button immediately left of card
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 bg-background shadow-md border"
-                            onClick={() => onDownloadDocument(doc.documentId)}
-                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                            title="Download Document"
-                          >
-                            {isDownloadingDoc === doc.documentId ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 bg-background shadow-md border"
-                            onClick={() => onViewDocument(doc.documentId)}
-                            disabled={!!isViewingDoc || !!isDownloadingDoc}
-                            title="View Document"
-                          >
-                            {isViewingDoc === doc.documentId ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Content Card: Reduced width, added border, shadow, bg, adjusted margin */}
+                  {/* Content Card: Positioned with proper spacing from timeline */}
                   <div
                     className={`
                       w-72  /* Reduced width */
                       p-4   /* Padding */
                       border rounded-lg shadow-md bg-card /* Card styling */
-                      ${isRightSide ? 'ml-10' : 'mr-10'} /* Adjusted margin */
+                      ${isRightSide ? 'ml-16' : 'mr-16'} /* Increased margin for spacing from timeline */
+                      relative /* Make relative for absolute button positioning */
                     `}
                   >
+                    {/* Action buttons positioned relative to the card */}
+                    {onViewDocument && onDownloadDocument && (
+                      <div className={`absolute top-1/2 transform -translate-y-1/2 flex items-center gap-2 z-20 ${
+                        isRightSide 
+                          ? '-right-20' // Right side cards: buttons on the right side of the card
+                          : '-left-20' // Left side cards: buttons on the left side of the card
+                      }`}>
+                        {isRightSide ? (
+                          // Right side: Eye button closer to card, Download button farther away
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onViewDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="View Document"
+                            >
+                              {isViewingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onDownloadDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="Download Document"
+                            >
+                              {isDownloadingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
+                        ) : (
+                          // Left side: Download button farther left, Eye button closer to card
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onDownloadDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="Download Document"
+                            >
+                              {isDownloadingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onViewDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="View Document"
+                            >
+                              {isViewingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                     {/* Content inside the card */}
                     <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
                        {/* Align content based on side */}
