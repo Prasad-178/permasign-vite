@@ -101,16 +101,16 @@ export default function RoomDetailsPage() {
     }
   }, [roomDetails]);
 
-  // If not logged in, automatically open wallet connect dialog
+  // Auto-open wallet connect dialog only when API is unavailable
   useEffect(() => {
-    if (!connected || !activeAddress) {
+    if (!api) {
       const t = setTimeout(() => {
         const connectBtn = document.querySelector('#wallet-connect-button button') as HTMLButtonElement | null;
         connectBtn?.click();
       }, 0);
       return () => clearTimeout(t);
     }
-  }, [connected, activeAddress]);
+  }, [api]);
 
 
 

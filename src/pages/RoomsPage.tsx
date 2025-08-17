@@ -29,17 +29,16 @@ export default function RoomsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // If not logged in, automatically open wallet connect dialog
+  // Auto-open wallet connect dialog only when API is unavailable
   useEffect(() => {
-    if (!connected || !activeAddress) {
-      // Delay to ensure Navbar is mounted
+    if (!api) {
       const t = setTimeout(() => {
         const connectBtn = document.querySelector('#wallet-connect-button button') as HTMLButtonElement | null;
         connectBtn?.click();
       }, 0);
       return () => clearTimeout(t);
     }
-  }, [connected, activeAddress]);
+  }, [api]);
 
   useEffect(() => {
     if (!isLoading && !error && connected && rooms.length === 0) {
