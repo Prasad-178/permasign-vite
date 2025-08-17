@@ -72,10 +72,24 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
   const handleAddDocType = async () => {
     if (!selectedRole || !newDocType.trim() || !currentUserEmail) return;
 
-    // Check for duplicate permissions
-    if (selectedRole.documentTypes.includes(newDocType.trim())) {
+    const permissionToAdd = newDocType.trim();
+
+    // Check for duplicate permissions in current role
+    if (selectedRole.documentTypes.includes(permissionToAdd)) {
       toast.error("Duplicate Permission", { 
-        description: `The "${newDocType.trim()}" permission already exists for the ${selectedRole.roleName} role.` 
+        description: `The "${permissionToAdd}" permission already exists for the ${selectedRole.roleName} role.` 
+      });
+      return;
+    }
+
+    // Check for duplicate permissions across ALL roles
+    const existingRole = roomDetails.roomRoles.find(r => 
+      r.documentTypes.includes(permissionToAdd)
+    );
+    
+    if (existingRole) {
+      toast.error("Duplicate Permission", { 
+        description: `The "${permissionToAdd}" permission already exists in the "${existingRole.roleName}" role. Document categories must be unique across all roles.` 
       });
       return;
     }
@@ -85,19 +99,19 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
       roomId: roomDetails.roomId,
       callerEmail: currentUserEmail,
       roleName: selectedRole.roleName,
-      documentType: newDocType.trim(),
+      documentType: permissionToAdd,
     });
 
     if (result.success) {
-      toast.success("Permission Added", { description: `Document type "${newDocType.trim()}" added to ${selectedRole.roleName}.` });
+      toast.success("Permission Added", { description: `Document type "${permissionToAdd}" added to ${selectedRole.roleName}.` });
       setNewDocType("");
       // Update local state instead of full refresh
-      const updatedDocTypes = [...selectedRole.documentTypes, newDocType.trim()];
+      const updatedDocTypes = [...selectedRole.documentTypes, permissionToAdd];
       stateUpdater.updateRolePermissions(selectedRole.roleName, updatedDocTypes);
       // Update the selected role for the modal
       setSelectedRole({...selectedRole, documentTypes: updatedDocTypes});
       // Add log entry for the activity
-      stateUpdater.addLog(currentUserEmail!, `Gave the '${selectedRole.roleName}' role permission to upload '${newDocType.trim()}' documents.`);
+      stateUpdater.addLog(currentUserEmail!, `Gave the '${selectedRole.roleName}' role permission to upload '${permissionToAdd}' documents.`);
     } else {
       toast.error("Failed to Add Permission", { description: result.error || "An unknown error occurred." });
     }

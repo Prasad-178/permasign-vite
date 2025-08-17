@@ -1,6 +1,8 @@
 import React from "react";
 import { format } from "date-fns";
 import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Eye, Download, Loader2 } from "lucide-react";
 
 // Define the document type based on your data structure
 interface Document {
@@ -75,9 +77,19 @@ const formatFileSize = (bytes: number): string => {
 
 interface DocumentTimelineProps {
   documents: Document[];
+  isViewingDoc?: string | null;
+  isDownloadingDoc?: string | null;
+  onViewDocument?: (documentId: string) => void;
+  onDownloadDocument?: (documentId: string) => void;
 }
 
-const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
+const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ 
+  documents, 
+  isViewingDoc, 
+  isDownloadingDoc, 
+  onViewDocument, 
+  onDownloadDocument 
+}) => {
   // Get verified documents sorted by date
   const verifiedDocuments = getVerifiedDocuments(documents);
   
@@ -97,13 +109,88 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
           
           <div className="space-y-16">
             {verifiedDocuments.map((doc, index) => {
-              const isRightSide = index % 2 !== 0;
+              const isRightSide = index % 2 === 0;
               const formattedDate = format(new Date(doc.uploadedAt), "PP");
               
               return (
                 <div key={doc.documentId} className={`relative flex items-center ${isRightSide ? 'justify-start' : 'justify-end'}`}>
                   {/* Timeline Node on the central line */}
                   <div className="absolute left-1/2 w-4 h-4 bg-gray-400 rounded-full transform -translate-x-1/2 border-2 border-background z-10" />
+                  
+                  {/* Action buttons positioned next to the card */}
+                  {onViewDocument && onDownloadDocument && (
+                    <div className={`absolute flex items-center gap-2 z-20 ${
+                      isRightSide 
+                        ? 'right-4' // Right side cards: buttons on the right side of the card
+                        : 'left-4' // Left side cards: buttons on the left side of the card
+                    }`}>
+                      {isRightSide ? (
+                        // Right side: Download button farther from card, View button closer to card
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-background shadow-md border"
+                            onClick={() => onDownloadDocument(doc.documentId)}
+                            disabled={!!isViewingDoc || !!isDownloadingDoc}
+                            title="Download Document"
+                          >
+                            {isDownloadingDoc === doc.documentId ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-background shadow-md border"
+                            onClick={() => onViewDocument(doc.documentId)}
+                            disabled={!!isViewingDoc || !!isDownloadingDoc}
+                            title="View Document"
+                          >
+                            {isViewingDoc === doc.documentId ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        // Left side: Download button farther left, View button immediately left of card
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-background shadow-md border"
+                            onClick={() => onDownloadDocument(doc.documentId)}
+                            disabled={!!isViewingDoc || !!isDownloadingDoc}
+                            title="Download Document"
+                          >
+                            {isDownloadingDoc === doc.documentId ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-background shadow-md border"
+                            onClick={() => onViewDocument(doc.documentId)}
+                            disabled={!!isViewingDoc || !!isDownloadingDoc}
+                            title="View Document"
+                          >
+                            {isViewingDoc === doc.documentId ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
                   
                   {/* Content Card: Reduced width, added border, shadow, bg, adjusted margin */}
                   <div
@@ -115,16 +202,16 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
                     `}
                   >
                     {/* Content inside the card */}
-                    <div className={`flex ${isRightSide ? 'justify-between' : 'flex-col items-end'} items-start mb-2`}>
+                    <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
                        {/* Align content based on side */}
                       <div className={isRightSide ? '' : 'text-right'}>
                         <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
+                        <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
                           {doc.originalFilename}
                         </p>
                       </div>
-                       {/* Badge positioned appropriately */}
-                      <Badge variant="outline" className={`mt-1 ${isRightSide ? '' : 'self-end'}`}>
+                       {/* Badge positioned below the document name */}
+                      <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
                         {formattedDate}
                       </Badge>
                     </div>

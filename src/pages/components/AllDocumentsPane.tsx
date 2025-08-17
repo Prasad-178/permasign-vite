@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "../../components/ui/dialog";
-import { UploadCloud, Eye, Download, Loader2, Plus, X, Check, Trash2, FileText, ChevronRight, ChevronUp } from "lucide-react";
+import { UploadCloud, Eye, Download, Loader2, Plus, X, Check, Trash2, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import { type DocumentInfo, type RoomDetails } from "../../types/types";
 import { useState } from "react";
 import { addRolePermissionClientAction, deleteRoleClientAction } from "../../services/roomActionsClient";
@@ -59,6 +59,12 @@ export default function AllDocumentsPane({
   const handleAddPermission = (roleName: string) => {
     setAddingPermissionToRole(roleName);
     setNewPermissionInput("");
+    
+    // Auto-open the role accordion if it's closed
+    const accordionTrigger = document.querySelector(`[data-role="${roleName}"] button[data-state="closed"]`);
+    if (accordionTrigger) {
+      (accordionTrigger as HTMLElement).click();
+    }
   };
 
   const handleCancelAddPermission = () => {
@@ -69,11 +75,16 @@ export default function AllDocumentsPane({
   const handleSavePermission = async (roleName: string) => {
     if (!newPermissionInput.trim() || !currentUserEmail || !isFounder) return;
 
-    // Check for duplicate permissions
-    const role = roomDetails.roomRoles.find(r => r.roleName === roleName);
-    if (role && role.documentTypes.includes(newPermissionInput.trim())) {
+    const permissionToAdd = newPermissionInput.trim();
+
+    // Check for duplicate permissions across ALL roles
+    const existingRole = roomDetails.roomRoles.find(r => 
+      r.documentTypes.includes(permissionToAdd)
+    );
+    
+    if (existingRole) {
       toast.error("Duplicate Permission", { 
-        description: `The "${newPermissionInput.trim()}" permission already exists for the ${roleName} role.` 
+        description: `The "${permissionToAdd}" permission already exists in the "${existingRole.roleName}" role. Document categories must be unique across all roles.` 
       });
       return;
     }
@@ -84,7 +95,7 @@ export default function AllDocumentsPane({
         roomId: roomDetails.roomId,
         callerEmail: currentUserEmail,
         roleName: roleName,
-        documentType: newPermissionInput.trim()
+        documentType: permissionToAdd
       });
 
       if (result.success) {
@@ -92,18 +103,18 @@ export default function AllDocumentsPane({
         handleCancelAddPermission();
         
         toast.success("Permission Added", { 
-          description: `Successfully added "${newPermissionInput.trim()}" to ${roleName} role.` 
+          description: `Successfully added "${permissionToAdd}" to ${roleName} role.` 
         });
         
         // Update local state immediately (same as RoleManager)
         const role = roomDetails.roomRoles.find(r => r.roleName === roleName);
         if (role) {
-          const updatedDocTypes = [...role.documentTypes, newPermissionInput.trim()];
+          const updatedDocTypes = [...role.documentTypes, permissionToAdd];
           stateUpdater.updateRolePermissions(roleName, updatedDocTypes);
         }
         
         // Add log entry for the activity
-        stateUpdater.addLog(currentUserEmail!, `Gave the '${roleName}' role permission to upload '${newPermissionInput.trim()}' documents.`);
+        stateUpdater.addLog(currentUserEmail!, `Gave the '${roleName}' role permission to upload '${permissionToAdd}' documents.`);
       } else {
         toast.error("Failed to Add Permission", { 
           description: result.error || result.message || "Could not add permission to role." 
@@ -168,7 +179,7 @@ export default function AllDocumentsPane({
         <h3 className="font-medium mb-3 text-sm">All Documents</h3>
         <Accordion type="multiple" defaultValue={defaultOpenRoles} className="w-full">
           {sortedRoles.map(role => (
-            <AccordionItem value={role.roleName} key={role.roleName} className="border-b-0">
+            <AccordionItem value={role.roleName} key={role.roleName} className="border-b-0" data-role={role.roleName}>
               <AccordionTrigger className="text-sm font-medium capitalize hover:no-underline px-2 py-1.5 rounded-md bg-muted/80 hover:bg-muted transition-colors group [&[data-state=open]>div>div>svg]:rotate-90 [&>svg]:hidden">
                 <div className="flex items-center justify-between w-full mr-2">
                   <div className="flex items-center">
@@ -252,7 +263,7 @@ export default function AllDocumentsPane({
                                     );
                                   })()}
                                   <div className="pr-1">
-                                    <ChevronUp className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform duration-200" />
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground group-data-[state=open]:rotate-180 transition-transform duration-200" />
                                   </div>
                                 </div>
                               </div>

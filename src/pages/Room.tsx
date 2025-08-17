@@ -318,43 +318,15 @@ export default function RoomDetailsPage() {
 
     setSelectedDocument(docToView);
     setIsViewingDoc(documentId);
-    setIsDecrypting(true);
-    // Clear previous viewer documents to ensure a clean state
-    setViewerDocuments([]);
-
+    
     try {
-        const decryptedKey = await getDecryptedRoomKey();
-        if (!decryptedKey) {
-             throw new Error("Failed to obtain decrypted room key.");
-        }
-        setIsDecrypting(true);
-
-        console.log(`Calling retrieveAndDecrypt for ${documentId}`);
-        const result = await retrieveAndDecrypt(docToView, decryptedKey);
-
-      if (result.success && result.data) {
-        // [MODIFIED] Use a stable data URI instead of a temporary object URL.
-        // This prevents the browser from discarding the preview on tab change.
-        const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
-
-        setViewerDocuments([{
-          uri: dataUri,
-          fileName: result.data.filename,
-          fileType: result.data.contentType
-        }]);
-
-        toast.success("Document decrypted successfully");
-      } else {
-        toast.error(`Failed to retrieve/decrypt document: ${result.error || result.message}`);
-      }
+      // Open the view modal using the existing modal management
+      await handleOpenViewModal(docToView);
     } catch (error: any) {
-      console.error("Error viewing document:", error);
-      if (!error.message.includes("decrypted room key")) {
-           toast.error(`Error viewing document: ${error.message || "Unknown error"}`);
-      }
+      console.error('Error opening view modal:', error);
+      toast.error("Error opening document", { description: error.message || "An unknown error occurred." });
     } finally {
       setIsViewingDoc(null);
-      setIsDecrypting(false);
     }
   }
 
@@ -559,7 +531,13 @@ export default function RoomDetailsPage() {
                         <CustomLoader text="Loading document timeline..." />
                       </div>
                     ) : (
-                      <DocumentTimeline documents={documents} />
+                      <DocumentTimeline 
+                        documents={documents} 
+                        isViewingDoc={isViewingDoc}
+                        isDownloadingDoc={isDownloadingDoc}
+                        onViewDocument={handleViewDocument}
+                        onDownloadDocument={handleDownloadDocument}
+                      />
                     )}
                   </TabsContent>
                   <TabsContent value="logs" className="flex-1 overflow-auto p-4 w-full">

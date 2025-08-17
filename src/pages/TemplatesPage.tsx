@@ -219,8 +219,22 @@ export default function TemplatesPage() {
         const newPermissionName = newPermissionNames[role] || "";
         const formattedPermissionName = formatName(newPermissionName.trim());
         if (!formattedPermissionName) return;
+        
+        // Check if permission exists in current role
         if (editedTemplate?.permissions[role]?.includes(formattedPermissionName)) {
             toast.error("Permission already exists for this role.");
+            return;
+        }
+        
+        // Check if permission exists in ANY other role
+        const existingRole = Object.entries(editedTemplate?.permissions || {}).find(
+            ([roleName, permissions]) => roleName !== role && permissions.includes(formattedPermissionName)
+        );
+        
+        if (existingRole) {
+            toast.error("Duplicate Permission", {
+                description: `The "${formattedPermissionName}" permission already exists in the "${existingRole[0]}" role. Document categories must be unique across all roles.`
+            });
             return;
         }
         setEditedTemplate(prev => {
@@ -244,7 +258,9 @@ export default function TemplatesPage() {
         startAiGenerationTransition(async () => {
             const toastId = toast.loading("Generating AI template...", { description: "This may take a moment." });
             try {
-                const result = await generateAITemplateAction(aiPrompt);
+                // Enhance the prompt to prevent duplicate permissions
+                const enhancedPrompt = aiPrompt + "\n\nIMPORTANT: Ensure that each document category/permission is unique across ALL roles. No two roles should have the same document type permission.";
+                const result = await generateAITemplateAction(enhancedPrompt);
                 if (result.success && result.data) {
                     const generatedTemplate = result.data;
                     const formattedTemplate = {
@@ -255,6 +271,19 @@ export default function TemplatesPage() {
                             return acc;
                         }, {} as { [key: string]: string[] }),
                     };
+
+                    // Validate for duplicate permissions across roles
+                    const allPermissions = Object.values(formattedTemplate.permissions).flat();
+                    const duplicatePermissions = allPermissions.filter((permission, index) => 
+                        allPermissions.indexOf(permission) !== index
+                    );
+                    
+                    if (duplicatePermissions.length > 0) {
+                        toast.error("AI Template Validation Failed", {
+                            description: `Generated template contains duplicate permissions: ${duplicatePermissions.join(', ')}. Please try regenerating with a more specific prompt.`
+                        });
+                        return;
+                    }
 
                     // Ensure default roles are present but use proper casing
                     if (!formattedTemplate.roles.some(role => role.toLowerCase() === 'founder')) {
