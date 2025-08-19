@@ -14,6 +14,7 @@ const changelogEntries = [
         ],
         improvements: [
             "Enhanced UI for document verification status with green checkmarks instead of dots for better visual clarity.",
+            "Better email notifications with more clarity and better formatting."
         ]
     },
     {
