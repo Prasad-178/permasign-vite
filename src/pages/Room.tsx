@@ -101,24 +101,41 @@ export default function RoomDetailsPage() {
     }
   }, [roomDetails]);
 
+  // Auto-open wallet connect dialog only when API is unavailable
+  useEffect(() => {
+    if (!api) {
+      const t = setTimeout(() => {
+        const connectBtn = document.querySelector('#wallet-connect-button button') as HTMLButtonElement | null;
+        connectBtn?.click();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [api]);
+
 
 
   useEffect(() => {
     const getUserEmail = async () => {
       if (connected && activeAddress && !currentUserEmail) {
-        // Check if we have either wauth or othent available
-        if (!api || (!api.authData && !api.othent)) return;
+        // Ensure API is available; specific auth strategies handled below
+        if (!api) return;
 
         console.log("Fetching user email for current user...");
         try {
           let email: string;
 
-          // Check if using wauth authentication
+          // Check if using WAuth authentication
           if (api.id === "wauth-google") {
-            if (!api.authData?.email) {
-              throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+            // Prefer authData.email; otherwise, fall back to api.getEmail()
+            let wauthEmail: string | undefined = api.authData?.email;
+            if (!wauthEmail && typeof (api as any).getEmail === 'function') {
+              const emailData = await (api as any).getEmail();
+              wauthEmail = emailData?.email;
             }
-            email = api.authData.email;
+            if (!wauthEmail) {
+              throw new Error("Could not retrieve your email from WAuth. Please ensure your Google account is properly linked.");
+            }
+            email = wauthEmail;
           } else {
             // Fall back to othent authentication
             if (!api.othent) {
@@ -198,6 +215,7 @@ export default function RoomDetailsPage() {
     setIsViewingDoc,
     getDecryptedRoomKey,
     retrieveAndDecrypt,
+    retrieveAndDecryptWithStitching,
     handleDownloadDocument,
     handleSignDocument
   } = useDocumentOperations({
@@ -228,7 +246,7 @@ export default function RoomDetailsPage() {
         setSelectedDocument(firstDocument);
         setViewerDocuments([]);
 
-        const result = await retrieveAndDecrypt(firstDocument, decryptedKey);
+        const result = await retrieveAndDecryptWithStitching(firstDocument, decryptedKey);
         
         if (result.success && result.data) {
           const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
@@ -318,42 +336,58 @@ export default function RoomDetailsPage() {
 
     setSelectedDocument(docToView);
     setIsViewingDoc(documentId);
-    setIsDecrypting(true);
-    // Clear previous viewer documents to ensure a clean state
-    setViewerDocuments([]);
-
+    
     try {
-        const decryptedKey = await getDecryptedRoomKey();
-        if (!decryptedKey) {
-             throw new Error("Failed to obtain decrypted room key.");
-        }
-        setIsDecrypting(true);
+      // Open the view modal using the existing modal management
+      await handleOpenViewModal(docToView);
+    } catch (error: any) {
+      console.error('Error opening view modal:', error);
+      toast.error("Error opening document", { description: error.message || "An unknown error occurred." });
+    } finally {
+      setIsViewingDoc(null);
+    }
+  }
 
-        console.log(`Calling retrieveAndDecrypt for ${documentId}`);
-        const result = await retrieveAndDecrypt(docToView, decryptedKey);
+  // Handle document selection for preview pane (not modal)
+  async function handleSelectDocumentForPreview(documentId: string) {
+    if (isViewingDoc || isDownloadingDoc) return;
 
+    const docToView = documents.find(doc => doc.documentId === documentId);
+    if (!docToView) {
+      toast.error("Document not found");
+      return;
+    }
+
+    // If this document is already selected, don't reload
+    if (selectedDocument?.documentId === documentId) {
+      return;
+    }
+
+    setSelectedDocument(docToView);
+    setIsDecrypting(true);
+    setViewerDocuments([]);
+    
+    try {
+      const decryptedKey = await getDecryptedRoomKey();
+      if (!decryptedKey) return;
+
+      const result = await retrieveAndDecryptWithStitching(docToView, decryptedKey);
+      
       if (result.success && result.data) {
-        // [MODIFIED] Use a stable data URI instead of a temporary object URL.
-        // This prevents the browser from discarding the preview on tab change.
         const dataUri = `data:${result.data.contentType};base64,${result.data.decryptedData}`;
-
         setViewerDocuments([{
           uri: dataUri,
           fileName: result.data.filename,
           fileType: result.data.contentType
         }]);
-
-        toast.success("Document decrypted successfully");
+        console.log("Document loaded for preview:", documentId);
       } else {
-        toast.error(`Failed to retrieve/decrypt document: ${result.error || result.message}`);
+        toast.error("Failed to load document", { description: result.error || result.message });
       }
     } catch (error: any) {
-      console.error("Error viewing document:", error);
-      if (!error.message.includes("decrypted room key")) {
-           toast.error(`Error viewing document: ${error.message || "Unknown error"}`);
-      }
+      console.error('Error loading document for preview:', error);
+      toast.error("Error loading document", { description: error.message || "An unknown error occurred." });
     } finally {
-      setIsViewingDoc(null);
       setIsDecrypting(false);
     }
   }
@@ -406,6 +440,7 @@ export default function RoomDetailsPage() {
     signingDocumentType,
     isViewModalOpen,
     viewModalDocData,
+    viewModalDocument,
     isPreparingView,
     handleOpenUploadModal,
     handleFileChange,
@@ -416,7 +451,8 @@ export default function RoomDetailsPage() {
   } = useModalManagement({
     documents,
     getDecryptedRoomKey,
-    retrieveAndDecrypt
+    retrieveAndDecrypt,
+    retrieveAndDecryptWithStitching
   });
 
   // const isFounder = currentUserRole === 'founder';
@@ -559,7 +595,13 @@ export default function RoomDetailsPage() {
                         <CustomLoader text="Loading document timeline..." />
                       </div>
                     ) : (
-                      <DocumentTimeline documents={documents} />
+                      <DocumentTimeline 
+                        documents={documents} 
+                        isViewingDoc={isViewingDoc}
+                        isDownloadingDoc={isDownloadingDoc}
+                        onViewDocument={handleViewDocument}
+                        onDownloadDocument={handleDownloadDocument}
+                      />
                     )}
                   </TabsContent>
                   <TabsContent value="logs" className="flex-1 overflow-auto p-4 w-full">
@@ -624,6 +666,7 @@ export default function RoomDetailsPage() {
                   stateUpdater={stateUpdater}
                   onFetchRoomDetails={fetchRoomDetails}
                   onViewDocument={handleViewDocument}
+                  onSelectDocumentForPreview={handleSelectDocumentForPreview}
                   onDownloadDocument={handleDownloadDocument}
                   onOpenUploadModal={handleOpenUploadModal}
                   onOpenSigningModal={openSigningModal}
@@ -702,9 +745,9 @@ export default function RoomDetailsPage() {
         <DocumentViewModal
             isOpen={isViewModalOpen}
             onClose={closeViewModal}
-            documentName={selectedDocument?.originalFilename || ""}
+            documentName={viewModalDocument?.originalFilename || ""}
             documentData={viewModalDocData || undefined}
-            contentType={selectedDocument?.contentType || ""}
+            contentType={viewModalDocument?.contentType || ""}
             isLoading={isPreparingView}
         />
 

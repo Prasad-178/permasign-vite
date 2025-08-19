@@ -1,6 +1,8 @@
 import React from "react";
 import { format } from "date-fns";
 import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Eye, Download, Loader2 } from "lucide-react";
 
 // Define the document type based on your data structure
 interface Document {
@@ -75,9 +77,19 @@ const formatFileSize = (bytes: number): string => {
 
 interface DocumentTimelineProps {
   documents: Document[];
+  isViewingDoc?: string | null;
+  isDownloadingDoc?: string | null;
+  onViewDocument?: (documentId: string) => void;
+  onDownloadDocument?: (documentId: string) => void;
 }
 
-const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
+const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ 
+  documents, 
+  isViewingDoc, 
+  isDownloadingDoc, 
+  onViewDocument, 
+  onDownloadDocument 
+}) => {
   // Get verified documents sorted by date
   const verifiedDocuments = getVerifiedDocuments(documents);
   
@@ -97,7 +109,7 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
           
           <div className="space-y-16">
             {verifiedDocuments.map((doc, index) => {
-              const isRightSide = index % 2 !== 0;
+              const isRightSide = index % 2 === 0;
               const formattedDate = format(new Date(doc.uploadedAt), "PP");
               
               return (
@@ -105,36 +117,133 @@ const DocumentTimeline: React.FC<DocumentTimelineProps> = ({ documents }) => {
                   {/* Timeline Node on the central line */}
                   <div className="absolute left-1/2 w-4 h-4 bg-gray-400 rounded-full transform -translate-x-1/2 border-2 border-background z-10" />
                   
-                  {/* Content Card: Reduced width, added border, shadow, bg, adjusted margin */}
-                  <div
-                    className={`
-                      w-72  /* Reduced width */
-                      p-4   /* Padding */
-                      border rounded-lg shadow-md bg-card /* Card styling */
-                      ${isRightSide ? 'ml-10' : 'mr-10'} /* Adjusted margin */
-                    `}
-                  >
-                    {/* Content inside the card */}
-                    <div className={`flex ${isRightSide ? 'justify-between' : 'flex-col items-end'} items-start mb-2`}>
-                       {/* Align content based on side */}
-                      <div className={isRightSide ? '' : 'text-right'}>
-                        <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {doc.originalFilename}
-                        </p>
-                      </div>
-                       {/* Badge positioned appropriately */}
-                      <Badge variant="outline" className={`mt-1 ${isRightSide ? '' : 'self-end'}`}>
-                        {formattedDate}
-                      </Badge>
-                    </div>
+                  {/* Wrapper that holds card and buttons together on one side of the line */}
+                  <div className={`${isRightSide ? 'mr-0' : 'ml-0'} flex items-center gap-3`}>
+                    {isRightSide ? (
+                      <>
+                        {/* LEFT SIDE: Buttons then Card (card near the line); Eye closest to card */}
+                        {onViewDocument && onDownloadDocument && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onDownloadDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="Download Document"
+                            >
+                              {isDownloadingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onViewDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="View Document"
+                            >
+                              {isViewingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
 
-                    <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
-                      {/* Align details based on side */}
-                      <span>{formatFileSize(doc.fileSize)}</span>
-                       {/* Keep uploader email */}
-                      <span>By: {doc.uploaderEmail}</span>
-                    </div>
+                        {/* Card sits closer to the line on the left side */}
+                        <div
+                          className={`
+                            w-72
+                            p-4
+                            border rounded-lg shadow-md bg-card
+                            relative
+                          `}
+                        >
+                          {/* Content inside the card */}
+                          <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
+                            <div className={isRightSide ? '' : 'text-right'}>
+                              <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                                {doc.originalFilename}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
+                              {formattedDate}
+                            </Badge>
+                          </div>
+                          <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
+                            <span>{formatFileSize(doc.fileSize)}</span>
+                            <span>By: {doc.uploaderEmail}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* RIGHT SIDE: Card then Buttons (card near the line); Eye closest to card */}
+                        <div
+                          className={`
+                            w-72
+                            p-4
+                            border rounded-lg shadow-md bg-card
+                            relative
+                          `}
+                        >
+                          <div className={`flex flex-col mb-2 ${isRightSide ? '' : 'items-end'}`}>
+                            <div className={isRightSide ? '' : 'text-right'}>
+                              <div className="font-medium text-base mb-1">{getCategoryLabel(doc.category)}</div>
+                              <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                                {doc.originalFilename}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className={`mt-1 ${isRightSide ? 'self-start' : 'self-end'}`}>
+                              {formattedDate}
+                            </Badge>
+                          </div>
+                          <div className={`flex justify-between text-xs text-muted-foreground ${isRightSide ? '' : 'flex-row-reverse'}`}>
+                            <span>{formatFileSize(doc.fileSize)}</span>
+                            <span>By: {doc.uploaderEmail}</span>
+                          </div>
+                        </div>
+
+                        {onViewDocument && onDownloadDocument && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onViewDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="View Document"
+                            >
+                              {isViewingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-background shadow-md border"
+                              onClick={() => onDownloadDocument(doc.documentId)}
+                              disabled={!!isViewingDoc || !!isDownloadingDoc}
+                              title="Download Document"
+                            >
+                              {isDownloadingDoc === doc.documentId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               );

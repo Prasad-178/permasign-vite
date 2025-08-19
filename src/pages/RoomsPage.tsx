@@ -29,6 +29,17 @@ export default function RoomsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+  // Auto-open wallet connect dialog only when API is unavailable
+  useEffect(() => {
+    if (!api) {
+      const t = setTimeout(() => {
+        const connectBtn = document.querySelector('#wallet-connect-button button') as HTMLButtonElement | null;
+        connectBtn?.click();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [api]);
+
   useEffect(() => {
     if (!isLoading && !error && connected && rooms.length === 0) {
       setIsCreateModalOpen(true);
@@ -59,19 +70,30 @@ export default function RoomsPage() {
         return;
       }
 
-      // Check if we have either wauth or othent available
-      if (!api || (!api.authData && !api.othent)) return;
+      // Ensure API is available; specific auth strategies handled below
+      if (!api) {
+        setIsLoading(false);
+        setError('Wallet API not available. Please reconnect your wallet.');
+        setRooms([]);
+        return;
+      }
 
       setError(null);
       try {
         let email: string;
 
-        // Check if using wauth authentication
+        // Check if using WAuth authentication
         if (api.id === "wauth-google") {
-          if (!api.authData?.email) {
-            throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+          // Prefer authData.email when present; otherwise, fall back to api.getEmail()
+          let wauthEmail: string | undefined = api.authData?.email;
+          if (!wauthEmail && typeof (api as any).getEmail === 'function') {
+            const emailData = await (api as any).getEmail();
+            wauthEmail = emailData?.email;
           }
-          email = api.authData.email;
+          if (!wauthEmail) {
+            throw new Error("Could not retrieve your email from WAuth. Please ensure your Google account is properly linked.");
+          }
+          email = wauthEmail;
         } else {
           // Fall back to othent authentication
           if (!api.othent) {

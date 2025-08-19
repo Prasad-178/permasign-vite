@@ -86,11 +86,13 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <ConnectButton
-            profileModal={true}
-            showBalance={false}
-            showProfilePicture={true}
-          />
+          <span id="wallet-connect-button">
+            <ConnectButton
+              profileModal={true}
+              showBalance={false}
+              showProfilePicture={true}
+            />
+          </span>
         </div>
       </div>
     </header>

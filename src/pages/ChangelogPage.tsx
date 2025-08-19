@@ -4,11 +4,17 @@ import ScrollToTop from '../components/ScrollToTop';
 
 const changelogEntries = [
     {
-        version: "0.9.1",
+        version: "0.9.2",
         date: "August 17, 2025",
-        title: "WAuth Integration",
+        title: "WAuth Integration & Enhanced Document Management",
         features: [
             "Added support for WAuth-Google authentication alongside existing Othent authentication.",
+            "Added support for multiple documents per category.",
+            "Added buttons to view and download documents in the document timeline.",
+        ],
+        improvements: [
+            "Enhanced UI for document verification status with green checkmarks instead of dots for better visual clarity.",
+            "Better email notifications with more clarity and better formatting."
         ]
     },
     {

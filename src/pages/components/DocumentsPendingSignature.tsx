@@ -1,6 +1,6 @@
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../../components/ui/dialog";
-import { UploadCloud, Sparkles, Eye, Download, Loader2, UserPlus, X } from "lucide-react";
+import { UploadCloud, Sparkles, Eye, Download, Loader2, UserPlus, X, Check } from "lucide-react";
 import type { DocumentInfo, RoomDetails } from "../../types/types";
 import { format } from 'date-fns';
 
@@ -220,7 +220,6 @@ export default function DocumentsPendingSignature({
                     <tbody className="divide-y">
                       {signers.map((signer, _) => {
                         const isSigned = signer.signed === "true";
-                        const statusColor = isSigned ? "bg-green-500" : "bg-yellow-500";
                         const statusText = isSigned ? "Signed" : "Pending";
                         const isCurrentUserSigner = currentUserEmail === signer.email;
 
@@ -238,7 +237,11 @@ export default function DocumentsPendingSignature({
                             </td>
                             <td className="p-2">
                               <div className="flex items-center">
-                                <div className={`w-2 h-2 rounded-full ${statusColor} mr-2`} />
+                                {isSigned ? (
+                                  <Check className="h-3 w-3 text-green-600 mr-2" />
+                                ) : (
+                                  <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" />
+                                )}
                                 <span className="text-sm">{statusText}</span>
                               </div>
                             </td>

@@ -57,6 +57,7 @@ interface DocumentsTabProps {
   // Actions
   onFetchRoomDetails: () => void;
   onViewDocument: (documentId: string) => void;
+  onSelectDocumentForPreview: (documentId: string) => void;
   onDownloadDocument: (documentId: string) => void;
   onOpenUploadModal: (category: string) => void;
   onOpenSigningModal: (documentId: string) => void;
@@ -117,6 +118,7 @@ export default function DocumentsTab({
   stateUpdater,
   onFetchRoomDetails,
   onViewDocument,
+  onSelectDocumentForPreview,
   onDownloadDocument,
   onOpenUploadModal,
   onOpenSigningModal,
@@ -359,7 +361,7 @@ export default function DocumentsTab({
             currentUserEmail={currentUserEmail}
             currentUserRole={currentUserRole}
             stateUpdater={stateUpdater}
-            onViewDocument={onViewDocument}
+            onViewDocument={onSelectDocumentForPreview}
             onDownloadDocument={onDownloadDocument}
             onOpenUploadModal={onOpenUploadModal}
           />

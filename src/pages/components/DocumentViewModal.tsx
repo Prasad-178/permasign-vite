@@ -55,6 +55,7 @@ export default function DocumentViewModal({
   }, [documentData, contentType]);
 
   const isPdf = contentType === "application/pdf";
+  const isImage = contentType.startsWith("image/");
 
   return (
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
@@ -78,6 +79,20 @@ export default function DocumentViewModal({
                   <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                     <Viewer fileUrl={objectUrl} />
                   </Worker>
+                </div>
+              ) : isImage ? (
+                <div className="h-full w-full p-4 flex items-center justify-center bg-white overflow-hidden">
+                  <img 
+                    src={objectUrl} 
+                    alt={documentName}
+                    className="max-h-full max-w-full object-contain rounded-lg shadow-lg"
+                    style={{ 
+                      maxHeight: 'calc(95vh - 120px)', 
+                      maxWidth: 'calc(95vw - 64px)', // More conservative width to account for padding
+                      width: 'auto',
+                      height: 'auto'
+                    }}
+                  />
                 </div>
               ) : (
                 <div className="text-center p-8">

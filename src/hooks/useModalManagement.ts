@@ -6,12 +6,14 @@ interface UseModalManagementProps {
   documents: DocumentInfo[];
   getDecryptedRoomKey: () => Promise<string | null>;
   retrieveAndDecrypt: (document: DocumentInfo, decryptedKey: string) => Promise<any>;
+  retrieveAndDecryptWithStitching: (document: DocumentInfo, decryptedKey: string) => Promise<any>;
 }
 
 export function useModalManagement({
   documents,
   getDecryptedRoomKey,
-  retrieveAndDecrypt
+  retrieveAndDecrypt,
+  retrieveAndDecryptWithStitching
 }: UseModalManagementProps) {
   // Upload modal state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -29,6 +31,7 @@ export function useModalManagement({
   // View modal state
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewModalDocData, setViewModalDocData] = useState<string | null>(null);
+  const [viewModalDocument, setViewModalDocument] = useState<DocumentInfo | null>(null);
   const [isPreparingView, setIsPreparingView] = useState(false);
 
   // Upload modal management
@@ -75,7 +78,7 @@ export function useModalManagement({
       }
 
       console.log(`Calling retrieveAndDecrypt for signing modal preview: ${documentId}`);
-      const result = await retrieveAndDecrypt(docToSign, decryptedKey);
+      const result = await retrieveAndDecryptWithStitching(docToSign, decryptedKey);
 
       if (result.success && result.data) {
         setSigningDocumentData(result.data.decryptedData);
@@ -109,6 +112,7 @@ export function useModalManagement({
     setIsPreparingView(true);
     setIsViewModalOpen(true);
     setViewModalDocData(null); // Clear previous data
+    setViewModalDocument(docToView); // Store the document being viewed
 
     try {
       const decryptedKey = await getDecryptedRoomKey();
@@ -116,7 +120,7 @@ export function useModalManagement({
         throw new Error("Failed to obtain decrypted room key for preview.");
       }
 
-      const result = await retrieveAndDecrypt(docToView, decryptedKey);
+      const result = await retrieveAndDecryptWithStitching(docToView, decryptedKey);
 
       if (result.success && result.data) {
         setViewModalDocData(result.data.decryptedData);
@@ -138,6 +142,7 @@ export function useModalManagement({
   const closeViewModal = useCallback(() => {
     setIsViewModalOpen(false);
     setViewModalDocData(null);
+    setViewModalDocument(null);
   }, []);
 
   return {
@@ -161,6 +166,7 @@ export function useModalManagement({
     // View modal state
     isViewModalOpen,
     viewModalDocData,
+    viewModalDocument,
     isPreparingView,
 
     // Actions

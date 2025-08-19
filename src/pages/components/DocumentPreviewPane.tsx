@@ -67,6 +67,7 @@ export default function DocumentPreviewPane({
   }, [objectUrl]);
 
   const isPdf = selectedDocument?.contentType === "application/pdf";
+  const isImage = selectedDocument?.contentType?.startsWith("image/");
   
   // Check if document has signature information
   const hasSignatureInfo = selectedDocument?.emailToSign && selectedDocument?.signature;
@@ -119,7 +120,15 @@ export default function DocumentPreviewPane({
                 <Viewer fileUrl={objectUrl} />
               </Worker>
             </div>
-          ) : objectUrl && !isPdf ? (
+          ) : objectUrl && isImage ? (
+            <div className="h-full w-full p-2 flex items-center justify-center">
+              <img 
+                src={objectUrl} 
+                alt={selectedDocument?.originalFilename || "Document preview"}
+                className="max-h-full max-w-full object-contain rounded"
+              />
+            </div>
+          ) : objectUrl && !isPdf && !isImage ? (
             <div className="flex flex-col items-center justify-center h-full p-6">
               <FileText className="h-16 w-16 text-primary/60 mb-4" />
               <p className="text-center text-muted-foreground">
@@ -136,7 +145,7 @@ export default function DocumentPreviewPane({
                 Select a document to preview its contents here.
               </p>
               <p className="text-center text-muted-foreground text-sm mt-2">
-                Supported formats include PDF, DOCX, PPTX, and more.
+                Supported formats include PDF, images (JPG, PNG, GIF, etc.), and more.
               </p>
             </div>
           )}
