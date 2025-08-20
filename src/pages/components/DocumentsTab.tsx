@@ -143,6 +143,8 @@ export default function DocumentsTab({
   
   const [isDragOver, setIsDragOver] = useState(false);
   const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (typeof onViewDocument === 'function') {}
   
   // Derived state
   const roomPublicKey = roomDetails?.roomPubKey;

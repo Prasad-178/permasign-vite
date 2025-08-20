@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./styles/globals.css";
 import { ArweaveWalletKit } from "@arweave-wallet-kit/react";
-import OthentStrategy from "@arweave-wallet-kit/othent-strategy";
+// import OthentStrategy from "@arweave-wallet-kit/othent-strategy";
 import WAuthStrategy, { WAuthProviders } from "@wauth/strategy";
 import { initAnalytics } from "./lib/analytics";
 import { PostHogProvider } from "posthog-js/react";
