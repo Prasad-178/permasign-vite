@@ -57,7 +57,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   
   
   /**
-   * Encrypts data using the Arweave Wallet Kit API (e.g., Othent).
+   * Encrypts data using the Arweave Wallet Kit API
    * Takes a PEM string, converts to ArrayBuffer, encrypts, returns Base64 bundle.
    */
   export async function encryptPrivateKeyWithAwk(

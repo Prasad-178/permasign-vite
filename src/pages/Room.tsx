@@ -117,16 +117,11 @@ export default function RoomDetailsPage() {
   useEffect(() => {
     const getUserEmail = async () => {
       if (connected && activeAddress && !currentUserEmail) {
-        // Ensure API is available; specific auth strategies handled below
         if (!api) return;
 
-        console.log("Fetching user email for current user...");
         try {
           let email: string;
-
-          // Check if using WAuth authentication
           if (api.id === "wauth-google") {
-            // Prefer authData.email; otherwise, fall back to api.getEmail()
             let wauthEmail: string | undefined = api.authData?.email;
             if (!wauthEmail && typeof (api as any).getEmail === 'function') {
               const emailData = await (api as any).getEmail();
@@ -137,21 +132,11 @@ export default function RoomDetailsPage() {
             }
             email = wauthEmail;
           } else {
-            // Fall back to othent authentication
-            if (!api.othent) {
-              throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
-            }
-            const othentData: any = await api.othent.getUserDetails();
-            if (!othentData?.email) {
-              throw new Error("Could not retrieve your email. Please ensure your wallet is linked with an email.");
-            }
-            email = othentData.email;
+            throw new Error("Only WAuth authentication is supported. Please connect using WAuth Google.");
           }
 
           setCurrentUserEmail(email);
-          console.log("Current user email set:", email);
         } catch (error: any) {
-          console.error("Failed to fetch user details:", error);
           toast.error("Error Fetching User Details", { description: `Could not retrieve your email: ${error.message || 'Unknown error'}.` });
         }
       } else if (!connected && currentUserEmail) {
