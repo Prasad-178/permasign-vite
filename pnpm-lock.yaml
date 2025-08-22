@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@arweave-wallet-kit/core':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@arweave-wallet-kit/react':
         specifier: ^0.3.2
         version: 0.3.2(@arweave-wallet-kit/core@0.1.1)(@arweave-wallet-kit/styles@0.1.1)(@permaweb/aoconnect@0.0.85)(arweave@1.15.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(typescript@5.8.3)
