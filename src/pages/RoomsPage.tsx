@@ -70,7 +70,7 @@ export default function RoomsPage() {
         return;
       }
 
-      // Ensure API is available; specific auth strategies handled below
+      // Ensure API is available
       if (!api) {
         setIsLoading(false);
         setError('Wallet API not available. Please reconnect your wallet.');
@@ -81,10 +81,7 @@ export default function RoomsPage() {
       setError(null);
       try {
         let email: string;
-
-        // Check if using WAuth authentication
         if (api.id === "wauth-google") {
-          // Prefer authData.email when present; otherwise, fall back to api.getEmail()
           let wauthEmail: string | undefined = api.authData?.email;
           if (!wauthEmail && typeof (api as any).getEmail === 'function') {
             const emailData = await (api as any).getEmail();
@@ -95,15 +92,7 @@ export default function RoomsPage() {
           }
           email = wauthEmail;
         } else {
-          // Fall back to othent authentication
-          if (!api.othent) {
-            throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
-          }
-          const details = await api.othent.getUserDetails();
-          if (!details?.email) {
-            throw new Error("Could not retrieve your email. Please ensure your wallet is linked via Othent.");
-          }
-          email = details.email;
+          throw new Error("Only WAuth authentication is supported. Please connect using WAuth Google.");
         }
 
         const result = await listMyDataRooms(email);
@@ -184,7 +173,7 @@ export default function RoomsPage() {
             </CardHeader>
             <CardContent>
               <p className="text-base">{error}</p>
-              {(error?.includes("Othent") || error?.includes("wauth") || error?.includes("email")) && <p className="mt-2 text-sm text-muted-foreground">Please ensure your wallet is correctly linked with an email and try again.</p>}
+              {(error?.includes("wauth") || error?.includes("email")) && <p className="mt-2 text-sm text-muted-foreground">Please ensure your wallet is correctly linked with an email and try again.</p>}
             </CardContent>
           </Card>
         )}

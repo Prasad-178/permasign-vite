@@ -16,8 +16,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Loader2, AlertCircle, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 
-// Define interface for Othent details if not already global
-interface OwnerOthentDetails {
+// Define interface for Auth details if not already global
+interface OwnerAuthDetails {
     email: string;
     name?: string;
 }
@@ -35,66 +35,58 @@ export default function CreateRoomPage() {
 
   const [roomName, setRoomName] = useState("");
   const [isRoomNameTouched, setIsRoomNameTouched] = useState(false);
-  const [ownerOthentDetails, setOwnerOthentDetails] = useState<OwnerOthentDetails | null>(null);
+  const [OwnerAuthDetails, setOwnerAuthDetails] = useState<OwnerAuthDetails | null>(null);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isProcessing, startProcessingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getUserEmail = async () => {
-      if (connected && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
-        // Check if we have either wauth or othent available
-        if (!api || (!api.authData && !api.othent)) return;
+      if (connected && activeAddress && !OwnerAuthDetails && !isFetchingDetails) {
+        if (!api) return;
 
         setIsFetchingDetails(true);
-        console.log("Fetching user email...");
         try {
           let email: string;
           let name: string | undefined;
 
-          // Check if using wauth authentication
+          // WAuth-only authentication
           if (api.id === "wauth-google") {
-            if (!api.authData?.email) {
-              throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+            let wauthEmail: string | undefined = api.authData?.email;
+            if (!wauthEmail && typeof (api as any).getEmail === 'function') {
+              const emailData = await (api as any).getEmail();
+              wauthEmail = emailData?.email;
             }
-            email = api.authData.email;
-            name = api.authData.name;
+            if (!wauthEmail) {
+              throw new Error("Could not retrieve your email from WAuth. Please ensure your Google account is linked.");
+            }
+            email = wauthEmail;
+            name = api.authData?.name;
           } else {
-            // Fall back to othent authentication
-            if (!api.othent) {
-              throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
-            }
-            const othentData: any = await api.othent.getUserDetails();
-            if (!othentData?.email) {
-              throw new Error("Could not retrieve your email from Othent. Ensure you are logged in.");
-            }
-            email = othentData.email;
-            name = othentData.name;
+            throw new Error("Only WAuth authentication is supported. Please connect using WAuth Google.");
           }
 
-          console.log("User details fetched:", { email, name });
-          setOwnerOthentDetails({ email, name });
+          setOwnerAuthDetails({ email, name });
         } catch (err: any) {
-          console.error("Error Fetching User Details:", err);
           toast.error("Authentication Error", { description: `Could not retrieve your details: ${err.message}. Please try reconnecting wallet.` });
-          setOwnerOthentDetails(null);
+          setOwnerAuthDetails(null);
         } finally {
           setIsFetchingDetails(false);
         }
       } else if (!connected || !activeAddress) {
-        if (ownerOthentDetails) setOwnerOthentDetails(null);
+        if (OwnerAuthDetails) setOwnerAuthDetails(null);
         if (isFetchingDetails) setIsFetchingDetails(false);
       }
     };
     getUserEmail();
-  }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
+  }, [api, activeAddress, connected, OwnerAuthDetails, isFetchingDetails]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setError(null);
       setIsRoomNameTouched(true); // Trigger validation on submit
 
-      if (!connected || !activeAddress || !ownerOthentDetails?.email) {
+      if (!connected || !activeAddress || !OwnerAuthDetails?.email) {
           setError("Please connect your wallet and ensure email is loaded.");
           toast.error("Not Ready", { description: "Connect wallet and wait for email to load."});
           return;
@@ -117,7 +109,7 @@ export default function CreateRoomPage() {
           console.log("Calling createRoomWithKmsAction client service (which calls external API)...");
           const actionInput: CreateRoomInput = {
               roomName: roomName.trim(),
-              ownerEmail: ownerOthentDetails.email,
+              ownerEmail: OwnerAuthDetails.email,
               roomPublicKeyPem: roomPublicKey,
               roomPrivateKeyPem: roomPrivateKey,
           };
@@ -152,7 +144,7 @@ export default function CreateRoomPage() {
   };
 
   const isLoading = isFetchingDetails || isProcessing;
-  const isFormDisabled = isLoading || !connected || !ownerOthentDetails?.email;
+  const isFormDisabled = isLoading || !connected || !OwnerAuthDetails?.email;
   const showRoomNameError = isRoomNameTouched && !roomName.trim();
 
   return (
@@ -173,13 +165,13 @@ export default function CreateRoomPage() {
               <CardDescription>
                 Enter a name for your company. You 
                 <span className="italic">
-                  {isFetchingDetails ? 'loading...' : " (" + ownerOthentDetails?.email + ") " || 'not available'}
+                  {isFetchingDetails ? 'loading...' : " (" + OwnerAuthDetails?.email + ") " || 'not available'}
                 </span>
                 will be registered as the founder of the company.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {!isFetchingDetails && connected && !ownerOthentDetails?.email && (
+              {!isFetchingDetails && connected && !OwnerAuthDetails?.email && (
                  <div className="flex items-center gap-2 text-sm text-destructive p-3 bg-destructive/10 rounded-md border border-destructive/20">
                     <AlertCircle className="w-4 h-4 flex-shrink-0"/>
                     <span>Could not load your email. Please try reconnecting your wallet to continue.</span>

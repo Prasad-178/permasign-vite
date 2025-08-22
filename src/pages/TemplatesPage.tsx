@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
 import { Badge } from "../components/ui/badge";
 
-interface OwnerOthentDetails {
+interface OwnerAuthDetails {
     email: string;
     name?: string;
 }
@@ -45,8 +45,9 @@ export default function TemplatesPage() {
     const [newPermissionNames, setNewPermissionNames] = useState<{ [key: string]: string }>({});
     const [aiPrompt, setAiPrompt] = useState("");
     const [isGeneratingAiTemplate, startAiGenerationTransition] = useTransition();
+    const [isCreatingRoom, startRoomCreationTransition] = useTransition();
 
-    const [ownerOthentDetails, setOwnerOthentDetails] = useState<OwnerOthentDetails | null>(null);
+    const [OwnerAuthDetails, setOwnerAuthDetails] = useState<OwnerAuthDetails | null>(null);
     const [isFetchingDetails, setIsFetchingDetails] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -110,46 +111,41 @@ export default function TemplatesPage() {
 
     useEffect(() => {
         const getUserEmail = async () => {
-            if (connected && activeAddress && !ownerOthentDetails && !isFetchingDetails) {
-                // Check if we have either wauth or othent available
-                if (!api || (!api.authData && !api.othent)) return;
+            if (connected && activeAddress && !OwnerAuthDetails && !isFetchingDetails) {
+                if (!api) return;
 
                 setIsFetchingDetails(true);
                 try {
                     let email: string;
                     let name: string | undefined;
 
-                    // Check if using wauth authentication
+                    // Only using WAuth authentication now
                     if (api.id === "wauth-google") {
-                        if (!api.authData?.email) {
-                            throw new Error("Could not retrieve your email from wauth. Please ensure your Google account is properly linked.");
+                        let wauthEmail: string | undefined = api.authData?.email;
+                        if (!wauthEmail && typeof (api as any).getEmail === 'function') {
+                            const emailData = await (api as any).getEmail();
+                            wauthEmail = emailData?.email;
                         }
-                        email = api.authData.email;
-                        name = api.authData.name;
+                        if (!wauthEmail) {
+                            throw new Error("Could not retrieve your email from WAuth. Please ensure your Google account is linked.");
+                        }
+                        email = wauthEmail;
+                        name = api.authData?.name;
                     } else {
-                        // Fall back to othent authentication
-                        if (!api.othent) {
-                            throw new Error("Authentication method not available. Please ensure your wallet is properly connected.");
-                        }
-                        const othentData: any = await api.othent.getUserDetails();
-                        if (!othentData?.email) {
-                            throw new Error("Could not retrieve your email. Please ensure your wallet is linked with an email.");
-                        }
-                        email = othentData.email;
-                        name = othentData.name;
+                        throw new Error("Only WAuth authentication is supported. Please connect using WAuth Google.");
                     }
 
-                    setOwnerOthentDetails({ email, name });
+                    setOwnerAuthDetails({ email, name });
                 } catch (err: any) {
                     toast.error("Authentication Error", { description: `Could not retrieve your details: ${err.message}.` });
-                    setOwnerOthentDetails(null);
+                    setOwnerAuthDetails(null);
                 } finally {
                     setIsFetchingDetails(false);
                 }
             }
         };
         getUserEmail();
-    }, [api, activeAddress, connected, ownerOthentDetails, isFetchingDetails]);
+    }, [api, activeAddress, connected, OwnerAuthDetails, isFetchingDetails]);
 
     const handleUseTemplateClick = (template: Template) => {
         const formattedTemplate = {
@@ -312,7 +308,20 @@ export default function TemplatesPage() {
     };
 
     const handleSubmit = async () => {
-        if (!connected || !activeAddress || !ownerOthentDetails?.email) {
+        // Resolve email directly from WAuth to avoid dependence on state timing
+        let emailForOwner: string | null = null;
+        if (api?.id === "wauth-google") {
+            emailForOwner = api.authData?.email || null;
+            if (!emailForOwner && typeof (api as any).getEmail === 'function') {
+                try {
+                    const emailData = await (api as any).getEmail();
+                    emailForOwner = emailData?.email || null;
+                } catch {
+                    emailForOwner = null;
+                }
+            }
+        }
+        if (!connected || !activeAddress || !emailForOwner) {
             toast.error("Not Ready", { description: "Please connect your wallet and wait for email to load." });
             return;
         }
@@ -321,7 +330,7 @@ export default function TemplatesPage() {
             return;
         }
 
-        startAiGenerationTransition(async () => {
+        startRoomCreationTransition(async () => {
             const toastId = toast.loading("Generating keys and creating company...", { description: `Using customized '${editedTemplate.name}' template.` });
             try {
                 const { publicKeyPem, privateKeyPem } = await generateRoomKeyPairPem();
@@ -345,7 +354,7 @@ export default function TemplatesPage() {
 
                 const input: CreateRoomFromTemplateInput = {
                     roomName: roomName.trim(),
-                    ownerEmail: ownerOthentDetails.email,
+                    ownerEmail: emailForOwner,
                     templateName: editedTemplate.name,
                     roles: customRoles, // Only send custom roles, not default ones
                     permissions: normalizedPermissions, // Use lowercase for default roles
@@ -381,7 +390,7 @@ export default function TemplatesPage() {
         return <div className="flex h-screen items-center justify-center"><CustomLoader text="Loading templates..." /></div>;
     }
 
-    const isLoading = isFetchingDetails || isGeneratingAiTemplate;
+    const isLoading = isFetchingDetails || isGeneratingAiTemplate || isCreatingRoom;
 
     return (
         <RequireLogin>
@@ -558,7 +567,7 @@ export default function TemplatesPage() {
                                     <div className="flex justify-between mt-6">
                                         <Button variant="outline" onClick={() => setModalStep(0)}>Back</Button>
                                         <Button onClick={handleSubmit} disabled={isLoading || !roomName.trim()}>
-                                            {isGeneratingAiTemplate ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "Create Company"}
+                                            {isCreatingRoom ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "Create Company"}
                                         </Button>
                                     </div>
                                 </div>
