@@ -9,6 +9,10 @@ interface IStatistics {
   totalSignatures: number;
 }
 
+// In-memory cache for statistics (per SPA session)
+let cachedStatistics: IStatistics | null = null;
+let cachedStatisticsPromise: Promise<IStatistics> | null = null;
+
 const statisticsConfig = [
   {
     key: "totalSignatures" as keyof IStatistics,
@@ -42,15 +46,45 @@ export const StatisticsTab = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      try {
-        const res = await getStatisticsClient();
-        if (res.success) {
-          setStats(res.data);
+      // Serve from cache if available
+      if (cachedStatistics) {
+        setStats(cachedStatistics);
+        setLoading(false);
+        return;
+      }
+
+      // If a request is already in flight, await it
+      if (cachedStatisticsPromise) {
+        try {
+          const data = await cachedStatisticsPromise;
+          setStats(data);
+        } catch (error) {
+          console.error("Error fetching statistics:", error);
+        } finally {
+          setLoading(false);
         }
+        return;
+      }
+
+      // Otherwise, start a new request and cache the promise
+      cachedStatisticsPromise = (async () => {
+        const res = await getStatisticsClient();
+        if (res && res.success && res.data) {
+          cachedStatistics = res.data as IStatistics;
+          return cachedStatistics;
+        }
+        throw new Error("Failed to load statistics");
+      })();
+
+      try {
+        const data = await cachedStatisticsPromise;
+        setStats(data);
       } catch (error) {
         console.error("Error fetching statistics:", error);
       } finally {
         setLoading(false);
+        // Clear the promise after resolution; retain the cached data
+        cachedStatisticsPromise = null;
       }
     };
 
