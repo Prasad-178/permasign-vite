@@ -9,7 +9,7 @@ interface DocumentDetailsPaneProps {
   documents: DocumentInfo[];
   currentUserEmail: string | null;
   roomDetails: RoomDetails;
-  isFounder: boolean;
+  isAdmin: boolean;
   isSigningDoc: string | null;
   isSigningModalOpen: boolean;
   onOpenAddSignerModal: (documentId: string) => void;
@@ -21,7 +21,7 @@ export default function DocumentDetailsPane({
   documents,
   currentUserEmail,
 //   roomDetails,
-  isFounder,
+  isAdmin,
   isSigningDoc,
   isSigningModalOpen,
   onOpenAddSignerModal,
@@ -41,7 +41,7 @@ export default function DocumentDetailsPane({
   }
 
   const isUploader = currentUserEmail === selectedDocument.uploaderEmail;
-  const canManageSigners = isFounder || isUploader;
+  const canManageSigners = isAdmin || isUploader;
   
   // Get signature records for this document
   const signatureRecords = documents.filter(doc => doc.documentId === selectedDocument.documentId);

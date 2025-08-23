@@ -440,20 +440,6 @@ export default function RoomDetailsPage() {
     retrieveAndDecryptWithStitching
   });
 
-  // const isFounder = currentUserRole === 'founder';
-  // const isCFO = currentUserRole === 'cfo';
-  // const isInvestor = currentUserRole === 'investor';
-  // const isAuditor = currentUserRole === 'auditor';
-
-  // const canUpload = true;
-  // const canManageMembers = isFounder || isCFO;
-  // const canAddCFO = isFounder;
-  // const canAddInvestor = isFounder || isCFO;
-  // const canAddAuditor = isInvestor;
-  // const canAddCustomer = isFounder || isCFO;
-  // const canAddVendor = isFounder || isCFO;
-  // const canAddAnyMember = canAddCFO || canAddInvestor || canAddAuditor || canAddCustomer || canAddVendor;
-
   useEffect(() => {
     if (isUploadModalOpen) {
       initializeSigners();
@@ -530,20 +516,6 @@ export default function RoomDetailsPage() {
   if (!roomPublicKey) {
       console.error("CRITICAL: Room public key is missing from room details! Uploads will be disabled.");
   }
-
-  // [MODIFIED] This correctly gets the allowed document types for the current user's role.
-  // const currentUserRoleDetails = roomDetails.roomRoles.find(r => r.roleName === currentUserRole);
-  // const allowedUploadCategories = currentUserRoleDetails ? currentUserRoleDetails.documentTypes : [];
-
-  // const sortedRoles = [...roomDetails.roomRoles]
-    // .filter(role => role.documentTypes.length > 0)
-    // .sort((a, b) => {
-    //   if (a.roleName === 'founder') return -1;
-    //   if (b.roleName === 'founder') return 1;
-    //   return a.roleName.localeCompare(b.roleName);
-    // });
-
-  // const defaultOpenRoles = sortedRoles.map(role => role.roleName);
 
   return (
     <RequireLogin>

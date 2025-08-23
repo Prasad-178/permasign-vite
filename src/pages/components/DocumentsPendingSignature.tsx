@@ -113,7 +113,8 @@ export default function DocumentsPendingSignature({
     return !allSigned;
   });
 
-  const isFounder = roomDetails?.members.find(m => m.userEmail === currentUserEmail)?.role === 'founder';
+  const currentUserRole = roomDetails?.members.find(m => m.userEmail === currentUserEmail)?.role || null;
+  const isAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === currentUserRole && rp.isAdmin === 'true');
 
   return (
     <div className="w-1/2 overflow-auto border rounded-md bg-card p-4">
@@ -161,7 +162,7 @@ export default function DocumentsPendingSignature({
             const overallStatusText = "Pending";
 
             const isUploader = currentUserEmail === doc.uploaderEmail;
-            const canManageSigners = isFounder || isUploader;
+            const canManageSigners = isAdmin || isUploader;
 
             return (
               <div key={doc.documentId} className="border rounded-lg p-4 bg-muted/20 hover:bg-muted/30 transition-colors">

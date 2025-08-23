@@ -39,6 +39,8 @@ export default function CreateRoomPage() {
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [isProcessing, startProcessingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [ownerRoleName, setOwnerRoleName] = useState<string>("Founder");
+  const [isOwnerRoleTouched, setIsOwnerRoleTouched] = useState(false);
 
   useEffect(() => {
     const getUserEmail = async () => {
@@ -96,6 +98,11 @@ export default function CreateRoomPage() {
           toast.error("Input Required", { description: "Company name cannot be empty."});
           return;
       }
+      if (!ownerRoleName.trim()) {
+          setError("Please enter your role.");
+          toast.error("Input Required", { description: "Your role cannot be empty."});
+          return;
+      }
 
       startProcessingTransition(async () => {
         console.log("Starting room creation process...");
@@ -112,6 +119,7 @@ export default function CreateRoomPage() {
               ownerEmail: OwnerAuthDetails.email,
               roomPublicKeyPem: roomPublicKey,
               roomPrivateKeyPem: roomPrivateKey,
+              ownerRoleName: ownerRoleName.trim(),
           };
           const result: CreateRoomResult = await createRoomWithKmsAction(actionInput);
 
@@ -167,7 +175,7 @@ export default function CreateRoomPage() {
                 <span className="italic">
                   {isFetchingDetails ? 'loading...' : " (" + OwnerAuthDetails?.email + ") " || 'not available'}
                 </span>
-                will be registered as the founder of the company.
+                will be registered under your chosen non-deletable owner role.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -193,6 +201,25 @@ export default function CreateRoomPage() {
                   className="mt-2 text-base py-6"
                 />
                  {showRoomNameError && <p id="roomNameError" className="text-sm text-destructive pt-2">Company name is required.</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="ownerRoleName" className="font-semibold">Your Role</Label>
+                <Input
+                  id="ownerRoleName"
+                  name="ownerRoleName"
+                  value={ownerRoleName}
+                  onChange={(e) => setOwnerRoleName(e.target.value)}
+                  onBlur={() => setIsOwnerRoleTouched(true)}
+                  placeholder="e.g., Founder, CEO, PM"
+                  required
+                  disabled={isFormDisabled}
+                  aria-describedby="ownerRoleNameError"
+                  className="mt-2 text-base py-6"
+                />
+                {isOwnerRoleTouched && !ownerRoleName.trim() && (
+                  <p id="ownerRoleNameError" className="text-sm text-destructive pt-2">Your role is required.</p>
+                )}
               </div>
 
             </CardContent>
