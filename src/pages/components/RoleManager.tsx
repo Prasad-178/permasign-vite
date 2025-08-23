@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, Crown, User, Loader2, Settings, X, Trash2, Lock } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, User, Loader2, Settings, X, Trash2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
@@ -24,7 +24,6 @@ interface RoleManagerProps {
 }
 
 const getRoleIcon = (roleName: string) => {
-    if (roleName === 'founder') return <Crown className="mr-2 h-4 w-4 text-yellow-500" />;
     if (roleName === 'member') return <User className="mr-2 h-4 w-4 text-muted-foreground" />;
     return <Shield className="mr-2 h-4 w-4 text-muted-foreground" />;
 };
@@ -185,15 +184,9 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
     }
   };
   
-  const sortedRoles = [...(roomDetails.roomRoles || [])].sort((a, b) => {
-    if (a.roleName === 'founder') return -1;
-    if (b.roleName === 'founder') return 1;
-    if (a.roleName === 'member') return 1;
-    if (b.roleName === 'member') return -1;
-    return a.roleName.localeCompare(b.roleName);
-  });
+  const sortedRoles = [...(roomDetails.roomRoles || [])].sort((a, b) => a.roleName.localeCompare(b.roleName));
 
-  const canManageRoles = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role === 'founder';
+  const canManageRoles = (roomDetails.rolePermissions || []).some(rp => rp.roleName === roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role && rp.isAdmin === 'true');
 
   if (!canManageRoles) {
       return (
@@ -205,7 +198,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <p className="text-muted-foreground">You do not have permission to manage roles in this room. This functionality is restricted to the room founder.</p>
+                  <p className="text-muted-foreground">You do not have permission to manage roles in this room. This functionality is restricted to room admins.</p>
               </CardContent>
           </Card>
       );

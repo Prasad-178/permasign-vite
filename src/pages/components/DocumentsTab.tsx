@@ -150,7 +150,7 @@ export default function DocumentsTab({
   const roomPublicKey = roomDetails?.roomPubKey;
   const currentUserRoleDetails = roomDetails?.roomRoles.find(r => r.roleName === currentUserRole);
   const allowedUploadCategories = currentUserRoleDetails ? currentUserRoleDetails.documentTypes : [];
-  const isFounder = currentUserRole === 'founder';
+  const isAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === currentUserRole && rp.isAdmin === 'true');
 
   const handleUploadModalChange = (isOpen: boolean) => {
     onSetIsUploadModalOpen(isOpen);
@@ -382,7 +382,7 @@ export default function DocumentsTab({
               documents={documents}
               currentUserEmail={currentUserEmail}
               roomDetails={roomDetails}
-              isFounder={isFounder}
+              isAdmin={isAdmin}
               isSigningDoc={isSigningDoc}
               isSigningModalOpen={isSigningModalOpen}
               onOpenAddSignerModal={onOpenAddSignerModal}

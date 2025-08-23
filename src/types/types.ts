@@ -1,5 +1,5 @@
-export const backendURL = "https://permasign-backend-production.up.railway.app";
-// export const backendURL = "http://localhost:3001";
+// export const backendURL = "https://permasign-backend-production.up.railway.app";
+export const backendURL = "http://localhost:3001";
 
 export interface ActionResult<T> {
   success: boolean; // Explicit success/failure flag
@@ -39,39 +39,6 @@ export type ModifySignerResult = {
     messageId?: string;
 };
 
-export const documentFolders = [
-  {
-    id: 'company',
-    name: 'Company Documents',
-    categories: ['founders_agreement', 'board_resolutions', 'cap_table']
-  },
-  {
-    id: 'investor',
-    name: 'Investor Documents',
-    categories: ['termsheet', 'shareholders_agreement', 'safe_convertible_notes']
-  },
-  {
-    id: 'auditor',
-    name: 'Auditor Documents',
-    categories: ['audit_report']
-  },
-  {
-    id: 'vendor',
-    name: 'Vendor Documents',
-    categories: ['procurement_contract', 'quality_assurance_agreement']
-  },
-  {
-    id: 'customer',
-    name: 'Customer Documents',
-    categories: ['master_service', 'statement_of_work']
-  },
-  {
-    id: 'compliance',
-    name: 'Compliance Documents',
-    categories: ['registration_certificates', 'licences_and_certifications']
-  },
-];
-
 // --- Interfaces (Updated Roles) ---
 export type RoomRole = string;
 
@@ -87,6 +54,7 @@ export interface CreateRoomInput {
   ownerEmail: string;
   roomPublicKeyPem: string;  // RSA Public Key in PEM format
   roomPrivateKeyPem: string; // RSA Private Key in PEM format (RAW) - sent to server for KMS
+  ownerRoleName: string; // New: dynamic non-deletable owner role name (e.g., Founder/CEO)
 }
 
 // Definition for the result of the create room action
@@ -121,6 +89,7 @@ export interface RoomDetails {
     documentDetails: DocumentInfo[];
     roomRoles: RoomRoles[];
     activityLogs: RoomLog[];
+    rolePermissions?: { roleName: string; isAdmin: "true" | "false" }[]; // New: permissions per role
 }
 export type GetRoomDetailsResult = ActionResult<RoomDetails | null>;
 export interface DocumentSignatures {
@@ -390,6 +359,7 @@ export interface CreateRoomFromTemplateInput {
   permissions: { [role: string]: string[] };
   roomPublicKeyPem: string;
   roomPrivateKeyPem: string;
+  ownerRoleName: string; // New: dynamic owner role name for this room
 }
 
 export interface Member {

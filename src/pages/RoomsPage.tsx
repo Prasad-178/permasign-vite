@@ -149,7 +149,7 @@ export default function RoomsPage() {
                 <div className="flex-grow">
                   <FilePlus className="w-10 h-10 text-primary mb-3" />
                   <h3 className="text-lg font-semibold">From Scratch</h3>
-                  <p className="text-muted-foreground text-sm mt-1">Start with a blank slate. You'll be the founder and can invite members and define roles as you go.</p>
+                  <p className="text-muted-foreground text-sm mt-1">Start with a blank slate. You'll set your own non-deletable owner role and can invite members and define roles as you go.</p>
                 </div>
                 <Button className="w-full mt-6" variant="secondary">
                   Create Blank Company

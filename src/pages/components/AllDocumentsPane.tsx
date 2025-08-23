@@ -44,15 +44,11 @@ export default function AllDocumentsPane({
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
   const [isDeletingRole, setIsDeletingRole] = useState(false);
 
-  const isFounder = currentUserRole === 'founder';
+  const isAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === currentUserRole && rp.isAdmin === 'true');
 
   const sortedRoles = [...roomDetails.roomRoles]
     .filter(role => role.documentTypes.length > 0)
-    .sort((a, b) => {
-      if (a.roleName === 'founder') return -1;
-      if (b.roleName === 'founder') return 1;
-      return a.roleName.localeCompare(b.roleName);
-    });
+    .sort((a, b) => a.roleName.localeCompare(b.roleName));
 
   const defaultOpenRoles = sortedRoles.map(role => role.roleName);
 
@@ -73,7 +69,7 @@ export default function AllDocumentsPane({
   };
 
   const handleSavePermission = async (roleName: string) => {
-    if (!newPermissionInput.trim() || !currentUserEmail || !isFounder) return;
+    if (!newPermissionInput.trim() || !currentUserEmail || !isAdmin) return;
 
     const permissionToAdd = newPermissionInput.trim();
 
@@ -131,14 +127,14 @@ export default function AllDocumentsPane({
   };
 
   const handleDeleteRoleClick = (roleName: string) => {
-    if (!currentUserEmail || !isFounder || roleName === 'founder') return;
+    if (!currentUserEmail || !isAdmin || roleName === 'member') return;
     
     setRoleToDelete(roleName);
     setIsDeleteModalOpen(true);
   };
 
   const handleConfirmDeleteRole = async () => {
-    if (!roleToDelete || !currentUserEmail || !isFounder) return;
+    if (!roleToDelete || !currentUserEmail || !isAdmin) return;
 
     setIsDeletingRole(true);
     try {
@@ -187,7 +183,7 @@ export default function AllDocumentsPane({
                     <span>{role.roleName.replace(/_/g, ' ')}</span>
                   </div>
                   <div>
-                    {isFounder && (
+                    {isAdmin && (
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
@@ -201,7 +197,7 @@ export default function AllDocumentsPane({
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
-                        {role.roleName !== 'founder' && role.isDeletable && (
+                        {role.roleName !== 'member' && role.isDeletable && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -364,7 +360,7 @@ export default function AllDocumentsPane({
                   </Accordion>
                   
                   {/* Add Permission Input Field */}
-                  {isFounder && addingPermissionToRole === role.roleName && (
+                  {isAdmin && addingPermissionToRole === role.roleName && (
                     <div className="flex items-center gap-2 pl-2 pr-1 py-1">
                       <Input
                         value={newPermissionInput}

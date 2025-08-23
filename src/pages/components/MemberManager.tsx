@@ -9,7 +9,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { UserPlus, Crown, User, Shield, UserCog, Loader2 } from "lucide-react";
+import { UserPlus, User, Shield, UserCog, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { addMemberFormAdapter, removeMemberFormAdapter, updateMemberRoleFormAdapter } from "../../services/roomActionsClient";
 import AddMemberSubmitButton from "./AddMemberSubmitButton";
@@ -22,9 +22,6 @@ interface MemberManagerProps {
 }
 
 const getRoleIcon = (roleName: string, className: string) => {
-    if (roleName === 'founder') {
-        return <Crown className={className} />;
-    }
     if (roleName === 'member') {
       return <User className={className} />;
     }
@@ -123,11 +120,10 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
   }, [updateRoleState, memberToUpdate, newRole, currentUserEmail]);
 
   const currentUserRole = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role;
-  const isFounder = currentUserRole === 'founder';
-  const isCFO = currentUserRole === 'cfo';
+  const isAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === currentUserRole && rp.isAdmin === 'true');
 
-  const canManageMembers = isFounder || isCFO;
-  const availableRolesToAdd = roomDetails.roomRoles.filter(role => role.roleName !== 'founder');
+  const canManageMembers = isAdmin;
+  const availableRolesToAdd = roomDetails.roomRoles.filter(role => role.roleName !== 'member');
 
   const handleOpenUpdateModal = (member: { userEmail: string; role: string }) => {
     setMemberToUpdate({ email: member.userEmail, role: member.role });
@@ -242,7 +238,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {isFounder && member.role !== 'founder' && (
+                {isAdmin && member.role !== 'member' && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -253,7 +249,10 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
                     <UserCog className="h-4 w-4" />
                   </Button>
                 )}
-                {canManageMembers && member.role !== 'founder' && (
+                {(() => {
+                  const targetIsAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === member.role && rp.isAdmin === 'true');
+                  return canManageMembers && !targetIsAdmin;
+                })() && (
                   <form
                     id={`remove-member-form-${member.userEmail}`}
                     action={removeMemberFormAction}

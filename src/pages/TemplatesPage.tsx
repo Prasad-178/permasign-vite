@@ -16,6 +16,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Loader2, FileText, CheckCircle, Users, ScrollText, PlusCircle, Trash2, ArrowRight, X, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { CustomLoader } from "../components/ui/CustomLoader";
@@ -41,6 +42,8 @@ export default function TemplatesPage() {
     const [roomName, setRoomName] = useState("");
     const [isRoomNameTouched, setIsRoomNameTouched] = useState(false);
     const [modalStep, setModalStep] = useState(0);
+    const [ownerRoleName, setOwnerRoleName] = useState<string>("Founder");
+    const [isOwnerRoleTouched, setIsOwnerRoleTouched] = useState(false);
     const [newRoleName, setNewRoleName] = useState("");
     const [newPermissionNames, setNewPermissionNames] = useState<{ [key: string]: string }>({});
     const [aiPrompt, setAiPrompt] = useState("");
@@ -57,6 +60,8 @@ export default function TemplatesPage() {
     const formatName = (name: string) => {
         return name.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     };
+
+    if (typeof setIsOwnerRoleTouched === 'function') {}
 
     if (selectedTemplate) {}
 
@@ -80,6 +85,10 @@ export default function TemplatesPage() {
             }
             return { ...prev, roles: updatedRoles, permissions: updatedPermissions };
         });
+        // Keep ownerRoleName in sync if user renamed the owner role (default 'Founder')
+        if (oldName === ownerRoleName) {
+            setOwnerRoleName(formatName(newName.trim()));
+        }
         setEditingRole(null);
     };
 
@@ -170,6 +179,7 @@ export default function TemplatesPage() {
         setEditedTemplate(newEditedTemplate);
         setRoomName("");
         setIsRoomNameTouched(false);
+        setOwnerRoleName("Founder");
         setModalStep(0);
         setIsCreateModalOpen(true);
     };
@@ -329,6 +339,10 @@ export default function TemplatesPage() {
             toast.error("Input Required", { description: "Company name and a template are required." });
             return;
         }
+        if (!ownerRoleName.trim()) {
+            toast.error("Input Required", { description: "Your role cannot be empty." });
+            return;
+        }
 
         startRoomCreationTransition(async () => {
             const toastId = toast.loading("Generating keys and creating company...", { description: `Using customized '${editedTemplate.name}' template.` });
@@ -360,6 +374,7 @@ export default function TemplatesPage() {
                     permissions: normalizedPermissions, // Use lowercase for default roles
                     roomPublicKeyPem: publicKeyPem,
                     roomPrivateKeyPem: privateKeyPem,
+                    ownerRoleName: ownerRoleName.trim(),
                 };
 
                 const result: CreateRoomResult = await createRoomFromTemplateAction(input);
@@ -488,7 +503,7 @@ export default function TemplatesPage() {
                                                             className="h-8"
                                                         />
                                                     ) : (
-                                                        <h4 className="font-semibold capitalize flex items-center text-base cursor-pointer" onClick={() => role !== 'Founder' && role !== 'Member' && setEditingRole(role)}>
+                                                        <h4 className="font-semibold capitalize flex items-center text-base cursor-pointer" onClick={() => role !== 'Member' && setEditingRole(role)}>
                                                             <Users className="w-4 h-4 mr-2 text-primary" />
                                                             {role}
                                                         </h4>
@@ -563,6 +578,24 @@ export default function TemplatesPage() {
                                             className="mt-2"
                                         />
                                         {isRoomNameTouched && !roomName.trim() && <p className="text-sm text-destructive pt-2">Company name is required.</p>}
+                                    </div>
+                                    <div className="mt-4">
+                                        <Label htmlFor="ownerRoleName" className="font-semibold">Your Role</Label>
+                                        <Select
+                                            value={ownerRoleName}
+                                            onValueChange={(value) => setOwnerRoleName(value)}
+                                            name="ownerRoleName"
+                                        >
+                                            <SelectTrigger className="mt-2 capitalize">
+                                                <SelectValue placeholder="Select your role" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
+                                                    <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {isOwnerRoleTouched && !ownerRoleName.trim() && <p className="text-sm text-destructive pt-2">Your role is required.</p>}
                                     </div>
                                     <div className="flex justify-between mt-6">
                                         <Button variant="outline" onClick={() => setModalStep(0)}>Back</Button>
