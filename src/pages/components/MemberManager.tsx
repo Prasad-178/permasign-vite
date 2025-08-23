@@ -121,6 +121,7 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
 
   const currentUserRole = roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role;
   const isAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === currentUserRole && rp.isAdmin === 'true');
+  const adminRoles = (roomDetails.rolePermissions || []).filter(rp => rp.isAdmin === 'true').map(rp => rp.roleName);
 
   const canManageMembers = isAdmin;
   const availableRolesToAdd = roomDetails.roomRoles.filter(role => role.roleName !== 'member');
@@ -238,7 +239,10 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {isAdmin && member.role !== 'member' && (
+                {(() => {
+                  const targetIsAdmin = (roomDetails.rolePermissions || []).some(rp => rp.roleName === member.role && rp.isAdmin === 'true');
+                  return isAdmin && (!targetIsAdmin || member.userEmail === currentUserEmail);
+                })() && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -297,11 +301,17 @@ export default function MemberManager({ roomDetails, currentUserEmail, stateUpda
                     <SelectValue placeholder="Select a new role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRolesToAdd.map(role => (
+                    {(() => {
+                      const isSelf = memberToUpdate && memberToUpdate.email === currentUserEmail;
+                      const roleList = isSelf
+                        ? roomDetails.roomRoles.filter(r => adminRoles.includes(r.roleName))
+                        : availableRolesToAdd;
+                      return roleList.map(role => (
                         <SelectItem key={role.roleName} value={role.roleName} className="capitalize">
                           {role.roleName.replace(/_/g, ' ')}
                         </SelectItem>
-                    ))}
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>

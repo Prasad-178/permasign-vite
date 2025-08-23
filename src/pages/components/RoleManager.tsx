@@ -9,7 +9,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "../../components/ui/dialog";
-import { PlusCircle, Shield, AlertTriangle, User, Loader2, Settings, X, Trash2, Lock } from "lucide-react";
+import { PlusCircle, Shield, AlertTriangle, User, Loader2, Settings, X, Trash2, Lock, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { addRoleFormAdapter, deleteRoleClientAction, addRolePermissionClientAction, removeRolePermissionClientAction } from "../../services/roomActionsClient";
 import AddRoleSubmitButton from "./AddRoleSubmitButton";
@@ -184,7 +184,14 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
     }
   };
   
-  const sortedRoles = [...(roomDetails.roomRoles || [])].sort((a, b) => a.roleName.localeCompare(b.roleName));
+  const adminRoleNames = (roomDetails.rolePermissions || []).filter(rp => rp.isAdmin === 'true').map(rp => rp.roleName);
+  const sortedRoles = [...(roomDetails.roomRoles || [])].sort((a, b) => {
+    const aIsAdmin = adminRoleNames.includes(a.roleName);
+    const bIsAdmin = adminRoleNames.includes(b.roleName);
+    if (aIsAdmin && !bIsAdmin) return -1;
+    if (!aIsAdmin && bIsAdmin) return 1;
+    return a.roleName.localeCompare(b.roleName);
+  });
 
   const canManageRoles = (roomDetails.rolePermissions || []).some(rp => rp.roleName === roomDetails.members.find(m => m.userEmail === currentUserEmail)?.role && rp.isAdmin === 'true');
 
@@ -270,6 +277,7 @@ export default function RoleManager({ roomDetails, currentUserEmail, stateUpdate
               <CardTitle className="text-sm font-medium capitalize flex items-center">
                 {getRoleIcon(role.roleName)}
                 {role.roleName.replace(/_/g, ' ')}
+                {adminRoleNames.includes(role.roleName) && <Crown className="ml-2 h-3.5 w-3.5 text-yellow-500" />}
               </CardTitle>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedRole(role); setIsSettingsModalOpen(true); }}>
                 <Settings className="h-4 w-4" />

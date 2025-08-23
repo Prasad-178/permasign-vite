@@ -490,7 +490,7 @@ export default function TemplatesPage() {
                             
                             {modalStep === 0 && (
                                 <div className="py-4 max-h-[60vh] overflow-y-auto pr-4">
-                                    {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
+                                    {[ownerRoleName, 'Member', ...editedTemplate.roles.filter(r => r !== ownerRoleName && r !== 'Member')].map(role => (
                                         <div key={role} className="p-4 rounded-lg bg-muted/50 mb-4">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
@@ -508,11 +508,11 @@ export default function TemplatesPage() {
                                                             {role}
                                                         </h4>
                                                     )}
-                                                    {(role === 'Founder' || role === 'Member') && (
+                                                    {(role === ownerRoleName || role === 'Member') && (
                                                         <Badge variant="outline" className="flex items-center gap-1 text-xs"><ShieldCheck className="w-3 h-3"/>System Role</Badge>
                                                     )}
                                                 </div>
-                                                {(role !== 'Founder' && role !== 'Member') && (
+                                                {(role !== ownerRoleName && role !== 'Member') && (
                                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveRole(role)}>
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -557,7 +557,7 @@ export default function TemplatesPage() {
                                     <div className="mb-6">
                                         <h3 className="font-semibold text-lg mb-2">Configuration Summary</h3>
                                         <div className="p-4 rounded-lg bg-muted/50 max-h-48 overflow-y-auto">
-                                            {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
+                                            {[ownerRoleName, 'Member', ...editedTemplate.roles.filter(r => r !== ownerRoleName && r !== 'Member')].map(role => (
                                                 <div key={role} className="mb-2">
                                                     <h4 className="font-semibold capitalize">{role}</h4>
                                                     <p className="text-sm text-muted-foreground">{editedTemplate.permissions[role]?.join(', ') || "No permissions"}</p>
@@ -590,9 +590,8 @@ export default function TemplatesPage() {
                                                 <SelectValue placeholder="Select your role" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {['Founder', 'Member', ...editedTemplate.roles.filter(r => r !== 'Founder' && r !== 'Member')].map(role => (
-                                                    <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                                                ))}
+                                                {/* Only allow selecting a role that will be the admin (ownerRoleName). The creator must be admin. */}
+                                                <SelectItem key={ownerRoleName} value={ownerRoleName} className="capitalize">{ownerRoleName}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         {isOwnerRoleTouched && !ownerRoleName.trim() && <p className="text-sm text-destructive pt-2">Your role is required.</p>}
